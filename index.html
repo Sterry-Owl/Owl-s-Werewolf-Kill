@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>天黑請閉眼（鶯鶯製） v1.6</title>
+    <title>天黑請閉眼（鶯鶯製） v1.7</title>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <style>
         :root {
@@ -54,7 +54,7 @@
 <body>
 
 <div class="container">
-    <h2 style="text-align: center; color: #fff;">天黑請閉眼（鶯鶯製） v1.6</h2>
+    <h2 style="text-align: center; color: #fff;">天黑請閉眼（鶯鶯製） v1.7</h2>
 
     <div id="role-selection" class="section" style="text-align: center;">
         <h3>請選擇登入身分</h3>
@@ -63,6 +63,7 @@
         <button onclick="showPlayerJoin()" style="background: var(--accent-green);">一般玩家 (加入房間)</button>
     </div>
 
+    <!-- ==================== 圖書管理員介面 ==================== -->
     <div id="librarian-section" class="section hidden">
         <h3 style="color: var(--accent-blue);">圖書管理員：建置全局牌庫</h3>
         
@@ -90,6 +91,7 @@
         <button id="btn-sync" onclick="syncToGitHub()" style="margin-top: 20px; background: var(--accent-green); width: 100%; font-size: 18px; padding: 15px;" disabled>☁️ 將目前清單同步至 GitHub 伺服器</button>
     </div>
 
+    <!-- ==================== 主持人介面 ==================== -->
     <div id="host-dashboard" class="section hidden">
         <h3 style="color: var(--accent-blue); display: flex; justify-content: space-between; align-items: center;">
             主控台 <span style="color: #fff; font-size: 16px;">房間代碼：<strong id="room-code-display" style="color: var(--accent-red); font-size: 32px;">...</strong></span>
@@ -107,6 +109,7 @@
         <h3 style="text-align: right; margin-top: 20px;">本局總張數：<strong id="host-total-cards" style="color: var(--accent-blue); font-size: 24px;">0</strong></h3>
     </div>
 
+    <!-- ==================== 玩家介面 ==================== -->
     <div id="player-join-section" class="section hidden" style="max-width: 400px; margin: auto;">
         <h3 style="text-align: center; color: var(--accent-green);">加入房間</h3>
         <input type="text" id="join-room-code" placeholder="請輸入房間代碼 (4碼)" style="font-size: 18px; text-align: center; letter-spacing: 2px;">
@@ -131,13 +134,13 @@
         </div>
     </div>
 </div>
-
 <script>
     const peerConfig = { config: { 'iceServers': [{ url: 'stun:stun.l.google.com:19302' }, { url: 'stun:stun1.l.google.com:19302' }] } };
     let peer = null, connections = {}, players = [], roomConfig = [], fullDeck = [], nextSeatNumber = 1, myPeerId = null, isGameDealt = false;
     let library = [];
     const defaultSvg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="%23555"><rect width="80" height="80"/></svg>';
 
+    // --- 工具函數 ---
     function getBase64(file) {
         return new Promise((resolve, reject) => {
             if (!file) return resolve('');
@@ -158,10 +161,11 @@
             return data.map(card => ({ ...card, qty: 0 }));
         } catch (error) {
             console.warn('目前無預設 cards.json 或讀取失敗。');
-            return [];
+            return []; // 即使發生錯誤，也回傳空陣列，防止後續邏輯卡死
         }
     }
 
+    // ==================== 圖書管理員邏輯 (GitHub API) ====================
     function showLibrarian() {
         document.getElementById('role-selection').classList.add('hidden');
         document.getElementById('librarian-section').classList.remove('hidden');
@@ -203,7 +207,15 @@
             if(res.ok) {
                 const data = await res.json();
                 const content = decodeURIComponent(escape(atob(data.content)));
-                library = JSON.parse(content);
+                
+                // 防呆：嘗試解析 JSON，如果檔案是空的或是壞的，就當作空陣列處理
+                try {
+                    library = JSON.parse(content);
+                    if (!Array.isArray(library)) library = [];
+                } catch(e) {
+                    library = [];
+                }
+                
                 localStorage.setItem('gh_file_sha', data.sha); 
                 document.getElementById('gh-status').innerText = '✅ 成功抓取最新牌庫！';
                 unlockLibrarianButtons();
@@ -217,8 +229,10 @@
             }
             renderLibraryTable();
         } catch (err) {
-            document.getElementById('gh-status').innerText = '❌ 錯誤：' + err.message;
-            document.getElementById('btn-add-card').innerText = '連線失敗，無法新增';
+            // 終極防呆：發生任何非預期錯誤（如檔案為空報錯），依然視為空陣列並解鎖
+            library = [];
+            document.getElementById('gh-status').innerText = '⚠️ 讀取異常 (' + err.message + ')。已切換為強制覆寫模式，可直接新增並同步。';
+            unlockLibrarianButtons();
         }
     }
     
@@ -308,7 +322,7 @@
             btn.disabled = false;
         }
     }
-
+// ==================== 主持人邏輯 ====================
     async function initHost() {
         document.getElementById('role-selection').classList.add('hidden');
         
@@ -424,6 +438,7 @@
         renderHostCircle();
     }
 
+    // ==================== 玩家邏輯 ====================
     function showPlayerJoin() {
         document.getElementById('role-selection').classList.add('hidden');
         document.getElementById('player-join-section').classList.remove('hidden');
@@ -487,6 +502,7 @@
         peer.on('error', () => { statusDiv.innerHTML = `<span style="color:var(--accent-red);">連線失敗，請檢查房號或網路環境。</span>`; });
     }
 
+    // ==================== 圓形排版演算法 ====================
     function renderHostCircle() {
         const container = document.getElementById('host-circle-container');
         container.innerHTML = '';
