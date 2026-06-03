@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>天黑請閉眼（鶯鶯製） v1.4</title>
+    <title>天黑請閉眼（鶯鶯製） v1.5</title>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <style>
         :root {
@@ -27,7 +27,7 @@
         button:hover { opacity: 0.8; }
         button:disabled { background: #555; cursor: not-allowed; color: #888; }
         
-        input[type="text"], input[type="number"] { padding: 10px; margin: 8px 0; width: 100%; box-sizing: border-box; background: #333; color: white; border: 1px solid var(--border-color); border-radius: 4px; }
+        input[type="text"], input[type="number"], input[type="password"] { padding: 10px; margin: 8px 0; width: 100%; box-sizing: border-box; background: #333; color: white; border: 1px solid var(--border-color); border-radius: 4px; }
         input[type="number"]:disabled { background: #222; color: #666; border-color: #333; }
         
         .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; color: white; background: #555; }
@@ -36,16 +36,17 @@
         .config-card { background: #333; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; text-align: center; position: relative; }
         .config-card img { max-width: 80px; max-height: 80px; border-radius: 6px; object-fit: contain; margin-bottom: 10px; background: #222; }
         .config-card input { width: 60px; text-align: center; margin-top: 5px; }
-        .config-qty-text { font-size: 18px; font-weight: bold; color: var(--accent-blue); margin-top: 8px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid var(--border-color); padding: 10px; text-align: center; }
+        th { background: #333; }
 
-        /* 圓形座位表公用設定 */
         .circle-container { position: relative; width: 400px; height: 400px; margin: 20px auto; border-radius: 50%; border: 2px dashed var(--border-color); background: rgba(0,0,0,0.1); }
         .seat { position: absolute; width: 60px; height: 60px; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; background: #444; border-radius: 50%; font-size: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); text-align: center; line-height: 1.2; border: 2px solid transparent; z-index: 2; }
         .seat.is-me { border-color: var(--accent-green); background: #2b4a2b; font-weight: bold; }
         .seat-num { font-size: 16px; color: var(--accent-blue); font-weight: bold; }
         .role-label { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); background: var(--accent-blue); color: white; font-size: 11px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; z-index: 3; }
 
-        /* 玩家專屬視角 - 中央卡牌 */
         .center-card-view { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; width: 200px; height: 260px; text-align: center; z-index: 1; }
         .center-card-view img { max-width: 140px; max-height: 180px; border-radius: 8px; object-fit: contain; box-shadow: 0 6px 15px rgba(0,0,0,0.8); margin: 10px 0; background: #222; }
     </style>
@@ -53,29 +54,53 @@
 <body>
 
 <div class="container">
-    <h2 style="text-align: center; color: #fff;">天黑請閉眼（鶯鶯製） v1.4</h2>
+    <h2 style="text-align: center; color: #fff;">天黑請閉眼（鶯鶯製） v1.5</h2>
 
     <div id="role-selection" class="section" style="text-align: center;">
         <h3>請選擇登入身分</h3>
+        <button onclick="showLibrarian()" style="background: #6c757d;">圖書管理員</button>
         <button onclick="initHost()">主持人 (建立房間)</button>
         <button onclick="showPlayerJoin()" style="background: var(--accent-green);">一般玩家 (加入房間)</button>
     </div>
 
+    <div id="librarian-section" class="section hidden">
+        <h3 style="color: var(--accent-blue);">圖書管理員：建置全局牌庫</h3>
+        
+        <div style="background: #222; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--accent-red);">
+            <h4 style="margin-top: 0; color: var(--accent-red);">🔑 系統連線設定 (僅本機儲存)</h4>
+            <input type="text" id="gh-user" placeholder="您的 GitHub 帳號 (例: yourname)">
+            <input type="text" id="gh-repo" placeholder="儲存庫名稱 (例: card-dealer)">
+            <input type="password" id="gh-token" placeholder="GitHub Personal Access Token (ghp_...)">
+            <button onclick="saveGitHubAuth()" style="background: var(--accent-red); width: 100%;">儲存連線設定並讀取牌庫</button>
+            <p id="gh-status" style="font-size: 12px; color: var(--text-muted);"></p>
+        </div>
+
+        <div style="background: #333; padding: 15px; border-radius: 8px;">
+            <input type="text" id="lib-card-name" placeholder="卡牌名稱 (例：預言家)">
+            <input type="text" id="lib-card-faction" placeholder="所屬陣營 (例：好人陣營)">
+            <label style="display: block; margin-top: 10px; font-size: 14px; color: var(--text-muted);">上傳卡牌圖片 (必小於 1MB)</label>
+            <input type="file" id="lib-card-img" accept="image/*">
+            <button onclick="addCardToLibrary()" style="width: 100%; margin-top: 15px;">新增至下方清單</button>
+        </div>
+        
+        <table id="lib-table">
+            <tr><th>圖片</th><th>名稱</th><th>陣營</th><th>操作</th></tr>
+        </table>
+        
+        <button onclick="syncToGitHub()" id="btn-sync" style="margin-top: 20px; background: var(--accent-green); width: 100%; font-size: 18px; padding: 15px;">☁️ 將目前清單同步至 GitHub 伺服器</button>
+    </div>
+
     <div id="host-dashboard" class="section hidden">
         <h3 style="color: var(--accent-blue); display: flex; justify-content: space-between; align-items: center;">
-            主控台
-            <span style="color: #fff; font-size: 16px;">房間代碼：<strong id="room-code-display" style="color: var(--accent-red); font-size: 32px;">...</strong></span>
+            主控台 <span style="color: #fff; font-size: 16px;">房間代碼：<strong id="room-code-display" style="color: var(--accent-red); font-size: 32px;">...</strong></span>
         </h3>
         <hr style="border-color: var(--border-color); margin: 20px 0;">
-        
         <h4 style="text-align: center; color: var(--text-muted);">房間成員狀態</h4>
         <div id="host-circle-container" class="circle-container" style="width: 350px; height: 350px;"></div>
-
         <div style="text-align: center; margin: 20px 0;">
             <button onclick="dealCards()" id="btn-deal" style="font-size: 18px; padding: 12px 24px;">開始發牌</button>
             <button onclick="resetGame()" id="btn-reset" style="background: var(--accent-red); font-size: 18px; padding: 12px 24px; display: none;">收回卡牌並重新設定</button>
         </div>
-
         <hr style="border-color: var(--border-color); margin: 20px 0;">
         <h4 style="color: var(--text-muted);">本局配置 <span id="config-status-text" style="font-size: 12px; color: var(--accent-green);">(可修改)</span></h4>
         <div id="host-config-gallery" class="config-gallery"></div>
@@ -99,9 +124,7 @@
                 <img id="my-card-img" class="hidden" src="" alt="卡牌圖片">
             </div>
         </div>
-        
         <hr style="border-color: var(--border-color); margin: 30px 0;">
-
         <h4 style="color: var(--text-muted);">本局牌庫配置</h4>
         <div id="player-config-gallery" class="config-gallery">
             <p style="color: #666; width: 100%;">等待同步資料...</p>
@@ -110,45 +133,177 @@
 </div>
 
 <script>
-    const peerConfig = {
-        config: {
-            'iceServers': [
-                { url: 'stun:stun.l.google.com:19302' },
-                { url: 'stun:stun1.l.google.com:19302' }
-            ]
-        }
-    };
-
-    let peer = null;
-    let connections = {}; 
-    let players = []; 
-    let roomConfig = []; 
-    let fullDeck = []; 
-    let nextSeatNumber = 1; 
-    let myPeerId = null; 
-    let isGameDealt = false; // 控制是否已發牌，決定配置是否可修改
+    const peerConfig = { config: { 'iceServers': [{ url: 'stun:stun.l.google.com:19302' }, { url: 'stun:stun1.l.google.com:19302' }] } };
+    let peer = null, connections = {}, players = [], roomConfig = [], fullDeck = [], nextSeatNumber = 1, myPeerId = null, isGameDealt = false;
+    let library = []; // 管理員專用
     const defaultSvg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="%23555"><rect width="80" height="80"/></svg>';
 
-    // ==================== 共用邏輯 ====================
+    // --- 工具 ---
+    function getBase64(file) {
+        return new Promise((resolve, reject) => {
+            if (!file) return resolve('');
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    }
+
+    // 解決中文轉 Base64 亂碼問題
+    function utoa(data) { return btoa(unescape(encodeURIComponent(data))); }
+
     async function loadCardsLibrary() {
         try {
-            const res = await fetch('cards.json');
+            // 加入時間戳記強制不快取，確保主持人讀到最新設定
+            const res = await fetch('cards.json?t=' + Date.now());
             if (!res.ok) throw new Error('File not found');
             const data = await res.json();
             return data.map(card => ({ ...card, qty: 0 }));
         } catch (error) {
-            alert('無法讀取 cards.json，請確認檔案已正確上傳至 GitHub 根目錄。');
+            console.warn('目前無預設 cards.json 或讀取失敗。');
             return [];
         }
     }
+
+    // ==================== 圖書管理員 (GitHub API 連線) ====================
+    function showLibrarian() {
+        document.getElementById('role-selection').classList.add('hidden');
+        document.getElementById('librarian-section').classList.remove('hidden');
+        
+        // 讀取瀏覽器記憶的 GitHub 設定
+        if(localStorage.getItem('gh_user')) document.getElementById('gh-user').value = localStorage.getItem('gh_user');
+        if(localStorage.getItem('gh_repo')) document.getElementById('gh-repo').value = localStorage.getItem('gh_repo');
+        if(localStorage.getItem('gh_token')) document.getElementById('gh-token').value = localStorage.getItem('gh_token');
+    }
+
+    async function saveGitHubAuth() {
+        const user = document.getElementById('gh-user').value.trim();
+        const repo = document.getElementById('gh-repo').value.trim();
+        const token = document.getElementById('gh-token').value.trim();
+        
+        if(!user || !repo || !token) return alert('請填寫完整 GitHub 資訊');
+        
+        localStorage.setItem('gh_user', user);
+        localStorage.setItem('gh_repo', repo);
+        localStorage.setItem('gh_token', token);
+        
+        document.getElementById('gh-status').innerText = '設定已儲存，正在從 GitHub 抓取最新牌庫...';
+        
+        // 從 GitHub API 抓取現有資料
+        try {
+            const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/cards.json`, {
+                headers: { 'Authorization': `token ${token}` }
+            });
+            if(res.ok) {
+                const data = await res.json();
+                // API 回傳內容是 base64 編碼的，解碼還原
+                const content = decodeURIComponent(escape(atob(data.content)));
+                library = JSON.parse(content);
+                localStorage.setItem('gh_file_sha', data.sha); // 記錄更新檔案需要的 SHA 驗證碼
+                document.getElementById('gh-status').innerText = '✅ 成功抓取最新牌庫！';
+            } else if (res.status === 404) {
+                library = [];
+                localStorage.removeItem('gh_file_sha');
+                document.getElementById('gh-status').innerText = '⚠️ 儲存庫尚無 cards.json，將在首次同步時自動建立。';
+            } else {
+                throw new Error('API 拒絕存取，請檢查 Token 權限。');
+            }
+            renderLibraryTable();
+        } catch (err) {
+            document.getElementById('gh-status').innerText = '❌ 錯誤：' + err.message;
+        }
+    }
+
+    async function addCardToLibrary() {
+        const name = document.getElementById('lib-card-name').value.trim();
+        const faction = document.getElementById('lib-card-faction').value.trim();
+        const file = document.getElementById('lib-card-img').files[0];
+        if (!name) return alert('請輸入名稱');
+        
+        const btn = document.querySelector('#librarian-section button[onclick="addCardToLibrary()"]');
+        btn.innerText = '處理圖片中...';
+        btn.disabled = true;
+
+        const base64Img = await getBase64(file);
+        library.push({ id: Date.now().toString(), name, faction, img: base64Img });
+        
+        document.getElementById('lib-card-name').value = '';
+        document.getElementById('lib-card-faction').value = '';
+        document.getElementById('lib-card-img').value = '';
+        renderLibraryTable();
+        
+        btn.innerText = '新增至下方清單';
+        btn.disabled = false;
+    }
+
+    function removeCardFromLibrary(id) {
+        library = library.filter(c => c.id !== id);
+        renderLibraryTable();
+    }
+
+    function renderLibraryTable() {
+        const table = document.getElementById('lib-table');
+        table.innerHTML = '<tr><th>圖片</th><th>名稱</th><th>陣營</th><th>操作</th></tr>';
+        library.forEach(card => {
+            const imgTag = card.img ? `<img src="${card.img}" style="max-height:40px; border-radius:4px;">` : '-';
+            table.innerHTML += `<tr>
+                <td style="text-align:center;">${imgTag}</td>
+                <td>${card.name}</td>
+                <td><span class="badge">${card.faction || '無'}</span></td>
+                <td><button onclick="removeCardFromLibrary('${card.id}')" style="background:var(--accent-red); padding:6px 12px;">刪除</button></td>
+            </tr>`;
+        });
+    }
+
+    async function syncToGitHub() {
+        const user = localStorage.getItem('gh_user');
+        const repo = localStorage.getItem('gh_repo');
+        const token = localStorage.getItem('gh_token');
+        const sha = localStorage.getItem('gh_file_sha');
+
+        if(!user || !repo || !token) return alert('請先設定上方系統連線。');
+        
+        const btn = document.getElementById('btn-sync');
+        btn.innerText = '🔄 同步中，請稍候...';
+        btn.disabled = true;
+
+        const contentBase64 = utoa(JSON.stringify(library, null, 2));
+        const body = { message: '更新牌庫設定 (via Web App)', content: contentBase64 };
+        if (sha) body.sha = sha;
+
+        try {
+            const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/cards.json`, {
+                method: 'PUT',
+                headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (res.ok) {
+                const result = await res.json();
+                localStorage.setItem('gh_file_sha', result.content.sha); // 更新 SHA
+                alert('✅ 牌庫已成功同步至 GitHub！\n請注意：GitHub Pages 網頁大約需要 1 分鐘的時間更新快取。');
+            } else {
+                throw new Error('同步失敗，可能權限不足或檔案衝突。');
+            }
+        } catch (err) {
+            alert('錯誤：' + err.message);
+        } finally {
+            btn.innerText = '☁️ 將目前清單同步至 GitHub 伺服器';
+            btn.disabled = false;
+        }
+    }
+
 
     // ==================== 主持人邏輯 ====================
     async function initHost() {
         document.getElementById('role-selection').classList.add('hidden');
         
-        // 直接從 JSON 讀取牌庫
         roomConfig = await loadCardsLibrary();
-        if (roomConfig.length === 0) return;
+        if (roomConfig.length === 0) {
+            alert('系統尚未建立牌庫。請先以「圖書管理員」身分登入並同步資料至 GitHub。');
+            location.reload();
+            return;
+        }
 
         document.getElementById('host-dashboard').classList.remove('hidden');
         renderHostConfigGallery();
@@ -189,7 +344,7 @@
             const imgSrc = card.img || defaultSvg;
             gallery.innerHTML += `
                 <div class="config-card">
-                    <img src="${imgSrc}" alt="${card.name}">
+                    <img src="${imgSrc}">
                     <div style="font-size:14px; font-weight:bold;">${card.name}</div>
                     <div style="font-size:11px; color:#aaa;">${card.faction || '無陣營'}</div>
                     <input type="number" min="0" value="${card.qty}" onchange="updateCardQty(${index}, this.value)" ${isGameDealt ? 'disabled' : ''}>
@@ -207,30 +362,18 @@
         broadcastConfig();
     }
 
-    function broadcastConfig() {
-        Object.values(connections).forEach(conn => {
-            conn.send({ type: 'CONFIG', config: roomConfig });
-        });
-    }
-
+    function broadcastConfig() { Object.values(connections).forEach(conn => conn.send({ type: 'CONFIG', config: roomConfig })); }
     function broadcastPlayerList() {
         const safeList = players.map(p => ({ id: p.id, name: p.name, seat: p.seat }));
-        Object.values(connections).forEach(conn => {
-            conn.send({ type: 'PLAYERS_UPDATE', list: safeList });
-        });
+        Object.values(connections).forEach(conn => conn.send({ type: 'PLAYERS_UPDATE', list: safeList }));
     }
 
     function dealCards() {
         if (players.length === 0) return alert('沒有玩家加入房間');
         
         fullDeck = [];
-        roomConfig.forEach(c => {
-            for(let i=0; i<c.qty; i++) {
-                fullDeck.push({ name: c.name, faction: c.faction, img: c.img });
-            }
-        });
-
-        if (fullDeck.length < players.length) return alert('卡牌總數少於玩家人數，請增加配置！');
+        roomConfig.forEach(c => { for(let i=0; i<c.qty; i++) fullDeck.push({ name: c.name, faction: c.faction, img: c.img }); });
+        if (fullDeck.length < players.length) return alert('卡牌總數少於玩家人數！');
 
         for (let i = fullDeck.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -240,12 +383,9 @@
         players.forEach(p => {
             const dealtCard = fullDeck.pop();
             p.card = dealtCard;
-            if (connections[p.id]) {
-                connections[p.id].send({ type: 'DEAL', card: dealtCard });
-            }
+            if (connections[p.id]) connections[p.id].send({ type: 'DEAL', card: dealtCard });
         });
         
-        // 鎖定配置表單
         isGameDealt = true;
         document.getElementById('config-status-text').innerText = '(已鎖定)';
         document.getElementById('config-status-text').style.color = 'var(--accent-red)';
@@ -258,11 +398,8 @@
 
     function resetGame() {
         players.forEach(p => p.card = null);
-        Object.values(connections).forEach(conn => {
-            conn.send({ type: 'RESET' });
-        });
+        Object.values(connections).forEach(conn => conn.send({ type: 'RESET' }));
         
-        // 解鎖配置表單
         isGameDealt = false;
         document.getElementById('config-status-text').innerText = '(可修改)';
         document.getElementById('config-status-text').style.color = 'var(--accent-green)';
@@ -273,7 +410,7 @@
         renderHostCircle();
     }
 
-    // ==================== 玩家邏輯 ====================
+    // ==================== 玩家邏輯 (同 v1.4) ====================
     function showPlayerJoin() {
         document.getElementById('role-selection').classList.add('hidden');
         document.getElementById('player-join-section').classList.remove('hidden');
@@ -308,36 +445,22 @@
                     data.config.forEach(c => {
                         if (c.qty > 0) {
                             const imgSrc = c.img || defaultSvg;
-                            gallery.innerHTML += `
-                                <div class="config-card">
-                                    <img src="${imgSrc}">
-                                    <div style="font-size:12px;">${c.name}</div>
-                                    <div class="config-qty-text">× ${c.qty}</div>
-                                </div>
-                            `;
+                            gallery.innerHTML += `<div class="config-card"><img src="${imgSrc}"><div style="font-size:12px;">${c.name}</div><div class="config-qty-text">× ${c.qty}</div></div>`;
                             hasCards = true;
                         }
                     });
                     if (!hasCards) gallery.innerHTML = '<p style="color:#666; width:100%;">本局目前無卡牌</p>';
                 } 
-                else if (data.type === 'PLAYERS_UPDATE') {
-                    renderPlayerCircle(data.list);
-                }
+                else if (data.type === 'PLAYERS_UPDATE') renderPlayerCircle(data.list);
                 else if (data.type === 'DEAL') {
                     document.getElementById('my-card-title').innerText = data.card.name;
                     document.getElementById('my-card-title').style.color = 'white';
-                    
                     const factionEl = document.getElementById('my-card-faction');
-                    if(data.card.faction) {
-                        factionEl.innerText = data.card.faction;
-                        factionEl.classList.remove('hidden');
-                    } else { factionEl.classList.add('hidden'); }
-
+                    if(data.card.faction) { factionEl.innerText = data.card.faction; factionEl.classList.remove('hidden'); }
+                    else factionEl.classList.add('hidden');
                     const imgEl = document.getElementById('my-card-img');
-                    if (data.card.img) {
-                        imgEl.src = data.card.img;
-                        imgEl.classList.remove('hidden');
-                    } else { imgEl.classList.add('hidden'); }
+                    if (data.card.img) { imgEl.src = data.card.img; imgEl.classList.remove('hidden'); }
+                    else imgEl.classList.add('hidden');
                 } 
                 else if (data.type === 'RESET') {
                     document.getElementById('my-card-title').innerText = '等待發牌...';
@@ -352,66 +475,42 @@
     }
 
     // ==================== 圓形排版演算法 ====================
-    // 主持人視角：容器 350x350，顯示所有玩家職業
     function renderHostCircle() {
         const container = document.getElementById('host-circle-container');
         container.innerHTML = '';
-        const total = players.length;
-        if(total === 0) return;
-        
-        const radius = 140; 
-        const center = 175; 
-        
+        if(players.length === 0) return;
+        const radius = 140, center = 175; 
         players.forEach((p, i) => {
-            const angle = (i / total) * 2 * Math.PI - (Math.PI / 2);
+            const angle = (i / players.length) * 2 * Math.PI - (Math.PI / 2);
             const x = center + radius * Math.cos(angle) - 30; 
             const y = center + radius * Math.sin(angle) - 30;
-            
             const seatDiv = document.createElement('div');
             seatDiv.className = 'seat';
-            seatDiv.style.left = `${x}px`;
-            seatDiv.style.top = `${y}px`;
-            
-            let roleHtml = '';
-            if (p.card) {
-                roleHtml = `<div class="role-label">${p.card.name}</div>`;
-            }
-
+            seatDiv.style.left = `${x}px`; seatDiv.style.top = `${y}px`;
+            let roleHtml = p.card ? `<div class="role-label">${p.card.name}</div>` : '';
             const shortName = p.name.length > 4 ? p.name.substring(0,4) + '..' : p.name;
             seatDiv.innerHTML = `${roleHtml}<span class="seat-num">${p.seat}</span><span>${shortName}</span>`;
-            
             container.appendChild(seatDiv);
         });
     }
 
-    // 玩家視角：容器 400x400，中央保留空間顯示卡牌，不顯示他人職業
     function renderPlayerCircle(playersList) {
         const container = document.getElementById('player-circle-container');
-        // 清除除了中央卡牌區塊以外的所有座位
         const centerView = container.querySelector('.center-card-view');
         container.innerHTML = '';
         container.appendChild(centerView);
-
-        const total = playersList.length;
-        if(total === 0) return;
-        
-        const radius = 170; 
-        const center = 200; 
-        
+        if(playersList.length === 0) return;
+        const radius = 170, center = 200; 
         playersList.forEach((p, i) => {
-            const angle = (i / total) * 2 * Math.PI - (Math.PI / 2);
+            const angle = (i / playersList.length) * 2 * Math.PI - (Math.PI / 2);
             const x = center + radius * Math.cos(angle) - 30; 
             const y = center + radius * Math.sin(angle) - 30;
-            
             const seatDiv = document.createElement('div');
             seatDiv.className = 'seat';
             if (p.id === myPeerId) seatDiv.classList.add('is-me');
-            seatDiv.style.left = `${x}px`;
-            seatDiv.style.top = `${y}px`;
-            
+            seatDiv.style.left = `${x}px`; seatDiv.style.top = `${y}px`;
             const shortName = p.name.length > 4 ? p.name.substring(0,4) + '..' : p.name;
             seatDiv.innerHTML = `<span class="seat-num">${p.seat}</span><span>${shortName}</span>`;
-            
             container.appendChild(seatDiv);
         });
     }
