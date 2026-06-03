@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>點對點發牌系統 v1.3</title>
+    <title>天黑請閉眼（鶯鶯製） v1.4</title>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <style>
-        /* 深色模式主題設定 */
         :root {
             --bg-dark: #121212;
             --container-bg: #1e1e1e;
@@ -26,80 +25,40 @@
         
         button { padding: 10px 18px; background: var(--accent-blue); color: white; border: none; border-radius: 6px; cursor: pointer; margin: 5px 2px; font-weight: bold; transition: opacity 0.2s; }
         button:hover { opacity: 0.8; }
+        button:disabled { background: #555; cursor: not-allowed; color: #888; }
         
-        input[type="text"], input[type="number"], input[type="file"] { padding: 10px; margin: 8px 0; width: 100%; box-sizing: border-box; background: #333; color: white; border: 1px solid var(--border-color); border-radius: 4px; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 500px; }
-        th, td { border: 1px solid var(--border-color); padding: 12px; text-align: left; }
-        th { background: #333; }
+        input[type="text"], input[type="number"] { padding: 10px; margin: 8px 0; width: 100%; box-sizing: border-box; background: #333; color: white; border: 1px solid var(--border-color); border-radius: 4px; }
+        input[type="number"]:disabled { background: #222; color: #666; border-color: #333; }
         
         .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; color: white; background: #555; }
         
-        /* 網格化本局配置 (圖片呈現) */
         .config-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 15px; margin-top: 15px; }
-        .config-card { background: #333; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; text-align: center; }
+        .config-card { background: #333; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; text-align: center; position: relative; }
         .config-card img { max-width: 80px; max-height: 80px; border-radius: 6px; object-fit: contain; margin-bottom: 10px; background: #222; }
         .config-card input { width: 60px; text-align: center; margin-top: 5px; }
         .config-qty-text { font-size: 18px; font-weight: bold; color: var(--accent-blue); margin-top: 8px; }
 
-        /* 玩家專屬視角排版 */
-        .player-main-view { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 50vh; text-align: center; }
-        .player-hand-img { max-width: 100%; max-height: 450px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); margin: 20px 0; object-fit: contain; }
-        
-        /* 圓形座位表 */
-        .circle-container { position: relative; width: 300px; height: 300px; margin: 20px auto; border-radius: 50%; border: 2px dashed var(--border-color); background: rgba(0,0,0,0.1); }
-        .seat { position: absolute; width: 60px; height: 60px; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; background: #444; border-radius: 50%; font-size: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); text-align: center; line-height: 1.2; border: 2px solid transparent; }
+        /* 圓形座位表公用設定 */
+        .circle-container { position: relative; width: 400px; height: 400px; margin: 20px auto; border-radius: 50%; border: 2px dashed var(--border-color); background: rgba(0,0,0,0.1); }
+        .seat { position: absolute; width: 60px; height: 60px; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; background: #444; border-radius: 50%; font-size: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); text-align: center; line-height: 1.2; border: 2px solid transparent; z-index: 2; }
         .seat.is-me { border-color: var(--accent-green); background: #2b4a2b; font-weight: bold; }
         .seat-num { font-size: 16px; color: var(--accent-blue); font-weight: bold; }
+        .role-label { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); background: var(--accent-blue); color: white; font-size: 11px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; z-index: 3; }
+
+        /* 玩家專屬視角 - 中央卡牌 */
+        .center-card-view { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; width: 200px; height: 260px; text-align: center; z-index: 1; }
+        .center-card-view img { max-width: 140px; max-height: 180px; border-radius: 8px; object-fit: contain; box-shadow: 0 6px 15px rgba(0,0,0,0.8); margin: 10px 0; background: #222; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 id="main-title" style="text-align: center; color: #fff;">點對點發牌系統 v1.3</h2>
+    <h2 style="text-align: center; color: #fff;">天黑請閉眼（鶯鶯製） v1.4</h2>
 
     <div id="role-selection" class="section" style="text-align: center;">
         <h3>請選擇登入身分</h3>
-        <button onclick="showLibrarian()">圖書管理員 (建置牌庫)</button>
-        <button onclick="showHost()">主持人 (發牌與管理)</button>
+        <button onclick="initHost()">主持人 (建立房間)</button>
         <button onclick="showPlayerJoin()" style="background: var(--accent-green);">一般玩家 (加入房間)</button>
-    </div>
-
-    <div id="librarian-section" class="section hidden">
-        <h3 style="color: var(--accent-blue);">圖書管理員：建置全局牌庫</h3>
-        <div style="background: #333; padding: 15px; border-radius: 8px;">
-            <input type="text" id="lib-card-name" placeholder="卡牌名稱 (例：預言家)">
-            <input type="text" id="lib-card-faction" placeholder="所屬陣營 (例：好人陣營)">
-            <label style="display: block; margin-top: 10px; font-size: 14px; color: var(--text-muted);">上傳卡牌圖片 (建議 1MB 以下，正方形或長方形皆可)</label>
-            <input type="file" id="lib-card-img" accept="image/*">
-            <button onclick="addCardToLibrary()" style="width: 100%; margin-top: 15px;">加入牌庫</button>
-        </div>
-        <table id="lib-table" style="margin-top: 20px;">
-            <tr><th>圖片</th><th>名稱</th><th>陣營</th><th>操作</th></tr>
-        </table>
-        <button onclick="exportLibrary()" style="margin-top: 20px; background: var(--accent-green); width: 100%;">下載 / 匯出牌庫檔 (.json)</button>
-    </div>
-
-    <div id="host-setup-section" class="section hidden">
-        <h3 style="color: var(--accent-blue);">主持人：載入牌庫與配置</h3>
-        <div id="import-area">
-            <p style="color: var(--accent-red);">尚未偵測到牌庫，請載入 <code>.json</code> 檔案。</p>
-            <input type="file" id="host-import-file" accept=".json" onchange="importLibrary(event)">
-        </div>
-
-        <div id="host-config-area" class="hidden">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
-                <h4 style="color: var(--accent-green); margin:0;">✅ 已載入牌庫</h4>
-                <button onclick="clearCachedLibrary()" style="background: #555; padding: 5px 10px; font-size:12px;">清除記憶</button>
-            </div>
-            
-            <p style="margin-top: 15px; color: var(--text-muted);">設定本局使用的數量（修改後將即時同步給房間內玩家）</p>
-            
-            <div id="host-config-gallery" class="config-gallery"></div>
-            
-            <h3 style="text-align: right; margin-top: 20px;">本局總張數：<strong id="host-total-cards" style="color: var(--accent-blue); font-size: 24px;">0</strong></h3>
-            <button onclick="initHost()" id="btn-create-room" style="width: 100%; background: var(--accent-blue); font-size: 18px; padding: 15px;">確認配置並建立房間</button>
-        </div>
     </div>
 
     <div id="host-dashboard" class="section hidden">
@@ -108,13 +67,19 @@
             <span style="color: #fff; font-size: 16px;">房間代碼：<strong id="room-code-display" style="color: var(--accent-red); font-size: 32px;">...</strong></span>
         </h3>
         <hr style="border-color: var(--border-color); margin: 20px 0;">
-        <button onclick="dealCards()" style="font-size: 18px; padding: 12px 24px;">開始發牌</button>
-        <button onclick="resetGame()" style="background: var(--accent-red); font-size: 18px; padding: 12px 24px;">收回卡牌</button>
-        <div style="overflow-x: auto; margin-top: 20px;">
-            <table id="players-table">
-                <tr><th>座位</th><th>玩家暱稱</th><th>分配到的卡牌</th></tr>
-            </table>
+        
+        <h4 style="text-align: center; color: var(--text-muted);">房間成員狀態</h4>
+        <div id="host-circle-container" class="circle-container" style="width: 350px; height: 350px;"></div>
+
+        <div style="text-align: center; margin: 20px 0;">
+            <button onclick="dealCards()" id="btn-deal" style="font-size: 18px; padding: 12px 24px;">開始發牌</button>
+            <button onclick="resetGame()" id="btn-reset" style="background: var(--accent-red); font-size: 18px; padding: 12px 24px; display: none;">收回卡牌並重新設定</button>
         </div>
+
+        <hr style="border-color: var(--border-color); margin: 20px 0;">
+        <h4 style="color: var(--text-muted);">本局配置 <span id="config-status-text" style="font-size: 12px; color: var(--accent-green);">(可修改)</span></h4>
+        <div id="host-config-gallery" class="config-gallery"></div>
+        <h3 style="text-align: right; margin-top: 20px;">本局總張數：<strong id="host-total-cards" style="color: var(--accent-blue); font-size: 24px;">0</strong></h3>
     </div>
 
     <div id="player-join-section" class="section hidden" style="max-width: 400px; margin: auto;">
@@ -126,21 +91,18 @@
     </div>
 
     <div id="player-hand-section" class="section hidden">
-        
-        <h4 style="text-align: center; color: var(--text-muted);">房間成員</h4>
-        <div id="player-circle-container" class="circle-container"></div>
-        
-        <hr style="border-color: var(--border-color); margin: 30px 0;">
-        
-        <div class="player-main-view">
-            <h2 id="my-card-title" style="color: var(--text-muted); margin-bottom: 10px;">等待發牌...</h2>
-            <span id="my-card-faction" class="badge hidden" style="margin-bottom: 15px; font-size: 16px; background: var(--accent-blue);"></span>
-            <img id="my-card-img" class="player-hand-img hidden" src="" alt="卡牌圖片">
+        <h4 style="text-align: center; color: var(--text-muted);">遊戲狀態</h4>
+        <div id="player-circle-container" class="circle-container">
+            <div class="center-card-view">
+                <h3 id="my-card-title" style="color: var(--text-muted); margin: 0 0 5px 0;">等待發牌...</h3>
+                <span id="my-card-faction" class="badge hidden" style="background: var(--accent-blue);"></span>
+                <img id="my-card-img" class="hidden" src="" alt="卡牌圖片">
+            </div>
         </div>
-
+        
         <hr style="border-color: var(--border-color); margin: 30px 0;">
 
-        <h4 style="color: var(--text-muted);">本局配置 <span style="font-size: 12px;">(主持人即時同步)</span></h4>
+        <h4 style="color: var(--text-muted);">本局牌庫配置</h4>
         <div id="player-config-gallery" class="config-gallery">
             <p style="color: #666; width: 100%;">等待同步資料...</p>
         </div>
@@ -160,129 +122,77 @@
     let peer = null;
     let connections = {}; 
     let players = []; 
-    let library = []; 
     let roomConfig = []; 
     let fullDeck = []; 
-    let nextSeatNumber = 1; // 給玩家的號碼牌
-    let myPeerId = null; // 記錄自己的連線ID
+    let nextSeatNumber = 1; 
+    let myPeerId = null; 
+    let isGameDealt = false; // 控制是否已發牌，決定配置是否可修改
+    const defaultSvg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="%23555"><rect width="80" height="80"/></svg>';
 
-    // 工具：圖片轉 Base64
-    function getBase64(file) {
-        return new Promise((resolve, reject) => {
-            if (!file) return resolve(null);
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
-        });
-    }
-
-    // ==================== 圖書管理員邏輯 ====================
-    function showLibrarian() {
-        document.getElementById('role-selection').classList.add('hidden');
-        document.getElementById('librarian-section').classList.remove('hidden');
-    }
-
-    async function addCardToLibrary() {
-        const name = document.getElementById('lib-card-name').value.trim();
-        const faction = document.getElementById('lib-card-faction').value.trim();
-        const file = document.getElementById('lib-card-img').files[0];
-        if (!name) return alert('請輸入卡牌名稱');
-
-        const base64Img = await getBase64(file) || ''; // 允許無圖片
-        library.push({ id: Date.now().toString(), name, faction, img: base64Img });
-        
-        document.getElementById('lib-card-name').value = '';
-        document.getElementById('lib-card-faction').value = '';
-        document.getElementById('lib-card-img').value = '';
-        renderLibraryTable();
-    }
-
-    function removeCardFromLibrary(id) {
-        library = library.filter(c => c.id !== id);
-        renderLibraryTable();
-    }
-
-    function renderLibraryTable() {
-        const table = document.getElementById('lib-table');
-        table.innerHTML = '<tr><th>圖片</th><th>名稱</th><th>陣營</th><th>操作</th></tr>';
-        library.forEach(card => {
-            const imgTag = card.img ? `<img src="${card.img}" style="max-height:40px; border-radius:4px;">` : '-';
-            table.innerHTML += `<tr>
-                <td style="text-align:center;">${imgTag}</td>
-                <td>${card.name}</td>
-                <td><span class="badge">${card.faction || '無'}</span></td>
-                <td><button onclick="removeCardFromLibrary('${card.id}')" style="background:var(--accent-red); padding:6px 12px;">刪除</button></td>
-            </tr>`;
-        });
-    }
-
-    function exportLibrary() {
-        if (library.length === 0) return alert('牌庫是空的！');
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library));
-        const a = document.createElement('a');
-        a.href = dataStr;
-        a.download = "deck_library.json";
-        a.click();
+    // ==================== 共用邏輯 ====================
+    async function loadCardsLibrary() {
+        try {
+            const res = await fetch('cards.json');
+            if (!res.ok) throw new Error('File not found');
+            const data = await res.json();
+            return data.map(card => ({ ...card, qty: 0 }));
+        } catch (error) {
+            alert('無法讀取 cards.json，請確認檔案已正確上傳至 GitHub 根目錄。');
+            return [];
+        }
     }
 
     // ==================== 主持人邏輯 ====================
-    function showHost() {
+    async function initHost() {
         document.getElementById('role-selection').classList.add('hidden');
-        document.getElementById('host-setup-section').classList.remove('hidden');
         
-        const cachedLibrary = localStorage.getItem('v13_deck_library');
-        if (cachedLibrary) {
-            library = JSON.parse(cachedLibrary);
-            setupRoomConfig();
-        }
-    }
+        // 直接從 JSON 讀取牌庫
+        roomConfig = await loadCardsLibrary();
+        if (roomConfig.length === 0) return;
 
-    function importLibrary(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                library = JSON.parse(e.target.result);
-                localStorage.setItem('v13_deck_library', JSON.stringify(library));
-                setupRoomConfig();
-            } catch (err) { alert('檔案格式錯誤！'); }
-        };
-        reader.readAsText(file);
-    }
-
-    function clearCachedLibrary() {
-        if(confirm('確定要清除這台裝置記憶的牌庫嗎？')) {
-            localStorage.removeItem('v13_deck_library');
-            library = [];
-            document.getElementById('host-config-area').classList.add('hidden');
-            document.getElementById('import-area').classList.remove('hidden');
-            document.getElementById('host-import-file').value = '';
-        }
-    }
-
-    function setupRoomConfig() {
-        document.getElementById('import-area').classList.add('hidden');
-        document.getElementById('host-config-area').classList.remove('hidden');
-        roomConfig = library.map(card => ({ ...card, qty: 0 }));
+        document.getElementById('host-dashboard').classList.remove('hidden');
         renderHostConfigGallery();
+        
+        const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+        const peerId = 'ROOM-' + roomCode;
+        peer = new Peer(peerId, peerConfig);
+        
+        peer.on('open', (id) => {
+            document.getElementById('room-code-display').innerText = roomCode;
+        });
+
+        peer.on('connection', (conn) => {
+            conn.on('data', (data) => {
+                if (data.type === 'JOIN') {
+                    players.push({ id: conn.peer, name: data.name, card: null, seat: nextSeatNumber++ });
+                    connections[conn.peer] = conn;
+                    renderHostCircle();
+                    conn.send({ type: 'CONFIG', config: roomConfig });
+                    broadcastPlayerList(); 
+                }
+            });
+            conn.on('close', () => {
+                players = players.filter(p => p.id !== conn.peer);
+                delete connections[conn.peer];
+                renderHostCircle();
+                broadcastPlayerList(); 
+            });
+        });
     }
 
-    // 渲染主持人的圖片網格配置
     function renderHostConfigGallery() {
         const gallery = document.getElementById('host-config-gallery');
         gallery.innerHTML = '';
         let total = 0;
         roomConfig.forEach((card, index) => {
             total += card.qty;
-            const imgSrc = card.img || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="%23555"><rect width="80" height="80"/></svg>';
+            const imgSrc = card.img || defaultSvg;
             gallery.innerHTML += `
                 <div class="config-card">
                     <img src="${imgSrc}" alt="${card.name}">
                     <div style="font-size:14px; font-weight:bold;">${card.name}</div>
                     <div style="font-size:11px; color:#aaa;">${card.faction || '無陣營'}</div>
-                    <input type="number" min="0" value="${card.qty}" onchange="updateCardQty(${index}, this.value)">
+                    <input type="number" min="0" value="${card.qty}" onchange="updateCardQty(${index}, this.value)" ${isGameDealt ? 'disabled' : ''}>
                 </div>
             `;
         });
@@ -290,14 +200,11 @@
     }
 
     function updateCardQty(index, value) {
+        if (isGameDealt) return;
         roomConfig[index].qty = parseInt(value) || 0;
         let total = roomConfig.reduce((sum, card) => sum + card.qty, 0);
         document.getElementById('host-total-cards').innerText = total;
-        
-        // 如果房間已經建立，即時廣播配置給所有玩家
-        if (peer && !peer.destroyed) {
-            broadcastConfig();
-        }
+        broadcastConfig();
     }
 
     function broadcastConfig() {
@@ -310,53 +217,6 @@
         const safeList = players.map(p => ({ id: p.id, name: p.name, seat: p.seat }));
         Object.values(connections).forEach(conn => {
             conn.send({ type: 'PLAYERS_UPDATE', list: safeList });
-        });
-    }
-
-    function initHost() {
-        const totalCards = roomConfig.reduce((sum, card) => sum + card.qty, 0);
-        if (totalCards === 0) return alert('本局總張數不能為 0');
-
-        document.getElementById('btn-create-room').style.display = 'none'; // 防止重複點擊
-        const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
-        const peerId = 'ROOM-' + roomCode;
-        
-        peer = new Peer(peerId, peerConfig);
-        
-        peer.on('open', (id) => {
-            document.getElementById('host-setup-section').classList.add('hidden');
-            document.getElementById('host-dashboard').classList.remove('hidden');
-            document.getElementById('room-code-display').innerText = roomCode;
-        });
-
-        peer.on('connection', (conn) => {
-            conn.on('data', (data) => {
-                if (data.type === 'JOIN') {
-                    // 分配座位號碼
-                    players.push({ id: conn.peer, name: data.name, card: null, seat: nextSeatNumber++ });
-                    connections[conn.peer] = conn;
-                    updateHostPlayerTable();
-                    
-                    // 發送初始資料
-                    conn.send({ type: 'CONFIG', config: roomConfig });
-                    broadcastPlayerList(); // 更新所有人的圓圈圖
-                }
-            });
-            conn.on('close', () => {
-                players = players.filter(p => p.id !== conn.peer);
-                delete connections[conn.peer];
-                updateHostPlayerTable();
-                broadcastPlayerList(); // 更新所有人的圓圈圖
-            });
-        });
-    }
-
-    function updateHostPlayerTable() {
-        const table = document.getElementById('players-table');
-        table.innerHTML = '<tr><th>座位</th><th>玩家暱稱</th><th>分配到的卡牌</th></tr>';
-        players.forEach(p => {
-            const cardDisplay = p.card ? `<span style="color:var(--accent-blue)">${p.card.name}</span> (${p.card.faction})` : '<span style="color:#666">尚未分配</span>';
-            table.innerHTML += `<tr><td><span class="seat-num">${p.seat}</span></td><td>${p.name}</td><td>${cardDisplay}</td></tr>`;
         });
     }
 
@@ -384,7 +244,16 @@
                 connections[p.id].send({ type: 'DEAL', card: dealtCard });
             }
         });
-        updateHostPlayerTable();
+        
+        // 鎖定配置表單
+        isGameDealt = true;
+        document.getElementById('config-status-text').innerText = '(已鎖定)';
+        document.getElementById('config-status-text').style.color = 'var(--accent-red)';
+        document.getElementById('btn-deal').style.display = 'none';
+        document.getElementById('btn-reset').style.display = 'inline-block';
+        
+        renderHostConfigGallery();
+        renderHostCircle();
     }
 
     function resetGame() {
@@ -392,7 +261,16 @@
         Object.values(connections).forEach(conn => {
             conn.send({ type: 'RESET' });
         });
-        updateHostPlayerTable();
+        
+        // 解鎖配置表單
+        isGameDealt = false;
+        document.getElementById('config-status-text').innerText = '(可修改)';
+        document.getElementById('config-status-text').style.color = 'var(--accent-green)';
+        document.getElementById('btn-deal').style.display = 'inline-block';
+        document.getElementById('btn-reset').style.display = 'none';
+        
+        renderHostConfigGallery();
+        renderHostCircle();
     }
 
     // ==================== 玩家邏輯 ====================
@@ -412,7 +290,7 @@
         statusDiv.innerText = '尋找房間中...';
 
         peer.on('open', (id) => {
-            myPeerId = id; // 記錄自己的 ID 為了高亮顯示座位
+            myPeerId = id; 
             statusDiv.innerText = '建立連線中...';
             const conn = peer.connect(hostId, { reliable: true });
             
@@ -424,13 +302,12 @@
 
             conn.on('data', (data) => {
                 if (data.type === 'CONFIG') {
-                    // 渲染玩家的圖片網格配置
                     const gallery = document.getElementById('player-config-gallery');
                     gallery.innerHTML = '';
                     let hasCards = false;
                     data.config.forEach(c => {
                         if (c.qty > 0) {
-                            const imgSrc = c.img || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="%23555"><rect width="80" height="80"/></svg>';
+                            const imgSrc = c.img || defaultSvg;
                             gallery.innerHTML += `
                                 <div class="config-card">
                                     <img src="${imgSrc}">
@@ -444,11 +321,9 @@
                     if (!hasCards) gallery.innerHTML = '<p style="color:#666; width:100%;">本局目前無卡牌</p>';
                 } 
                 else if (data.type === 'PLAYERS_UPDATE') {
-                    // 渲染圓形座位表
                     renderPlayerCircle(data.list);
                 }
                 else if (data.type === 'DEAL') {
-                    // 渲染手牌 (置中)
                     document.getElementById('my-card-title').innerText = data.card.name;
                     document.getElementById('my-card-title').style.color = 'white';
                     
@@ -465,47 +340,75 @@
                     } else { imgEl.classList.add('hidden'); }
                 } 
                 else if (data.type === 'RESET') {
-                    // 重置
                     document.getElementById('my-card-title').innerText = '等待發牌...';
                     document.getElementById('my-card-title').style.color = 'var(--text-muted)';
                     document.getElementById('my-card-faction').classList.add('hidden');
                     document.getElementById('my-card-img').classList.add('hidden');
                 }
             });
-            
-            conn.on('error', (err) => { statusDiv.innerText = '連線斷開。'; });
+            conn.on('error', () => { statusDiv.innerText = '連線斷開。'; });
         });
-        
-        peer.on('error', (err) => { statusDiv.innerHTML = `<span style="color:var(--accent-red);">連線失敗，請檢查房號或網路環境。</span>`; });
+        peer.on('error', () => { statusDiv.innerHTML = `<span style="color:var(--accent-red);">連線失敗，請檢查房號或網路環境。</span>`; });
     }
 
-    // 演算法：將玩家均勻分布在圓形容器上
+    // ==================== 圓形排版演算法 ====================
+    // 主持人視角：容器 350x350，顯示所有玩家職業
+    function renderHostCircle() {
+        const container = document.getElementById('host-circle-container');
+        container.innerHTML = '';
+        const total = players.length;
+        if(total === 0) return;
+        
+        const radius = 140; 
+        const center = 175; 
+        
+        players.forEach((p, i) => {
+            const angle = (i / total) * 2 * Math.PI - (Math.PI / 2);
+            const x = center + radius * Math.cos(angle) - 30; 
+            const y = center + radius * Math.sin(angle) - 30;
+            
+            const seatDiv = document.createElement('div');
+            seatDiv.className = 'seat';
+            seatDiv.style.left = `${x}px`;
+            seatDiv.style.top = `${y}px`;
+            
+            let roleHtml = '';
+            if (p.card) {
+                roleHtml = `<div class="role-label">${p.card.name}</div>`;
+            }
+
+            const shortName = p.name.length > 4 ? p.name.substring(0,4) + '..' : p.name;
+            seatDiv.innerHTML = `${roleHtml}<span class="seat-num">${p.seat}</span><span>${shortName}</span>`;
+            
+            container.appendChild(seatDiv);
+        });
+    }
+
+    // 玩家視角：容器 400x400，中央保留空間顯示卡牌，不顯示他人職業
     function renderPlayerCircle(playersList) {
         const container = document.getElementById('player-circle-container');
+        // 清除除了中央卡牌區塊以外的所有座位
+        const centerView = container.querySelector('.center-card-view');
         container.innerHTML = '';
-        
+        container.appendChild(centerView);
+
         const total = playersList.length;
         if(total === 0) return;
         
-        const radius = 120; // 圓形半徑 px
-        const center = 150; // 中心點 px (容器 300x300)
+        const radius = 170; 
+        const center = 200; 
         
         playersList.forEach((p, i) => {
-            // 從正上方 (-90度) 開始順時針排列
             const angle = (i / total) * 2 * Math.PI - (Math.PI / 2);
-            
-            // 減 30 是為了扣掉 seat 元素本身一半的寬高 (60/2) 達成中心對齊
             const x = center + radius * Math.cos(angle) - 30; 
             const y = center + radius * Math.sin(angle) - 30;
             
             const seatDiv = document.createElement('div');
             seatDiv.className = 'seat';
             if (p.id === myPeerId) seatDiv.classList.add('is-me');
-            
             seatDiv.style.left = `${x}px`;
             seatDiv.style.top = `${y}px`;
             
-            // 限制暱稱字數避免爆框
             const shortName = p.name.length > 4 ? p.name.substring(0,4) + '..' : p.name;
             seatDiv.innerHTML = `<span class="seat-num">${p.seat}</span><span>${shortName}</span>`;
             
