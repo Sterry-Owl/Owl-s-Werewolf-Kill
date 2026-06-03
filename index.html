@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>天黑請閉眼（鶯鶯製） v1.5</title>
+    <title>天黑請閉眼（鶯鶯製） v1.6</title>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <style>
         :root {
@@ -24,8 +24,8 @@
         .section { margin-bottom: 25px; padding: 20px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--section-bg); }
         
         button { padding: 10px 18px; background: var(--accent-blue); color: white; border: none; border-radius: 6px; cursor: pointer; margin: 5px 2px; font-weight: bold; transition: opacity 0.2s; }
-        button:hover { opacity: 0.8; }
-        button:disabled { background: #555; cursor: not-allowed; color: #888; }
+        button:hover:not(:disabled) { opacity: 0.8; }
+        button:disabled { background: #555 !important; cursor: not-allowed; color: #aaa; }
         
         input[type="text"], input[type="number"], input[type="password"] { padding: 10px; margin: 8px 0; width: 100%; box-sizing: border-box; background: #333; color: white; border: 1px solid var(--border-color); border-radius: 4px; }
         input[type="number"]:disabled { background: #222; color: #666; border-color: #333; }
@@ -54,7 +54,7 @@
 <body>
 
 <div class="container">
-    <h2 style="text-align: center; color: #fff;">天黑請閉眼（鶯鶯製） v1.5</h2>
+    <h2 style="text-align: center; color: #fff;">天黑請閉眼（鶯鶯製） v1.6</h2>
 
     <div id="role-selection" class="section" style="text-align: center;">
         <h3>請選擇登入身分</h3>
@@ -80,14 +80,14 @@
             <input type="text" id="lib-card-faction" placeholder="所屬陣營 (例：好人陣營)">
             <label style="display: block; margin-top: 10px; font-size: 14px; color: var(--text-muted);">上傳卡牌圖片 (必小於 1MB)</label>
             <input type="file" id="lib-card-img" accept="image/*">
-            <button onclick="addCardToLibrary()" style="width: 100%; margin-top: 15px;">新增至下方清單</button>
+            <button id="btn-add-card" onclick="addCardToLibrary()" style="width: 100%; margin-top: 15px;" disabled>載入資料中...</button>
         </div>
         
         <table id="lib-table">
             <tr><th>圖片</th><th>名稱</th><th>陣營</th><th>操作</th></tr>
         </table>
         
-        <button onclick="syncToGitHub()" id="btn-sync" style="margin-top: 20px; background: var(--accent-green); width: 100%; font-size: 18px; padding: 15px;">☁️ 將目前清單同步至 GitHub 伺服器</button>
+        <button id="btn-sync" onclick="syncToGitHub()" style="margin-top: 20px; background: var(--accent-green); width: 100%; font-size: 18px; padding: 15px;" disabled>☁️ 將目前清單同步至 GitHub 伺服器</button>
     </div>
 
     <div id="host-dashboard" class="section hidden">
@@ -135,10 +135,9 @@
 <script>
     const peerConfig = { config: { 'iceServers': [{ url: 'stun:stun.l.google.com:19302' }, { url: 'stun:stun1.l.google.com:19302' }] } };
     let peer = null, connections = {}, players = [], roomConfig = [], fullDeck = [], nextSeatNumber = 1, myPeerId = null, isGameDealt = false;
-    let library = []; // 管理員專用
+    let library = [];
     const defaultSvg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="%23555"><rect width="80" height="80"/></svg>';
 
-    // --- 工具 ---
     function getBase64(file) {
         return new Promise((resolve, reject) => {
             if (!file) return resolve('');
@@ -149,12 +148,10 @@
         });
     }
 
-    // 解決中文轉 Base64 亂碼問題
     function utoa(data) { return btoa(unescape(encodeURIComponent(data))); }
 
     async function loadCardsLibrary() {
         try {
-            // 加入時間戳記強制不快取，確保主持人讀到最新設定
             const res = await fetch('cards.json?t=' + Date.now());
             if (!res.ok) throw new Error('File not found');
             const data = await res.json();
@@ -165,15 +162,23 @@
         }
     }
 
-    // ==================== 圖書管理員 (GitHub API 連線) ====================
     function showLibrarian() {
         document.getElementById('role-selection').classList.add('hidden');
         document.getElementById('librarian-section').classList.remove('hidden');
         
-        // 讀取瀏覽器記憶的 GitHub 設定
-        if(localStorage.getItem('gh_user')) document.getElementById('gh-user').value = localStorage.getItem('gh_user');
-        if(localStorage.getItem('gh_repo')) document.getElementById('gh-repo').value = localStorage.getItem('gh_repo');
-        if(localStorage.getItem('gh_token')) document.getElementById('gh-token').value = localStorage.getItem('gh_token');
+        const ghUser = localStorage.getItem('gh_user');
+        const ghRepo = localStorage.getItem('gh_repo');
+        const ghToken = localStorage.getItem('gh_token');
+        
+        if(ghUser && ghRepo && ghToken) {
+            document.getElementById('gh-user').value = ghUser;
+            document.getElementById('gh-repo').value = ghRepo;
+            document.getElementById('gh-token').value = ghToken;
+            saveGitHubAuth(); 
+        } else {
+            document.getElementById('btn-add-card').innerText = '請先完成連線設定';
+            document.getElementById('gh-status').innerText = '無連線紀錄，請輸入資訊並點擊上方按鈕。';
+        }
     }
 
     async function saveGitHubAuth() {
@@ -188,30 +193,41 @@
         localStorage.setItem('gh_token', token);
         
         document.getElementById('gh-status').innerText = '設定已儲存，正在從 GitHub 抓取最新牌庫...';
+        document.getElementById('btn-add-card').disabled = true;
+        document.getElementById('btn-sync').disabled = true;
         
-        // 從 GitHub API 抓取現有資料
         try {
             const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/cards.json`, {
                 headers: { 'Authorization': `token ${token}` }
             });
             if(res.ok) {
                 const data = await res.json();
-                // API 回傳內容是 base64 編碼的，解碼還原
                 const content = decodeURIComponent(escape(atob(data.content)));
                 library = JSON.parse(content);
-                localStorage.setItem('gh_file_sha', data.sha); // 記錄更新檔案需要的 SHA 驗證碼
+                localStorage.setItem('gh_file_sha', data.sha); 
                 document.getElementById('gh-status').innerText = '✅ 成功抓取最新牌庫！';
+                unlockLibrarianButtons();
             } else if (res.status === 404) {
                 library = [];
                 localStorage.removeItem('gh_file_sha');
-                document.getElementById('gh-status').innerText = '⚠️ 儲存庫尚無 cards.json，將在首次同步時自動建立。';
+                document.getElementById('gh-status').innerText = '⚠️ 儲存庫尚無 cards.json，新增卡牌並同步將建立該檔案。';
+                unlockLibrarianButtons();
             } else {
                 throw new Error('API 拒絕存取，請檢查 Token 權限。');
             }
             renderLibraryTable();
         } catch (err) {
             document.getElementById('gh-status').innerText = '❌ 錯誤：' + err.message;
+            document.getElementById('btn-add-card').innerText = '連線失敗，無法新增';
         }
+    }
+    
+    function unlockLibrarianButtons() {
+        const btnAdd = document.getElementById('btn-add-card');
+        const btnSync = document.getElementById('btn-sync');
+        btnAdd.disabled = false;
+        btnAdd.innerText = '新增至下方清單';
+        btnSync.disabled = false;
     }
 
     async function addCardToLibrary() {
@@ -220,7 +236,7 @@
         const file = document.getElementById('lib-card-img').files[0];
         if (!name) return alert('請輸入名稱');
         
-        const btn = document.querySelector('#librarian-section button[onclick="addCardToLibrary()"]');
+        const btn = document.getElementById('btn-add-card');
         btn.innerText = '處理圖片中...';
         btn.disabled = true;
 
@@ -280,7 +296,7 @@
 
             if (res.ok) {
                 const result = await res.json();
-                localStorage.setItem('gh_file_sha', result.content.sha); // 更新 SHA
+                localStorage.setItem('gh_file_sha', result.content.sha); 
                 alert('✅ 牌庫已成功同步至 GitHub！\n請注意：GitHub Pages 網頁大約需要 1 分鐘的時間更新快取。');
             } else {
                 throw new Error('同步失敗，可能權限不足或檔案衝突。');
@@ -293,8 +309,6 @@
         }
     }
 
-
-    // ==================== 主持人邏輯 ====================
     async function initHost() {
         document.getElementById('role-selection').classList.add('hidden');
         
@@ -410,7 +424,6 @@
         renderHostCircle();
     }
 
-    // ==================== 玩家邏輯 (同 v1.4) ====================
     function showPlayerJoin() {
         document.getElementById('role-selection').classList.add('hidden');
         document.getElementById('player-join-section').classList.remove('hidden');
@@ -474,7 +487,6 @@
         peer.on('error', () => { statusDiv.innerHTML = `<span style="color:var(--accent-red);">連線失敗，請檢查房號或網路環境。</span>`; });
     }
 
-    // ==================== 圓形排版演算法 ====================
     function renderHostCircle() {
         const container = document.getElementById('host-circle-container');
         container.innerHTML = '';
