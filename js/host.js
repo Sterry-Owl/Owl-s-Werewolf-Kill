@@ -13,6 +13,9 @@ function initHost(roomId) {
         currentRoomId = id;
         document.getElementById('display-room-id').textContent = id;
         UI.updateStatusMessage('房間建立成功，等待玩家加入...');
+        
+        // 渲染初始空圓桌
+        UI.renderPlayerGrid('host-players-grid', playersData, true);
     });
     hostPeer.on('connection', (conn) => {
         connections[conn.peer] = conn;

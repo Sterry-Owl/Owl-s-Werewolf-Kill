@@ -1,11 +1,12 @@
 const UI = {
-    renderPlayerGrid: function(containerId, players, isHost = false, onPlayerClick = null) {
+	renderPlayerGrid: function(containerId, players, isHost = false, onPlayerClick = null) {
         const container = document.getElementById(containerId);
         if (!container) return;
         container.innerHTML = '';
         
         const isVoting = containerId === 'voting-targets-grid';
 
+        // 確保容器樣式在空陣列時依然建立
         if (isVoting) {
             container.className = 'players-grid';
             container.style.display = 'grid';
@@ -57,22 +58,21 @@ const UI = {
                 seat.style.margin = '0';
             }
 
-            // 修正：圖片檔名改為 seat_1.png，並加入雙重防破版保護
+            // 座位結構：標籤在上、圖片填滿、名稱在下
             seat.innerHTML = `
-                <div class="role-label hidden"></div>
-                <div style="width: 60px; height: 60px; border-radius: 50%; background-color: #222; margin-bottom: 5px; display: flex; justify-content: center; align-items: center; border: 2px solid #555; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.4);">
+                <div class="role-label ${player.role ? '' : 'hidden'}" style="position: absolute; top: -25px; left: 50%; transform: translateX(-50%); background: var(--accent-blue); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; white-space: nowrap; z-index: 5;">${player.role || '未分配'}</div>
+                <div style="width: 60px; height: 60px; border-radius: 50%; background-color: #222; display: flex; justify-content: center; align-items: center; border: 2px solid #555; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.4); z-index: 2;">
                     <img class="seat-img" src="./img/seat_${player.seatNumber}.png" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                     <span style="display: none; color: #fff; font-size: 24px; font-weight: bold;">${player.seatNumber}</span>
                 </div>
-                <div class="player-name" style="margin-top: 5px;">${player.name || '等待加入'}</div>
+                <div class="player-name" style="margin-top: 5px; font-size: 12px; color: var(--text-muted); white-space: nowrap; z-index: 3;">${player.name || '等待加入'}</div>
             `;
 
             if (player.isDead) seat.classList.add('dead');
 
             if (isHost) {
                 const roleLabel = seat.querySelector('.role-label');
-                roleLabel.textContent = player.role || '未分配';
-                roleLabel.classList.remove('hidden');
+                roleLabel.style.background = 'var(--accent-red)';
             } else if (onPlayerClick && !player.isDead) {
                 seat.addEventListener('click', () => onPlayerClick(player.seatNumber, seat));
             }
