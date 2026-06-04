@@ -74,3 +74,10 @@ th { background: #333; }
 .seat { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2; text-align: center; }
 .role-label { position: absolute; top: -25px; left: 50%; transform: translateX(-50%); background: var(--accent-blue); color: white; font-size: 12px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
 .center-card-view { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
+
+/* 技能選取與狼人共識遮罩視覺 */
+.seat-img-wrapper { border: 3px solid transparent; transition: all 0.2s; }
+.player-seat:hover:not(.locked):not(.dead) .seat-img-wrapper { border-color: var(--accent-blue); }
+.player-seat.selected .seat-img-wrapper { border-color: var(--accent-green) !important; box-shadow: 0 0 15px var(--accent-green) !important; }
+.player-seat.wolf-selected .seat-img-wrapper { border-color: #ffb703 !important; box-shadow: 0 0 15px rgba(255, 183, 3, 0.8) !important; }
+.wolf-tag { background: #ffb703; color: #000; font-size: 10px; padding: 2px 4px; border-radius: 4px; font-weight: bold; white-space: nowrap; }
