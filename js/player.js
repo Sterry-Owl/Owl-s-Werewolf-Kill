@@ -91,8 +91,15 @@ function handlePhaseChange(payload) {
         if (!playerInfo.isDead && wolfRoles.includes(playerInfo.role)) {
             document.getElementById('btn-self-destruct').classList.remove('hidden');
         }
+        const btnDaySkill = document.getElementById('btn-day-skill');
         if (!playerInfo.isDead && playerInfo.role === '騎士') {
-            document.getElementById('btn-day-skill').classList.remove('hidden');
+            btnDaySkill.textContent = '發動騎士決鬥';
+            btnDaySkill.classList.remove('hidden');
+        } else if (!playerInfo.isDead && playerInfo.role === '定序王子') {
+            btnDaySkill.textContent = '發動定序作廢投票';
+            btnDaySkill.classList.remove('hidden');
+        } else {
+            btnDaySkill.classList.add('hidden');
         }
         UI.lockPlayerInterface();
         UI.updateStatusMessage(payload.message || '現在是白天發言階段。');
@@ -198,12 +205,19 @@ function handleStartVote(payload) {
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-day-skill')?.addEventListener('click', () => {
-        if (confirm('確定要在現在發起決鬥嗎？')) {
-            document.getElementById('btn-day-skill').classList.add('hidden');
-            actionPayload.type = 'single_select';
-            actionPayload.isDaySkill = true;
-            document.getElementById('player-action-panel').classList.remove('hidden');
-            UI.unlockPlayerInterface('請選擇你要決鬥的目標');
+        if (playerInfo.role === '騎士') {
+            if (confirm('確定要在現在發起決鬥嗎？')) {
+                document.getElementById('btn-day-skill').classList.add('hidden');
+                actionPayload.type = 'single_select';
+                actionPayload.isDaySkill = true;
+                document.getElementById('player-action-panel').classList.remove('hidden');
+                UI.unlockPlayerInterface('請選擇你要決鬥的目標');
+            }
+        } else if (playerInfo.role === '定序王子') {
+            if (confirm('確定要發動技能作廢本次投票嗎？(全局限用一次)')) {
+                document.getElementById('btn-day-skill').classList.add('hidden');
+                hostConnection.send({ type: 'DAY_SKILL_ACTION', payload: { skill: 'prince' } });
+            }
         }
     });
 

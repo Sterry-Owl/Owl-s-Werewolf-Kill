@@ -65,8 +65,8 @@ function startGame(selectedRoles) {
         sendToPlayer(player.peerId, { type: 'GAME_INIT', payload: { seatNumber: player.seatNumber, role: player.role, players: getPublicPlayersData() } });
     });
     UI.renderPlayerGrid('host-players-grid', playersData, true);
-    alert('發牌完成！請玩家確認身分，5秒後進入首夜。');
-    setTimeout(startNightPhase, 5000); 
+    alert('發牌完成！請玩家確認身分，10秒後進入首夜。');
+    setTimeout(startNightPhase, 10000); 
 }
 
 function validateThiefDeal(shuffled) {
@@ -229,8 +229,7 @@ function evaluateStepActions() {
                     payload: { seatNumber: action.player.seatNumber, role: action.player.role, players: getPublicPlayersData() } 
                 });
             }
-            break;
-        case "烏鴉":
+            break;        case "烏鴉":
             if (target) gameState.crowTarget = target;
             break;
         case "奇蹟商人":
@@ -412,7 +411,20 @@ function calculateVoteResults() {
 
 function handleDaySkillAction(peerId, payload) {
     const actingPlayer = playersData.find(p => p.peerId === peerId);
-    if (actingPlayer.role === '騎士' && payload.targets.length > 0) {
+    
+    // 處理定序王子
+    if (actingPlayer.role === '定序王子' && payload.skill === 'prince') {
+        if (gameState.isPrinceUsed) return;
+        gameState.isPrinceUsed = true;
+        currentVotes = {}; 
+        broadcastToAll({ type: 'END_VOTE', payload: {} });
+        broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: `【定序王子】發動技能！本次投票作廢，請重新組織發言或發起投票。` } });
+        document.getElementById('vote-results-container').innerHTML = '<p style="color:var(--accent-red);">定序王子發動技能，本次投票已被作廢。</p>';
+        return;
+    }
+
+    // 處理騎士
+    if (actingPlayer.role === '騎士' && payload.targets && payload.targets.length > 0) {
         const target = payload.targets[0];
         const targetPlayer = playersData.find(p => p.seatNumber === target);
         const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
