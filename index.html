@@ -98,7 +98,7 @@
         </div>
     </div>
 
-    <div id="player-screen" class="section hidden">
+<div id="player-screen" class="section hidden">
         <h3 style="text-align: center; color: var(--text-muted);">
             你的座位: <span id="player-seat-number" style="color: white;">-</span>號
         </h3>
@@ -106,7 +106,17 @@
             身分: <span id="player-role-name"></span>
         </div>
 
+        <div id="player-circle-container" class="circle-container" style="margin: 20px auto; width: 200px; height: 260px; border-radius: 8px;">
+            <div class="center-card-view">
+                <h3 id="my-card-title" style="color: var(--text-muted); margin: 0 0 5px 0;">等待發牌...</h3>
+                <span id="my-card-faction" class="badge hidden" style="background: var(--accent-blue);"></span>
+                <img id="my-card-img" class="hidden" src="" alt="卡牌圖片" style="max-width: 140px; margin-top: 10px; border-radius: 8px;">
+            </div>
+        </div>
+
+        <button id="btn-day-skill" class="btn-primary hidden" style="width: 100%; margin-bottom: 10px; padding: 15px; font-size: 18px;">發動騎士決鬥</button>
         <button id="btn-self-destruct" class="btn-danger hidden">我要自爆</button>
+        
         <div id="player-status-message" class="status-message">等待遊戲開始...</div>
 
         <div id="player-targets-grid"></div>
@@ -116,6 +126,7 @@
             <div id="special-options-container" class="special-options hidden"></div>
             <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
                 <button id="btn-confirm-action" class="btn-primary" disabled>確認</button>
+                <button id="btn-pass-action" class="btn-secondary hidden">放棄 / 跳過</button>
                 <button id="btn-cancel-action" class="btn-secondary hidden">取消</button>
             </div>
         </div>
@@ -126,7 +137,6 @@
             <button id="btn-abstain-vote" class="btn-secondary" style="margin-top: 15px;">棄票</button>
         </div>
     </div>
-</div>
 
 <script src="./js/config.js"></script>
 <script src="./js/ui.js"></script>
