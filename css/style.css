@@ -40,24 +40,23 @@ th { background: #333; }
 .action-buttons { display: flex; flex-direction: column; gap: 10px; }
 .system-log { background: #1a1a1a; padding: 15px; border-radius: 6px; border-left: 4px solid var(--accent-blue); margin-top: 15px; }
 
+/* --- 夜晚流程圖 (HUX 更新) --- */
 .flow-list { list-style: none; padding: 0; max-height: 350px; overflow-y: auto; }
-.flow-item { padding: 10px; background: #333; margin-bottom: 8px; border-radius: 5px; font-size: 14px; display: flex; justify-content: space-between; }
-.flow-item.active { background: #2a3a2a; border-left: 4px solid var(--accent-green); font-weight: bold; }
-.flow-item.completed { opacity: 0.5; text-decoration: line-through; }
+.flow-item { padding: 10px; background: #333; margin-bottom: 8px; border-radius: 5px; font-size: 14px; display: flex; justify-content: space-between; border-left: 4px solid #555; transition: all 0.3s; }
+.flow-item.active { background: #1e3a1e; border-left-color: var(--accent-green); }
+.flow-item.completed { background: #222; border-left-color: #444; opacity: 0.6; }
 
 .players-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 15px; width: 100%; justify-items: center; }
 .player-seat { width: 80px; height: 80px; background: #333; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s; position: relative; }
 .player-seat .seat-number { font-size: 24px; font-weight: bold; color: var(--text-main); }
 .player-seat .seat-name { font-size: 12px; color: var(--text-muted); width: 90%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
 
-/* --- 問題 10 修復：綠色與黃色遮罩視覺 --- */
 .seat-img-wrapper { border: 3px solid transparent; transition: all 0.2s; }
 .player-seat:hover:not(.locked):not(.dead) .seat-img-wrapper { border-color: var(--accent-blue); }
 .player-seat.selected .seat-img-wrapper { border-color: var(--accent-green) !important; box-shadow: 0 0 15px var(--accent-green) !important; }
 .player-seat.wolf-selected .seat-img-wrapper { border-color: #ffb703 !important; box-shadow: 0 0 15px rgba(255, 183, 3, 0.8) !important; }
 
 .wolf-tag { background: #ffb703; color: #000; font-size: 10px; padding: 2px 4px; border-radius: 4px; font-weight: bold; white-space: nowrap; }
-/* ------------------------------------- */
 
 .player-seat.dead { opacity: 0.4; filter: grayscale(100%); cursor: not-allowed; }
 .player-seat.dead::after { content: '✖'; position: absolute; font-size: 40px; color: var(--accent-red); z-index: 10; }
@@ -66,7 +65,9 @@ th { background: #333; }
 .status-message { padding: 15px; background: #333; border-radius: 8px; text-align: center; font-size: 18px; margin-bottom: 20px; border: 1px solid var(--border-color); }
 .action-panel, .voting-panel { background: #222; padding: 20px; border-radius: 10px; text-align: center; border: 1px solid var(--border-color); }
 .special-options { display: flex; gap: 10px; justify-content: center; margin-bottom: 15px; }
-.special-btn { background: #333; border: 1px solid var(--border-color); flex: 1; }
+
+/* 修改特殊按鈕為相對定位，以裝載狼人標記 */
+.special-btn { position: relative; background: #333; border: 1px solid var(--border-color); flex: 1; }
 .special-btn.selected { background: var(--accent-red); border-color: white; }
 
 .circle-container { position: relative; width: 400px; height: 400px; margin: 60px auto 20px; border-radius: 50%; border: 2px dashed var(--border-color); background: rgba(0,0,0,0.1); }
