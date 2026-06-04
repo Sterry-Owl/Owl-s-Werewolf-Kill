@@ -87,9 +87,7 @@ const UI = {
         const statusEl = document.getElementById('player-status-message');
         if (statusEl) statusEl.textContent = message;
     }
-};
-// js/ui.js (2/2)
-
+},
     // ==========================================
     // 主持人端：夜晚流程圖渲染與狀態更新
     // ==========================================
