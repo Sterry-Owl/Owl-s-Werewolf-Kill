@@ -55,19 +55,19 @@ const UI = {
                 seat.style.top = `${y}px`;
                 seat.style.transform = 'translate(-50%, -50%)';
                 seat.style.margin = '0';
-                
-                // 【問題6修復】強制清除外圍背景、邊框與陰影
                 seat.style.background = 'transparent';
                 seat.style.border = 'none';
                 seat.style.boxShadow = 'none';
             }
 
+            // 【問題10修復】加入 seat-img-wrapper 處理選取遮罩與 wolf-tags-container
             seat.innerHTML = `
-                <div class="role-label ${player.role ? '' : 'hidden'}" style="position: absolute; top: -25px; left: 50%; transform: translateX(-50%); background: var(--accent-blue); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; white-space: nowrap; z-index: 5;">${player.role || '未分配'}</div>
-                <div style="width: 60px; height: 60px; border-radius: 50%; background-color: #222; display: flex; justify-content: center; align-items: center; border: 2px solid #555; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.4); z-index: 2;">
+                <div class="role-label ${player.role ? '' : 'hidden'}">${player.role || '未分配'}</div>
+                <div class="seat-img-wrapper" style="width: 60px; height: 60px; border-radius: 50%; background-color: #222; display: flex; justify-content: center; align-items: center; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.4); z-index: 2; position: relative;">
                     <img class="seat-img" src="./img/seat_${player.seatNumber}.png" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                     <span style="display: none; color: #fff; font-size: 24px; font-weight: bold;">${player.seatNumber}</span>
                 </div>
+                <div class="wolf-tags-container" style="position: absolute; right: -40px; top: 10px; z-index: 10; display:flex; flex-direction:column; gap:2px;"></div>
                 <div class="player-name" style="margin-top: 5px; font-size: 12px; color: var(--text-muted); white-space: nowrap; z-index: 3;">${player.name || '等待加入'}</div>
             `;
 
@@ -75,7 +75,6 @@ const UI = {
 
             if (isHost) {
                 const roleLabel = seat.querySelector('.role-label');
-                // 【問題9修復】主持人身分標籤改為藍色
                 roleLabel.style.background = 'var(--accent-blue)';
                 roleLabel.classList.remove('hidden');
             } else if (onPlayerClick && !player.isDead) {

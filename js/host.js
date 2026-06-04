@@ -3,9 +3,10 @@ let connections = {};
 let playersData = [];
 let currentRoomId = null;
 
-let gameState = { ...GAME_STATE };
+let gameState = { ...GAME_STATE, pendingVoteTarget: null, pendingVoteTie: false };
 let availableRoles = [];
 let thiefSpareCards = []; 
+let wolfPreviews = {}; // 紀錄狼人目標
 
 function initHost(roomId) {
     hostPeer = new Peer(roomId, peerConfig);
@@ -30,8 +31,9 @@ function setupHostConnectionListeners(conn) {
             case 'JOIN_ROOM': handlePlayerJoin(conn.peer, data.payload.name); break;
             case 'ACTION_COMPLETE': handleNightActionComplete(conn.peer, data.payload); break;
             case 'VOTE_SUBMIT': handleVoteSubmit(conn.peer, data.payload); break;
-            case 'TRIGGER_SELF_DESTRUCT': handleSelfDestruct(conn.peer); break;
+            case 'TRIGGER_SELF_DESTRUCT': handleSelfDestruct(conn.peer, data.payload); break;
             case 'DAY_SKILL_ACTION': handleDaySkillAction(conn.peer, data.payload); break;
+            case 'WOLF_TARGET_PREVIEW': handleWolfPreview(conn.peer, data.payload.target); break;
         }
     });
 }
@@ -58,27 +60,23 @@ function startGame(selectedRoles) {
     playersData.forEach((player, index) => player.role = shuffledRoles[index]);
     if (availableRoles.includes("盜賊")) thiefSpareCards = [shuffledRoles[shuffledRoles.length - 2], shuffledRoles[shuffledRoles.length - 1]];
     
-    // 【問題7修復】為每個玩家客製化遊戲資訊陣列，狼人只看得到狼人
+    // 統計配置傳給玩家
+    let roleCounts = {};
+    selectedRoles.forEach(r => roleCounts[r] = (roleCounts[r] || 0) + 1);
+
     playersData.forEach(player => {
         let customizedPlayers = playersData.map(p => {
             let visibleRole = null;
             const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
-            
-            // 接收者是否為狼人陣營
             const isReceiverWolf = wolfRoles.includes(player.role.split('-')[0]) || player.role === '隱狼';
-            // 目標是否為具體狼人 (不含隱狼)
             const isTargetWolf = wolfRoles.includes(p.role.split('-')[0]);
 
-            if (isReceiverWolf && isTargetWolf) {
-                visibleRole = p.role; // 狼人互相確認身分
-            }
-            if (player.seatNumber === p.seatNumber) {
-                visibleRole = p.role; // 永遠看得到自己的身分
-            }
+            if (isReceiverWolf && isTargetWolf) visibleRole = p.role; 
+            if (player.seatNumber === p.seatNumber) visibleRole = p.role;
             return { seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, role: visibleRole };
         });
 
-        sendToPlayer(player.peerId, { type: 'GAME_INIT', payload: { seatNumber: player.seatNumber, role: player.role, players: customizedPlayers } });
+        sendToPlayer(player.peerId, { type: 'GAME_INIT', payload: { seatNumber: player.seatNumber, role: player.role, players: customizedPlayers, roleCounts: roleCounts } });
     });
     
     UI.renderPlayerGrid('host-players-grid', playersData, true);
@@ -103,10 +101,21 @@ function shuffleArray(array) {
     return array;
 }
 
-// 【問題7修復】過濾公用名單，避免洩漏職業
 function getPublicPlayersData() { return playersData.map(p => ({ seatNumber: p.seatNumber, name: p.name, isDead: p.isDead })); }
 function broadcastToAll(data) { playersData.forEach(p => { if (connections[p.peerId]) connections[p.peerId].send(data); }); }
 function sendToPlayer(peerId, data) { if (connections[peerId]) connections[peerId].send(data); }
+
+// 【問題10修復】狼人預覽目標轉發
+function handleWolfPreview(peerId, targetSeat) {
+    const p = playersData.find(x => x.peerId === peerId);
+    if(!p) return;
+    wolfPreviews[peerId] = { name: p.name, seat: p.seatNumber, target: targetSeat };
+    
+    const aliveWolves = playersData.filter(x => !x.isDead && ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"].includes(x.role.split('-')[0]));
+    aliveWolves.forEach(wolf => {
+        sendToPlayer(wolf.peerId, { type: 'WOLF_PREVIEW_UPDATE', payload: wolfPreviews });
+    });
+}
 
 let nightSequence = [];
 let currentNightStep = 0;
@@ -121,6 +130,7 @@ function startNightPhase() {
     UI.renderNightFlow(nightSequence, 0);
     currentNightStep = 0;
     expectedActionResponses = 0;
+    wolfPreviews = {}; // 重置狼人預覽
     nightTags = { guarded: [], killed: [], poisoned: [], dreamed: [], revenged: null, witchUsedSaveTonight: false };
     document.getElementById('btn-start-night').classList.add('hidden');
     processNextNightStep();
@@ -130,7 +140,7 @@ function buildNightSequence() {
     let sequence = [];
     const alivePlayers = playersData.filter(p => !p.isDead);
     const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
-    const aliveWolves = alivePlayers.filter(p => wolfRoles.includes(p.role));
+    const aliveWolves = alivePlayers.filter(p => wolfRoles.includes(p.role.split('-')[0]));
 
     if (aliveWolves.length < 3) gameState.isWolfCrowAwake = true;
 
@@ -241,8 +251,6 @@ function evaluateStepActions() {
         case "盜賊":
             if (action.specialValue) {
                 action.player.role = action.specialValue;
-                
-                // 重新計算陣營視野並廣播給盜賊
                 let customizedPlayers = playersData.map(p => {
                     let visibleRole = null;
                     const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
@@ -251,7 +259,6 @@ function evaluateStepActions() {
 
                     if (isReceiverWolf && isTargetWolf) visibleRole = p.role;
                     if (action.player.seatNumber === p.seatNumber) visibleRole = p.role;
-                    
                     return { seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, role: visibleRole };
                 });
 
@@ -268,7 +275,7 @@ function evaluateStepActions() {
             if (target && action.specialValue) {
                 const targetPlayer = playersData.find(p => p.seatNumber === target);
                 const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
-                if (targetPlayer && wolfRoles.includes(targetPlayer.role)) {
+                if (targetPlayer && wolfRoles.includes(targetPlayer.role.split('-')[0])) {
                     nightTags.killed.push(action.player.seatNumber);
                 } else {
                     gameState.merchantGiftTarget = target;
@@ -306,10 +313,10 @@ function evaluateStepActions() {
                 const targetPlayer = playersData.find(p => p.seatNumber === target);
                 let resultMsg = "";
                 if (roleName === "純白之女") {
-                    resultMsg = `查驗結果：目標的具體身分是【${targetPlayer.role}】`;
+                    resultMsg = `查驗結果：目標的具體身分是【${targetPlayer.role.split('-')[0]}】`;
                 } else {
                     const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
-                    const isWolf = wolfRoles.includes(targetPlayer.role) && targetPlayer.role !== "隱狼";
+                    const isWolf = wolfRoles.includes(targetPlayer.role.split('-')[0]) && targetPlayer.role !== "隱狼";
                     resultMsg = `查驗結果：該玩家為【${isWolf ? "狼人" : "好人"}】陣營`;
                     if (targetPlayer.role === "咒狐") nightTags.killed.push(target);
                 }
@@ -324,7 +331,7 @@ function evaluateStepActions() {
                 if (gameState.merchantGiftType === 'seer') {
                     const targetPlayer = playersData.find(p => p.seatNumber === target);
                     const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
-                    const isWolf = wolfRoles.includes(targetPlayer.role) && targetPlayer.role !== "隱狼";
+                    const isWolf = wolfRoles.includes(targetPlayer.role.split('-')[0]) && targetPlayer.role !== "隱狼";
                     if (targetPlayer.role === "咒狐") nightTags.killed.push(target);
                     sendToPlayer(action.player.peerId, { type: 'PHASE_CHANGE', payload: { phase: 'night', message: `查驗結果：該玩家為【${isWolf ? "狼人" : "好人"}】陣營` } });
                 }
@@ -379,7 +386,8 @@ function processDawnSettlement() {
 
 // 【問題8修復】白天投票狀態機
 let currentVotes = {};
-let currentVoteState = 'idle'; // idle -> voting -> ready_to_announce -> ready_for_night
+let currentVoteState = 'idle'; // idle -> voting -> ready_to_announce -> cooldown -> ready_for_night
+let voteCooldownTimer = null;
 
 function startDayPhase() {
     document.getElementById('night-dashboard').classList.add('hidden');
@@ -397,6 +405,7 @@ function startDayPhase() {
 
 document.getElementById('btn-vote-flow')?.addEventListener('click', () => {
     const btn = document.getElementById('btn-vote-flow');
+    
     if (currentVoteState === 'idle') {
         const alivePlayers = getPublicPlayersData().filter(p => !p.isDead);
         broadcastToAll({ type: 'START_VOTE', payload: { alivePlayers } });
@@ -408,9 +417,26 @@ document.getElementById('btn-vote-flow')?.addEventListener('click', () => {
         currentVoteState = 'voting';
         
     } else if (currentVoteState === 'ready_to_announce') {
-        calculateVoteResults();
-        btn.textContent = '進入黑夜';
-        currentVoteState = 'ready_for_night';
+        calculateVoteResults(); // 先發布結果給定序王子解鎖技能
+        btn.textContent = '5秒後可進入黑夜';
+        btn.disabled = true;
+        currentVoteState = 'cooldown';
+        
+        let countdown = 5;
+        voteCooldownTimer = setInterval(() => {
+            countdown--;
+            if (countdown <= 0) {
+                clearInterval(voteCooldownTimer);
+                if (currentVoteState === 'cooldown') { // 若未被打斷
+                    executeVoteDeath();
+                    btn.textContent = '進入黑夜';
+                    btn.disabled = false;
+                    currentVoteState = 'ready_for_night';
+                }
+            } else {
+                if (currentVoteState === 'cooldown') btn.textContent = `${countdown}秒後可進入黑夜`;
+            }
+        }, 1000);
         
     } else if (currentVoteState === 'ready_for_night') {
         startNightPhase();
@@ -427,7 +453,7 @@ function handleVoteSubmit(peerId, payload) {
     document.getElementById('vote-results-container').innerHTML = `<p>投票進度：${votedCount} / ${aliveCount}</p>`;
 
     if (votedCount >= aliveCount) {
-        broadcastToAll({ type: 'END_VOTE', payload: {} }); // 強制關閉玩家投票介面
+        broadcastToAll({ type: 'END_VOTE', payload: {} });
         const btn = document.getElementById('btn-vote-flow');
         if (btn) {
             btn.textContent = '公告結果';
@@ -437,6 +463,7 @@ function handleVoteSubmit(peerId, payload) {
     }
 }
 
+// 【問題11修復】分離「計算宣告」與「確實死亡」邏輯，配合定序王子中斷
 function calculateVoteResults() {
     let voteCounts = {};
     Object.values(currentVotes).forEach(target => {
@@ -456,32 +483,54 @@ function calculateVoteResults() {
         else if (count === maxVotes) { isTie = true; }
     }
 
+    gameState.pendingVoteTarget = isTie ? null : finalTarget;
+    gameState.pendingVoteTie = isTie;
+
     const resultContainer = document.getElementById('vote-results-container');
     if (isTie || !finalTarget) {
-        resultContainer.innerHTML = `<p>投票結果：平票或全數棄票，無人出局。</p>`;
+        resultContainer.innerHTML = `<p>即將結算：平票或全數棄票，無人出局。</p>`;
     } else {
         const targetPlayer = playersData.find(p => p.seatNumber === finalTarget);
         if (targetPlayer && targetPlayer.role === "白痴") {
-            resultContainer.innerHTML = `<p>投票結果：${finalTarget} 號最高票。觸發【白痴】技能，免除出局。</p>`;
+            resultContainer.innerHTML = `<p>即將結算：${finalTarget} 號最高票。將觸發【白痴】技能，免除出局。</p>`;
         } else {
-            resultContainer.innerHTML = `<p>投票結果：${finalTarget} 號玩家被放逐出局。</p>`;
+            resultContainer.innerHTML = `<p>即將結算：${finalTarget} 號玩家將被放逐出局。</p>`;
+        }
+    }
+    
+    // 通知定序王子
+    broadcastToAll({ type: 'VOTE_RESULTS', payload: { isPrinceUsed: gameState.isPrinceUsed } });
+}
+
+function executeVoteDeath() {
+    const resultContainer = document.getElementById('vote-results-container');
+    if (gameState.pendingVoteTie || !gameState.pendingVoteTarget) {
+        resultContainer.innerHTML = `<p>結算完成：平票或全數棄票，無人出局。</p>`;
+    } else {
+        const targetPlayer = playersData.find(p => p.seatNumber === gameState.pendingVoteTarget);
+        if (targetPlayer && targetPlayer.role === "白痴") {
+            resultContainer.innerHTML = `<p>結算完成：${gameState.pendingVoteTarget} 號最高票。觸發【白痴】技能，免除出局。</p>`;
+        } else if (targetPlayer) {
+            resultContainer.innerHTML = `<p>結算完成：${gameState.pendingVoteTarget} 號玩家被放逐出局。</p>`;
             targetPlayer.isDead = true;
-            broadcastToAll({ type: 'DEATH_ANNOUNCEMENT', payload: { targetSeat: finalTarget } });
+            broadcastToAll({ type: 'DEATH_ANNOUNCEMENT', payload: { targetSeat: gameState.pendingVoteTarget } });
             UI.renderPlayerGrid('host-players-grid', playersData, true);
         }
     }
+    gameState.pendingVoteTarget = null;
 }
 
 function handleDaySkillAction(peerId, payload) {
     const actingPlayer = playersData.find(p => p.peerId === peerId);
     
-    // 定序王子邏輯
     if (actingPlayer.role === '定序王子' && payload.skill === 'prince') {
-        if (gameState.isPrinceUsed) return;
+        if (gameState.isPrinceUsed || currentVoteState !== 'cooldown') return;
+        clearInterval(voteCooldownTimer);
         gameState.isPrinceUsed = true;
+        gameState.pendingVoteTarget = null;
         currentVotes = {}; 
-        broadcastToAll({ type: 'END_VOTE', payload: {} });
-        broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: `【定序王子】發動技能！本次投票作廢，請重新組織發言或發起投票。` } });
+        
+        broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: `【定序王子】發動技能！本次投票作廢，請重新組織發言或重新發起投票。` } });
         document.getElementById('vote-results-container').innerHTML = '<p style="color:var(--accent-red);">定序王子發動技能，本次投票已被作廢。</p>';
         
         currentVoteState = 'idle';
@@ -493,11 +542,11 @@ function handleDaySkillAction(peerId, payload) {
         return;
     }
 
-    if (actingPlayer.role === '騎士' && payload.targets.length > 0) {
+    if (actingPlayer.role === '騎士' && payload.targets && payload.targets.length > 0) {
         const target = payload.targets[0];
         const targetPlayer = playersData.find(p => p.seatNumber === target);
         const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
-        const isWolf = wolfRoles.includes(targetPlayer.role) && targetPlayer.role !== "隱狼";
+        const isWolf = wolfRoles.includes(targetPlayer.role.split('-')[0]) && targetPlayer.role !== "隱狼";
         
         let msg = `【騎士決鬥】騎士 ${actingPlayer.seatNumber} 號對 ${target} 號發起決鬥！`;
         if (isWolf) {
@@ -517,34 +566,35 @@ function handleDaySkillAction(peerId, payload) {
     }
 }
 
-function handleSelfDestruct(peerId) {
+function handleSelfDestruct(peerId, payload) {
     const player = playersData.find(p => p.peerId === peerId);
     if (!player || player.isDead) return;
     player.isDead = true;
-    UI.renderPlayerGrid('host-players-grid', playersData, true);
     
     let msg = `${player.seatNumber} 號玩家自爆！`;
+
+    // 【問題11修復】白狼王帶人
+    if (player.role === '白狼王' && payload.target) {
+        const t = playersData.find(p => p.seatNumber === payload.target);
+        if (t) {
+            t.isDead = true;
+            msg += ` 並發動技能帶走了 ${t.seatNumber} 號玩家！`;
+            broadcastToAll({ type: 'DEATH_ANNOUNCEMENT', payload: { targetSeat: t.seatNumber } });
+        }
+    }
+
+    // 【問題11修復】血月使徒封鎖
     if (player.role === "血月使徒") {
         gameState.isBloodMoonActive = true;
         msg += " 觸發血月封鎖，今晚好人陣營無法使用技能。";
+        const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪", "隱狼"];
+        playersData.forEach(p => {
+            if (!wolfRoles.includes(p.role.split('-')[0])) p.isSilenced = true;
+        });
     }
+
+    UI.renderPlayerGrid('host-players-grid', playersData, true);
     broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: msg } });
     broadcastToAll({ type: 'DEATH_ANNOUNCEMENT', payload: { targetSeat: player.seatNumber } });
     setTimeout(startNightPhase, 3000);
 }
-
-document.getElementById('btn-end-night')?.addEventListener('click', processDawnSettlement);
-document.getElementById('btn-interrupt-skill')?.addEventListener('click', () => {
-    if(confirm('是否要作廢本次投票或執行白天中斷技能？')) {
-        currentVotes = {};
-        broadcastToAll({ type: 'END_VOTE', payload: {} });
-        document.getElementById('vote-results-container').innerHTML = '<p>主持人已作廢本次流程，請重新發言或進行階段。</p>';
-        
-        currentVoteState = 'idle';
-        const flowBtn = document.getElementById('btn-vote-flow');
-        if (flowBtn) {
-            flowBtn.textContent = '發起投票';
-            flowBtn.disabled = false;
-        }
-    }
-});

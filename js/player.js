@@ -1,7 +1,7 @@
 let playerPeer = null;
 let hostConnection = null;
 let playerInfo = { seatNumber: null, name: null, role: null, isDead: false, isSilenced: false };
-let actionPayload = { type: 'none', targets: [], specialValue: null, isDaySkill: false };
+let actionPayload = { type: 'none', targets: [], specialValue: null, isDaySkill: false, isWWK: false };
 
 function initPlayer(roomId, playerName) {
     playerPeer = new Peer(peerConfig);
@@ -37,6 +37,7 @@ function setupConnectionListeners() {
                 break;
             case 'DEATH_ANNOUNCEMENT': handleDeath(data.payload); break;
             case 'START_VOTE': handleStartVote(data.payload); break;
+            case 'VOTE_RESULTS': handleVoteResults(data.payload); break; // 接收定序王子解鎖通知
             case 'END_VOTE':
                 UI.hideVotingPanel();
                 UI.updateStatusMessage('投票結束，等待結果...');
@@ -45,6 +46,7 @@ function setupConnectionListeners() {
                 playerInfo.isSilenced = true;
                 UI.updateStatusMessage('你的技能已被封鎖。');
                 break;
+            case 'WOLF_PREVIEW_UPDATE': handleWolfPreview(data.payload); break; // 接收狼人隊友選取目標
         }
     });
 }
@@ -59,7 +61,6 @@ function handleGameInit(payload) {
     document.getElementById('player-role-display').classList.remove('hidden');
     document.getElementById('my-card-title').textContent = payload.role;
     
-    // 修正：讀取路徑對接 GitHub 本地資源夾，支援中文檔名
     const imgEl = document.getElementById('my-card-img');
     let imgSrc = `./img/${payload.role}.png`;
 
@@ -73,13 +74,19 @@ function handleGameInit(payload) {
     imgEl.src = imgSrc;
     imgEl.classList.remove('hidden');
     
-    // 雙重保險，圖檔不存在就隱藏
-    imgEl.onerror = function() {
-        this.style.display = 'none';
-    };
-    imgEl.onload = function() {
-        this.style.display = 'block';
-    };
+    imgEl.onerror = function() { this.style.display = 'none'; };
+    imgEl.onload = function() { this.style.display = 'block'; };
+
+    // 【問題12修復】渲染配置總覽
+    if (payload.roleCounts) {
+        const configContainer = document.getElementById('player-config-display');
+        configContainer.innerHTML = '';
+        Object.entries(payload.roleCounts).forEach(([role, count]) => {
+            if(count > 0) {
+                configContainer.innerHTML += `<div style="display:flex; align-items:center; gap:5px;"><img src="./img/${role}.png" style="width:30px;height:30px;border-radius:4px;" onerror="this.style.display='none'"> <span style="color:#ccc;font-size:14px;">x${count}</span></div>`;
+            }
+        });
+    }
 
     UI.renderPlayerGrid('player-targets-grid', payload.players, false, onTargetSelect);
     UI.updateStatusMessage('遊戲準備開始。');
@@ -94,9 +101,6 @@ function handlePhaseChange(payload) {
         const btnDaySkill = document.getElementById('btn-day-skill');
         if (!playerInfo.isDead && playerInfo.role === '騎士') {
             btnDaySkill.textContent = '發動騎士決鬥';
-            btnDaySkill.classList.remove('hidden');
-        } else if (!playerInfo.isDead && playerInfo.role === '定序王子') {
-            btnDaySkill.textContent = '發動定序作廢投票';
             btnDaySkill.classList.remove('hidden');
         } else {
             btnDaySkill.classList.add('hidden');
@@ -119,6 +123,15 @@ function handleDeath(payload) {
         document.getElementById('btn-day-skill').classList.add('hidden');
         const mySeat = document.getElementById(`player-targets-grid-seat-${playerInfo.seatNumber}`);
         if (mySeat) mySeat.classList.add('dead');
+    }
+}
+
+// 【問題11修復】定序王子按鈕解鎖
+function handleVoteResults(payload) {
+    if (playerInfo.role === '定序王子' && !payload.isPrinceUsed) {
+        const btnDaySkill = document.getElementById('btn-day-skill');
+        btnDaySkill.textContent = '發動定序作廢投票';
+        btnDaySkill.classList.remove('hidden');
     }
 }
 
@@ -163,6 +176,11 @@ function onTargetSelect(seatNumber, seatEl) {
             document.querySelectorAll('#player-targets-grid .player-seat').forEach(s => s.classList.remove('selected'));
             seatEl.classList.add('selected');
             document.getElementById('btn-confirm-action').disabled = false;
+            
+            // 【問題10修復】狼人共識目標同步預覽
+            if (['consensus', 'consensus_dynamic'].includes(actionPayload.type)) {
+                hostConnection.send({ type: 'WOLF_TARGET_PREVIEW', payload: { target: seatNumber } });
+            }
             break;
         case 'double_select':
             const index = actionPayload.targets.indexOf(seatNumber);
@@ -185,9 +203,35 @@ function onTargetSelect(seatNumber, seatEl) {
     }
 }
 
+// 【問題10修復】渲染隊友選擇目標
+function handleWolfPreview(previews) {
+    document.querySelectorAll('.wolf-tag').forEach(el => el.remove());
+    document.querySelectorAll('.player-seat').forEach(el => el.classList.remove('wolf-selected'));
+    
+    Object.values(previews).forEach(preview => {
+        if(preview.seat !== playerInfo.seatNumber) {
+            const targetSeatEl = document.getElementById(`player-targets-grid-seat-${preview.target}`);
+            if(targetSeatEl) {
+                targetSeatEl.classList.add('wolf-selected');
+                const tagContainer = targetSeatEl.querySelector('.wolf-tags-container');
+                if(tagContainer) {
+                    const tag = document.createElement('div');
+                    tag.className = 'wolf-tag';
+                    tag.textContent = `${preview.seat}號選擇`;
+                    tagContainer.appendChild(tag);
+                }
+            }
+        }
+    });
+}
+
 function resetActionPayload() {
-    actionPayload = { type: 'none', targets: [], specialValue: null, isDaySkill: false };
-    document.querySelectorAll('.player-seat').forEach(s => s.classList.remove('selected'));
+    actionPayload = { type: 'none', targets: [], specialValue: null, isDaySkill: false, isWWK: false };
+    document.querySelectorAll('.player-seat').forEach(s => {
+        s.classList.remove('selected');
+        s.classList.remove('wolf-selected');
+    });
+    document.querySelectorAll('.wolf-tag').forEach(el => el.remove());
     document.getElementById('btn-confirm-action').disabled = true;
 }
 
@@ -225,6 +269,8 @@ document.addEventListener('DOMContentLoaded', () => {
         UI.lockPlayerInterface();
         if (actionPayload.isDaySkill) {
             hostConnection.send({ type: 'DAY_SKILL_ACTION', payload: { targets: actionPayload.targets } });
+        } else if (actionPayload.isWWK) {
+            hostConnection.send({ type: 'TRIGGER_SELF_DESTRUCT', payload: { target: actionPayload.targets[0] } });
         } else {
             hostConnection.send({ type: 'ACTION_COMPLETE', payload: { targets: actionPayload.targets, specialValue: actionPayload.specialValue } });
         }
@@ -248,10 +294,19 @@ document.addEventListener('DOMContentLoaded', () => {
         hostConnection.send({ type: 'VOTE_SUBMIT', payload: { target: 'abstain' } });
     });
     
+    // 【問題11修復】白狼王自爆要求選取目標
     document.getElementById('btn-self-destruct').addEventListener('click', () => {
-        if (confirm('確定要自爆嗎？')) {
-            hostConnection.send({ type: 'TRIGGER_SELF_DESTRUCT', payload: {} });
+        if (playerInfo.role === '白狼王') {
             document.getElementById('btn-self-destruct').classList.add('hidden');
+            actionPayload.type = 'single_select';
+            actionPayload.isWWK = true;
+            document.getElementById('player-action-panel').classList.remove('hidden');
+            UI.unlockPlayerInterface('請選擇你要帶走的玩家');
+        } else {
+            if (confirm('確定要自爆嗎？')) {
+                hostConnection.send({ type: 'TRIGGER_SELF_DESTRUCT', payload: {} });
+                document.getElementById('btn-self-destruct').classList.add('hidden');
+            }
         }
     });
 });
