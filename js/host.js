@@ -3,6 +3,7 @@ let connections = {};
 let playersData = [];
 let currentRoomId = null;
 
+// 加入解藥與毒藥的全域狀態紀錄
 let gameState = { ...GAME_STATE, pendingVoteTarget: null, pendingVoteTie: false, isWitchAntidoteUsed: false, isWitchPoisonUsed: false };
 let availableRoles = [];
 let thiefSpareCards = []; 
@@ -179,7 +180,6 @@ function buildNightSequence() {
 
 function processNextNightStep() {
     if (currentNightStep >= nightSequence.length) {
-        // 全部執行完畢，全刷灰，亮起天亮結算按鈕
         UI.renderNightFlow(nightSequence, currentNightStep + 1); 
         document.getElementById('btn-end-night').classList.remove('hidden');
         broadcastToAll({ type: 'SLEEP', payload: {} });
@@ -190,14 +190,14 @@ function processNextNightStep() {
     broadcastToAll({ type: 'SLEEP', payload: {} });
     expectedActionResponses = stepData.players.length;
 
-stepData.players.forEach(player => {
+    stepData.players.forEach(player => {
         let payloadData = { roleDef: JSON.parse(JSON.stringify(stepData.roleDef)), specialOptions: null };
         
         if (stepData.order === 1) {
             payloadData.specialOptions = thiefSpareCards.map(card => ({ label: card, value: card, disabled: (card !== "狼人" && thiefSpareCards.includes("狼人")) }));
         }
         
-        // 【修復 25-1】動態替換女巫解藥提示，用過就盲視
+        // 女巫動態提示：如果用過解藥就無法得知刀口
         if (stepData.name === "女巫-解藥") {
             if (gameState.isWitchAntidoteUsed) {
                 payloadData.roleDef.prompt = `你的解藥已經用過，無法得知今晚的襲擊目標。(請點選放棄)`;
@@ -205,18 +205,6 @@ stepData.players.forEach(player => {
                 const victim = nightTags.killed.length > 0 ? nightTags.killed[0] : "無";
                 payloadData.roleDef.prompt = `昨晚被襲擊的是 ${victim} 號，是否使用解藥？(點選該號碼使用解藥，或點選放棄)`;
             }
-        }
-
-        sendToPlayer(player.peerId, { type: 'WAKE_UP', payload: payloadData });
-    });
-        
-        if (stepData.order === 1) {
-            payloadData.specialOptions = thiefSpareCards.map(card => ({ label: card, value: card, disabled: (card !== "狼人" && thiefSpareCards.includes("狼人")) }));
-        }
-        
-        if (stepData.name === "女巫-解藥") {
-            const victim = nightTags.killed.length > 0 ? nightTags.killed[0] : "無";
-            payloadData.roleDef.prompt = `昨晚被襲擊的是 ${victim} 號，是否使用解藥？(點選該號碼使用解藥，或點選放棄)`;
         }
 
         sendToPlayer(player.peerId, { type: 'WAKE_UP', payload: payloadData });
@@ -308,14 +296,14 @@ function evaluateStepActions() {
             if (target) { nightTags.guarded.push(target); resultText = `【守護: ${target}號】`; }
             else resultText = "【空守】";
             break;
-case "女巫-解藥":
+        case "女巫-解藥":
             if (target) {
                 if (gameState.isWitchAntidoteUsed) {
                     resultText = `【無效: 解藥已盡】`;
                 } else {
                     nightTags.killed = nightTags.killed.filter(id => id !== target);
                     nightTags.witchUsedSaveTonight = true;
-                    gameState.isWitchAntidoteUsed = true; // 紀錄解藥已使用
+                    gameState.isWitchAntidoteUsed = true;
                     resultText = `【解救: ${target}號】`;
                 }
             } else resultText = "【不使用】";
@@ -329,7 +317,7 @@ case "女巫-解藥":
                     resultText = `【無效: 同晚雙藥】`;
                 } else {
                     nightTags.poisoned.push(target);
-                    gameState.isWitchPoisonUsed = true; // 紀錄毒藥已使用
+                    gameState.isWitchPoisonUsed = true;
                     resultText = `【毒殺: ${target}號】`;
                 }
             } else resultText = "【不使用】";
@@ -424,7 +412,6 @@ function processDawnSettlement() {
     broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: resultMsg } });
     deadPlayersThisNight.forEach(seat => broadcastToAll({ type: 'DEATH_ANNOUNCEMENT', payload: { targetSeat: seat } }));
     
-    // 天亮結算後隱藏按鈕
     document.getElementById('btn-end-night').classList.add('hidden');
     startDayPhase();
 }
