@@ -124,5 +124,60 @@
     <script src="js/ui.js"></script>
     <script src="js/player.js"></script>
     <script src="js/host.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // ==========================================
+    // 登入畫面與房間初始化邏輯
+    // ==========================================
+    const btnCreateRoom = document.getElementById('btn-create-room');
+    const btnJoinRoom = document.getElementById('btn-join-room');
+    const loginScreen = document.getElementById('login-screen');
+    const hostScreen = document.getElementById('host-screen');
+    const playerScreen = document.getElementById('player-screen');
+
+    // 1. 主持人：創建房間
+    btnCreateRoom?.addEventListener('click', () => {
+        // 隨機產生 4 碼數字作為房間號碼 (也可依您的需求改為其他格式)
+        const roomId = Math.floor(1000 + Math.random() * 9000).toString();
+        
+        // 切換 UI 畫面
+        loginScreen.classList.remove('active');
+        loginScreen.classList.add('hidden');
+        hostScreen.classList.remove('hidden');
+        hostScreen.classList.add('active'); // CSS中 .screen.active 會 display:flex
+        
+        // 觸發 host.js 的初始化引擎
+        if (typeof initHost === 'function') {
+            initHost(roomId);
+        } else {
+            console.error('錯誤：找不到 initHost 函式');
+        }
+    });
+
+    // 2. 玩家：加入房間
+    btnJoinRoom?.addEventListener('click', () => {
+        const roomId = document.getElementById('input-room-id').value.trim();
+        const playerName = document.getElementById('input-player-name').value.trim();
+
+        if (!roomId || !playerName) {
+            alert('請完整輸入「房間號碼」與「玩家暱稱」！');
+            return;
+        }
+
+        // 切換 UI 畫面
+        loginScreen.classList.remove('active');
+        loginScreen.classList.add('hidden');
+        playerScreen.classList.remove('hidden');
+        playerScreen.classList.add('active');
+        
+        // 觸發 player.js 的初始化引擎
+        if (typeof initPlayer === 'function') {
+            initPlayer(roomId, playerName);
+        } else {
+            console.error('錯誤：找不到 initPlayer 函式');
+        }
+    });
+});
+</script>
 </body>
 </html>
