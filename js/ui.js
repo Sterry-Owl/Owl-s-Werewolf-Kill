@@ -40,16 +40,18 @@ function renderHostCircle() {
     container.innerHTML = '';
     if(players.length === 0) return;
     
-    const radius = 140; 
+    const radius = 175; // 對齊容器實際半徑 (350 / 2)
     const center = 175; 
     
     // 陣列排序邏輯：依照 seat 屬性由小到大排列
     const sortedPlayers = [...players].sort((a, b) => a.seat - b.seat);
     
     sortedPlayers.forEach((p, i) => {
+        // 計算角度，從正上方 (-90度 = -Math.PI / 2) 開始順時針排列
         const angle = (i / sortedPlayers.length) * 2 * Math.PI - (Math.PI / 2);
-        const x = center + radius * Math.cos(angle) - 30; 
-        const y = center + radius * Math.sin(angle) - 30;
+        // 直接使用算出的座標，不進行額外的像素偏移扣減
+        const x = center + radius * Math.cos(angle); 
+        const y = center + radius * Math.sin(angle);
         
         const seatDiv = document.createElement('div');
         seatDiv.className = 'seat';
@@ -77,20 +79,23 @@ function renderPlayerCircle(playersList) {
     
     if(playersList.length === 0) return;
     
-    const radius = 170; 
+    const radius = 200; // 對齊容器實際半徑 (400 / 2)
     const center = 200; 
     
     // 陣列排序邏輯：依照 seat 屬性由小到大排列
     const sortedPlayers = [...playersList].sort((a, b) => a.seat - b.seat);
     
     sortedPlayers.forEach((p, i) => {
+        // 計算角度，從正上方 (-90度 = -Math.PI / 2) 開始順時針排列
         const angle = (i / sortedPlayers.length) * 2 * Math.PI - (Math.PI / 2);
-        const x = center + radius * Math.cos(angle) - 30; 
-        const y = center + radius * Math.sin(angle) - 30;
+        // 直接使用算出的座標，不進行額外的像素偏移扣減
+        const x = center + radius * Math.cos(angle); 
+        const y = center + radius * Math.sin(angle);
         
         const seatDiv = document.createElement('div');
         seatDiv.className = 'seat';
         
+        // 若為本機玩家，套用高亮綠色樣式
         if (p.id === myPeerId) seatDiv.classList.add('is-me');
         
         seatDiv.style.left = `${x}px`; 
