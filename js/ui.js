@@ -60,7 +60,6 @@ const UI = {
                 seat.style.boxShadow = 'none';
             }
 
-            // 【問題10修復】加入 seat-img-wrapper 處理選取遮罩與 wolf-tags-container
             seat.innerHTML = `
                 <div class="role-label ${player.role ? '' : 'hidden'}">${player.role || '未分配'}</div>
                 <div class="seat-img-wrapper" style="width: 60px; height: 60px; border-radius: 50%; background-color: #222; display: flex; justify-content: center; align-items: center; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.4); z-index: 2; position: relative;">
@@ -94,8 +93,8 @@ const UI = {
         options.forEach(opt => {
             const btn = document.createElement('button');
             btn.className = 'special-btn';
-            btn.textContent = opt.label;
             btn.dataset.value = opt.value;
+            btn.textContent = opt.label;
 
             if (opt.disabled) {
                 btn.classList.add('disabled');
@@ -138,28 +137,30 @@ const UI = {
             
             const statusSpan = document.createElement('span');
             statusSpan.className = 'flow-status';
-            statusSpan.textContent = '等待中';
 
+            // 【HUX 更新】依據狀態改變顏色與文案
             if (currentWakeOrder > role.order) {
                 li.classList.add('completed');
-                statusSpan.textContent = '已完成';
+                statusSpan.textContent = role.resultText || '已完成';
+                nameSpan.style.color = '#888';
+                statusSpan.style.color = '#888';
             } else if (currentWakeOrder === role.order) {
                 li.classList.add('active');
                 statusSpan.textContent = '行動中...';
+                nameSpan.style.color = 'var(--accent-green)';
+                statusSpan.style.color = 'var(--accent-green)';
+                nameSpan.style.fontWeight = 'bold';
+                statusSpan.style.fontWeight = 'bold';
+            } else {
+                statusSpan.textContent = '等待中';
+                nameSpan.style.color = '#ccc';
+                statusSpan.style.color = '#ccc';
             }
 
             li.appendChild(nameSpan);
             li.appendChild(statusSpan);
             listEl.appendChild(li);
         });
-    },
-
-    updateNightFlowStatus: function(order, status) {
-        const li = document.getElementById(`flow-item-${order}`);
-        if (li) {
-            const statusSpan = li.querySelector('.flow-status');
-            if (statusSpan) statusSpan.textContent = status;
-        }
     },
 
     lockPlayerInterface: function() {
