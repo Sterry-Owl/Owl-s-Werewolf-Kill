@@ -62,7 +62,8 @@ function startGame(selectedRoles) {
         sendToPlayer(player.peerId, { type: 'GAME_INIT', payload: { seatNumber: player.seatNumber, role: player.role, players: getPublicPlayersData() } });
     });
     UI.renderPlayerGrid('host-players-grid', playersData, true);
-    startNightPhase(); 
+    alert('發牌完成！請玩家確認身分，5秒後進入首夜。');
+    setTimeout(startNightPhase, 5000); 
 }
 
 function validateThiefDeal(shuffled) {
@@ -160,10 +161,18 @@ function processNextNightStep() {
     expectedActionResponses = stepData.players.length;
 
     stepData.players.forEach(player => {
-        let payloadData = { roleDef: stepData.roleDef, specialOptions: null };
+        let payloadData = { roleDef: JSON.parse(JSON.stringify(stepData.roleDef)), specialOptions: null };
+        
         if (stepData.order === 1) {
             payloadData.specialOptions = thiefSpareCards.map(card => ({ label: card, value: card, disabled: (card !== "狼人" && thiefSpareCards.includes("狼人")) }));
         }
+        
+        // 動態替換女巫解藥提示
+        if (stepData.name === "女巫-解藥") {
+            const victim = nightTags.killed.length > 0 ? nightTags.killed[0] : "無";
+            payloadData.roleDef.prompt = `昨晚被襲擊的是 ${victim} 號，是否使用解藥？(點選該號碼使用解藥，或點選放棄)`;
+        }
+
         sendToPlayer(player.peerId, { type: 'WAKE_UP', payload: payloadData });
     });
 }
@@ -209,8 +218,17 @@ function evaluateStepActions() {
     const target = action.targets.length > 0 ? action.targets[0] : null;
 
     switch (roleName) {
-        case "盜賊":
-            if (action.specialValue) action.player.role = action.specialValue;
+	case "盜賊":
+            if (action.specialValue) {
+                action.player.role = action.specialValue;
+                sendToPlayer(action.player.peerId, { 
+                    type: 'GAME_INIT', 
+                    payload: { seatNumber: action.player.seatNumber, role: action.player.role, players: getPublicPlayersData() } 
+                });
+            }
+            break;
+        case "烏鴉":
+            if (target) gameState.crowTarget = target;
             break;
         case "奇蹟商人":
             if (target && action.specialValue) {

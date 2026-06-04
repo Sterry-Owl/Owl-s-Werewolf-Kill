@@ -57,9 +57,10 @@ const UI = {
                 seat.style.margin = '0';
             }
 
+// 修正：動態套用座位號碼圖片，若無號碼圖片則退回 default_seat.png
             seat.innerHTML = `
                 <div class="role-label hidden"></div>
-                <img class="seat-img" src="./img/default_seat.png" onerror="this.style.display='none'">
+                <img class="seat-img" src="./img/${player.seatNumber}.png" onerror="this.src='./img/default_seat.png'; this.onerror=function(){this.style.display='none'};">
                 <div class="player-name" style="margin-top: 5px;">${player.name || '等待加入'}</div>
                 <div class="badge" style="background: #555; border-radius: 12px; padding: 2px 8px; font-size: 12px; margin-top: 5px; color: white;">${player.seatNumber}號</div>
             `;

@@ -62,9 +62,10 @@ function handleGameInit(payload) {
     try {
         const library = JSON.parse(localStorage.getItem('werewolf_library') || '[]');
         const cardData = library.find(c => c.name === payload.role);
-        if (cardData && cardData.imgUrl) {
+        // 修正：將 imgUrl 改為 img
+        if (cardData && cardData.img) {
             const imgEl = document.getElementById('my-card-img');
-            imgEl.src = cardData.imgUrl;
+            imgEl.src = cardData.img;
             imgEl.classList.remove('hidden');
         }
     } catch(e) {}
@@ -79,8 +80,10 @@ function handlePhaseChange(payload) {
         if (!playerInfo.isDead && wolfRoles.includes(playerInfo.role)) {
             document.getElementById('btn-self-destruct').classList.remove('hidden');
         }
-        if (!playerInfo.isDead && playerInfo.role === '騎士') {
-            document.getElementById('btn-day-skill').classList.remove('hidden');
+        if (!playerInfo.isDead && (playerInfo.role === '騎士' || playerInfo.role === '定序王子')) {
+            const btn = document.getElementById('btn-day-skill');
+            btn.textContent = playerInfo.role === '騎士' ? '發動騎士決鬥' : '發動技能作廢投票';
+            btn.classList.remove('hidden');
         }
         UI.lockPlayerInterface();
         UI.updateStatusMessage(payload.message || '現在是白天發言階段。');
