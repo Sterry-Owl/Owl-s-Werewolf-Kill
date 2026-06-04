@@ -36,14 +36,12 @@ table { width: 100%; border-collapse: collapse; margin-top: 10px; }
 th, td { border: 1px solid var(--border-color); padding: 10px; text-align: center; }
 th { background: #333; }
 
-.circle-container { position: relative; width: 400px; height: 400px; margin: 20px auto; border-radius: 50%; border: 2px dashed var(--border-color); background: rgba(0,0,0,0.1); }
+.circle-container { position: relative; width: 400px; height: 400px; margin: 60px auto 20px; border-radius: 50%; border: 2px dashed var(--border-color); background: rgba(0,0,0,0.1); }
 
-/* 修改後的座位與圖片樣式 */
 .seat { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2; text-align: center; }
 .seat-img { width: 60px; height: 60px; object-fit: contain; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.4); margin-bottom: 5px; border: 2px solid transparent; }
 .seat.is-me .seat-img { border-color: var(--accent-green); }
 
-/* 修改後的玩家暱稱樣式 */
 .player-name { font-size: 14pt; line-height: 1.2; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
 .seat.is-me .player-name { color: var(--accent-green); font-weight: bold; }
 
