@@ -57,12 +57,14 @@ const UI = {
                 seat.style.margin = '0';
             }
 
-// 修正：動態套用座位號碼圖片，若無號碼圖片則退回 default_seat.png
+            // 【防破版設計】如果圖片載入失敗，會隱藏 img 並顯示 span 裡的座位大數字
             seat.innerHTML = `
                 <div class="role-label hidden"></div>
-                <img class="seat-img" src="./img/${player.seatNumber}.png" onerror="this.src='./img/default_seat.png'; this.onerror=function(){this.style.display='none'};">
+                <div style="width: 60px; height: 60px; border-radius: 50%; background-color: #222; margin-bottom: 5px; display: flex; justify-content: center; align-items: center; border: 2px solid #555; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.4);">
+                    <img class="seat-img" src="./img/${player.seatNumber}.png" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <span style="display: none; color: #fff; font-size: 24px; font-weight: bold;">${player.seatNumber}</span>
+                </div>
                 <div class="player-name" style="margin-top: 5px;">${player.name || '等待加入'}</div>
-                <div class="badge" style="background: #555; border-radius: 12px; padding: 2px 8px; font-size: 12px; margin-top: 5px; color: white;">${player.seatNumber}號</div>
             `;
 
             if (player.isDead) seat.classList.add('dead');

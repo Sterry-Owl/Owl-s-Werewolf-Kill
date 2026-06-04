@@ -57,18 +57,30 @@ function handleGameInit(payload) {
     
     document.getElementById('player-role-name').textContent = payload.role;
     document.getElementById('player-role-display').classList.remove('hidden');
-    
     document.getElementById('my-card-title').textContent = payload.role;
-    try {
-        const library = JSON.parse(localStorage.getItem('werewolf_library') || '[]');
+    
+    // 【修復身分圖片邏輯】
+    const imgEl = document.getElementById('my-card-img');
+    let imgSrc = `./img/${payload.role}.png`; // 預設使用本地檔案路徑
+
+    // 如果 library 存在，優先讀取您的擴充牌庫設定
+    if (typeof library !== 'undefined' && library.length > 0) {
         const cardData = library.find(c => c.name === payload.role);
-        // 修正：將 imgUrl 改為 img
         if (cardData && cardData.img) {
-            const imgEl = document.getElementById('my-card-img');
-            imgEl.src = cardData.img;
-            imgEl.classList.remove('hidden');
+            imgSrc = cardData.img;
         }
-    } catch(e) {}
+    }
+    
+    imgEl.src = imgSrc;
+    imgEl.classList.remove('hidden');
+    
+    // 防破圖：如果連本地對應名稱的圖都沒有，就直接隱藏，只留文字
+    imgEl.onerror = function() {
+        this.style.display = 'none';
+    };
+    imgEl.onload = function() {
+        this.style.display = 'block';
+    };
 
     UI.renderPlayerGrid('player-targets-grid', payload.players, false, onTargetSelect);
     UI.updateStatusMessage('遊戲準備開始。');
@@ -80,10 +92,8 @@ function handlePhaseChange(payload) {
         if (!playerInfo.isDead && wolfRoles.includes(playerInfo.role)) {
             document.getElementById('btn-self-destruct').classList.remove('hidden');
         }
-        if (!playerInfo.isDead && (playerInfo.role === '騎士' || playerInfo.role === '定序王子')) {
-            const btn = document.getElementById('btn-day-skill');
-            btn.textContent = playerInfo.role === '騎士' ? '發動騎士決鬥' : '發動技能作廢投票';
-            btn.classList.remove('hidden');
+        if (!playerInfo.isDead && playerInfo.role === '騎士') {
+            document.getElementById('btn-day-skill').classList.remove('hidden');
         }
         UI.lockPlayerInterface();
         UI.updateStatusMessage(payload.message || '現在是白天發言階段。');
