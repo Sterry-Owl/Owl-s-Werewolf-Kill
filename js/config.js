@@ -120,9 +120,7 @@ const ROLE_DICTIONARY = {
         targetLimit: "單點", 
         prompt: "選擇今晚守護的目標" 
     }
-};
-// js/config.js (2/2)
-
+},
     // 【狼人陣營共同行動 (順序 11)】
     "狼人": { wakeOrder: 11, actionType: "consensus", targetLimit: "共識目標", prompt: "選擇今晚的襲擊目標" },
     "狼王": { wakeOrder: 11, actionType: "consensus", targetLimit: "共識目標", prompt: "選擇今晚的襲擊目標" },
