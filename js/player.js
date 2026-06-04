@@ -37,7 +37,7 @@ function setupConnectionListeners() {
                 break;
             case 'DEATH_ANNOUNCEMENT': handleDeath(data.payload); break;
             case 'START_VOTE': handleStartVote(data.payload); break;
-            case 'VOTE_RESULTS': handleVoteResults(data.payload); break; // 接收定序王子解鎖通知
+            case 'VOTE_RESULTS': handleVoteResults(data.payload); break; 
             case 'END_VOTE':
                 UI.hideVotingPanel();
                 UI.updateStatusMessage('投票結束，等待結果...');
@@ -46,7 +46,7 @@ function setupConnectionListeners() {
                 playerInfo.isSilenced = true;
                 UI.updateStatusMessage('你的技能已被封鎖。');
                 break;
-            case 'WOLF_PREVIEW_UPDATE': handleWolfPreview(data.payload); break; // 接收狼人隊友選取目標
+            case 'WOLF_PREVIEW_UPDATE': handleWolfPreview(data.payload); break; 
         }
     });
 }
@@ -77,7 +77,6 @@ function handleGameInit(payload) {
     imgEl.onerror = function() { this.style.display = 'none'; };
     imgEl.onload = function() { this.style.display = 'block'; };
 
-    // 【問題12修復】渲染配置總覽
     if (payload.roleCounts) {
         const configContainer = document.getElementById('player-config-display');
         configContainer.innerHTML = '';
@@ -95,16 +94,19 @@ function handleGameInit(payload) {
 function handlePhaseChange(payload) {
     const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
     if (payload.phase === 'day') {
-        if (!playerInfo.isDead && wolfRoles.includes(playerInfo.role)) {
+        if (!playerInfo.isDead && playerInfo.role && wolfRoles.includes(playerInfo.role.split('-')[0])) {
             document.getElementById('btn-self-destruct').classList.remove('hidden');
         }
+        
         const btnDaySkill = document.getElementById('btn-day-skill');
-        if (!playerInfo.isDead && playerInfo.role === '騎士') {
+        // 騎士確認沒有發動過技能才能解鎖
+        if (!playerInfo.isDead && playerInfo.role === '騎士' && !payload.isKnightUsed) {
             btnDaySkill.textContent = '發動騎士決鬥';
             btnDaySkill.classList.remove('hidden');
         } else {
             btnDaySkill.classList.add('hidden');
         }
+        
         UI.lockPlayerInterface();
         UI.updateStatusMessage(payload.message || '現在是白天發言階段。');
     } else {
@@ -123,12 +125,10 @@ function handleDeath(payload) {
         document.getElementById('btn-day-skill').classList.add('hidden');
     }
     
-    // 【修復 25-2】將更新網格狀態的邏輯移出 if 判斷，確保每個人都能看到別人死亡
     const targetSeatEl = document.getElementById(`player-targets-grid-seat-${payload.targetSeat}`);
     if (targetSeatEl) targetSeatEl.classList.add('dead');
 }
 
-// 【問題11修復】定序王子按鈕解鎖
 function handleVoteResults(payload) {
     if (playerInfo.role === '定序王子' && !payload.isPrinceUsed) {
         const btnDaySkill = document.getElementById('btn-day-skill');
@@ -165,6 +165,16 @@ function handleWakeUp(payload) {
             actionPayload.specialValue = selectedValue;
             document.getElementById('btn-confirm-action').disabled = (actionPayload.targets.length === 0);
         });
+    } else if (['consensus', 'consensus_dynamic'].includes(actionPayload.type)) {
+        UI.renderSpecialOptions([{ label: '空刀 (不殺)', value: 'pass' }], (selectedValue) => {
+            actionPayload.targets = [selectedValue];
+            actionPayload.specialValue = null;
+            document.querySelectorAll('#player-targets-grid .player-seat').forEach(s => s.classList.remove('selected'));
+            document.getElementById('btn-confirm-action').disabled = false;
+            hostConnection.send({ type: 'WOLF_TARGET_PREVIEW', payload: { target: selectedValue } });
+        });
+    } else {
+        UI.hideSpecialOptions();
     }
 
     document.getElementById('player-action-panel').classList.remove('hidden');
@@ -173,16 +183,21 @@ function handleWakeUp(payload) {
 
 function onTargetSelect(seatNumber, seatEl) {
     switch (actionPayload.type) {
-        case 'single_select': case 'single_select_dynamic': case 'consensus': case 'consensus_dynamic': case 'dynamic_select':
+        case 'single_select': case 'single_select_dynamic': case 'dynamic_select':
             actionPayload.targets = [seatNumber];
             document.querySelectorAll('#player-targets-grid .player-seat').forEach(s => s.classList.remove('selected'));
             seatEl.classList.add('selected');
             document.getElementById('btn-confirm-action').disabled = false;
+            break;
+        case 'consensus': case 'consensus_dynamic':
+            actionPayload.targets = [seatNumber];
+            document.querySelectorAll('#player-targets-grid .player-seat').forEach(s => s.classList.remove('selected'));
+            seatEl.classList.add('selected');
             
-            // 【問題10修復】狼人共識目標同步預覽
-            if (['consensus', 'consensus_dynamic'].includes(actionPayload.type)) {
-                hostConnection.send({ type: 'WOLF_TARGET_PREVIEW', payload: { target: seatNumber } });
-            }
+            document.querySelectorAll('#special-options-container .special-btn').forEach(btn => btn.classList.remove('selected'));
+            
+            document.getElementById('btn-confirm-action').disabled = false;
+            hostConnection.send({ type: 'WOLF_TARGET_PREVIEW', payload: { target: seatNumber } });
             break;
         case 'double_select':
             const index = actionPayload.targets.indexOf(seatNumber);
@@ -205,22 +220,34 @@ function onTargetSelect(seatNumber, seatEl) {
     }
 }
 
-// 【問題10修復】渲染隊友選擇目標
 function handleWolfPreview(previews) {
     document.querySelectorAll('.wolf-tag').forEach(el => el.remove());
     document.querySelectorAll('.player-seat').forEach(el => el.classList.remove('wolf-selected'));
     
     Object.values(previews).forEach(preview => {
         if(preview.seat !== playerInfo.seatNumber) {
-            const targetSeatEl = document.getElementById(`player-targets-grid-seat-${preview.target}`);
-            if(targetSeatEl) {
-                targetSeatEl.classList.add('wolf-selected');
-                const tagContainer = targetSeatEl.querySelector('.wolf-tags-container');
-                if(tagContainer) {
-                    const tag = document.createElement('div');
+            if (preview.target === 'pass') {
+                const passBtn = document.querySelector('#special-options-container .special-btn[data-value="pass"]');
+                if (passBtn) {
+                    const tag = document.createElement('span');
                     tag.className = 'wolf-tag';
-                    tag.textContent = `${preview.seat}號選擇`;
-                    tagContainer.appendChild(tag);
+                    tag.style.position = 'absolute';
+                    tag.style.top = '-10px';
+                    tag.style.right = '-10px';
+                    tag.textContent = `${preview.seat}號`;
+                    passBtn.appendChild(tag);
+                }
+            } else {
+                const targetSeatEl = document.getElementById(`player-targets-grid-seat-${preview.target}`);
+                if(targetSeatEl) {
+                    targetSeatEl.classList.add('wolf-selected');
+                    const tagContainer = targetSeatEl.querySelector('.wolf-tags-container');
+                    if(tagContainer) {
+                        const tag = document.createElement('div');
+                        tag.className = 'wolf-tag';
+                        tag.textContent = `${preview.seat}號選擇`;
+                        tagContainer.appendChild(tag);
+                    }
                 }
             }
         }
@@ -296,7 +323,6 @@ document.addEventListener('DOMContentLoaded', () => {
         hostConnection.send({ type: 'VOTE_SUBMIT', payload: { target: 'abstain' } });
     });
     
-    // 【問題11修復】白狼王自爆要求選取目標
     document.getElementById('btn-self-destruct').addEventListener('click', () => {
         if (playerInfo.role === '白狼王') {
             document.getElementById('btn-self-destruct').classList.add('hidden');

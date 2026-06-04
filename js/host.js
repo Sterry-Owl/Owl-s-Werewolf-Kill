@@ -3,11 +3,19 @@ let connections = {};
 let playersData = [];
 let currentRoomId = null;
 
-// 加入解藥與毒藥的全域狀態紀錄
-let gameState = { ...GAME_STATE, pendingVoteTarget: null, pendingVoteTie: false, isWitchAntidoteUsed: false, isWitchPoisonUsed: false };
+// 加入騎士全域狀態
+let gameState = { ...GAME_STATE, pendingVoteTarget: null, pendingVoteTie: false, isWitchAntidoteUsed: false, isWitchPoisonUsed: false, isKnightUsed: false };
 let availableRoles = [];
 let thiefSpareCards = []; 
 let wolfPreviews = {}; 
+
+// 安全判斷狼人陣營的輔助函式，避免 null 導致系統崩潰
+function isWolfRole(roleStr) {
+    if (!roleStr) return false;
+    const baseRole = roleStr.split('-')[0];
+    const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
+    return wolfRoles.includes(baseRole);
+}
 
 function initHost(roomId) {
     hostPeer = new Peer(roomId, peerConfig);
@@ -67,9 +75,8 @@ function startGame(selectedRoles) {
     playersData.forEach(player => {
         let customizedPlayers = playersData.map(p => {
             let visibleRole = null;
-            const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
-            const isReceiverWolf = wolfRoles.includes(player.role.split('-')[0]) || player.role === '隱狼';
-            const isTargetWolf = wolfRoles.includes(p.role.split('-')[0]);
+            const isReceiverWolf = isWolfRole(player.role) || player.role === '隱狼';
+            const isTargetWolf = isWolfRole(p.role);
 
             if (isReceiverWolf && isTargetWolf) visibleRole = p.role; 
             if (player.seatNumber === p.seatNumber) visibleRole = p.role;
@@ -88,8 +95,7 @@ function validateThiefDeal(shuffled) {
     if (!shuffled.includes("盜賊")) return true;
     const spare1 = shuffled[shuffled.length - 2];
     const spare2 = shuffled[shuffled.length - 1];
-    const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
-    if (wolfRoles.includes(spare1) && wolfRoles.includes(spare2)) return false;
+    if (isWolfRole(spare1) && isWolfRole(spare2)) return false;
     return true;
 }
 
@@ -110,7 +116,8 @@ function handleWolfPreview(peerId, targetSeat) {
     if(!p) return;
     wolfPreviews[peerId] = { name: p.name, seat: p.seatNumber, target: targetSeat };
     
-    const aliveWolves = playersData.filter(x => !x.isDead && ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"].includes(x.role.split('-')[0]));
+    // 【問題2修復】使用安全檢查函式，避免角色為空時崩潰
+    const aliveWolves = playersData.filter(x => !x.isDead && isWolfRole(x.role));
     aliveWolves.forEach(wolf => {
         sendToPlayer(wolf.peerId, { type: 'WOLF_PREVIEW_UPDATE', payload: wolfPreviews });
     });
@@ -138,8 +145,7 @@ function startNightPhase() {
 function buildNightSequence() {
     let sequence = [];
     const alivePlayers = playersData.filter(p => !p.isDead);
-    const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
-    const aliveWolves = alivePlayers.filter(p => wolfRoles.includes(p.role.split('-')[0]));
+    const aliveWolves = alivePlayers.filter(p => isWolfRole(p.role));
 
     if (aliveWolves.length < 3) gameState.isWolfCrowAwake = true;
 
@@ -197,7 +203,6 @@ function processNextNightStep() {
             payloadData.specialOptions = thiefSpareCards.map(card => ({ label: card, value: card, disabled: (card !== "狼人" && thiefSpareCards.includes("狼人")) }));
         }
         
-        // 女巫動態提示：如果用過解藥就無法得知刀口
         if (stepData.name === "女巫-解藥") {
             if (gameState.isWitchAntidoteUsed) {
                 payloadData.roleDef.prompt = `你的解藥已經用過，無法得知今晚的襲擊目標。(請點選放棄)`;
@@ -268,15 +273,20 @@ function evaluateStepActions() {
                 resultText = `【選擇: ${action.specialValue}】`;
                 let customizedPlayers = playersData.map(p => {
                     let visibleRole = null;
-                    const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
-                    const isReceiverWolf = wolfRoles.includes(action.player.role.split('-')[0]) || action.player.role === '隱狼';
-                    const isTargetWolf = wolfRoles.includes(p.role.split('-')[0]);
+                    const isReceiverWolf = isWolfRole(action.player.role) || action.player.role === '隱狼';
+                    const isTargetWolf = isWolfRole(p.role);
 
                     if (isReceiverWolf && isTargetWolf) visibleRole = p.role;
                     if (action.player.seatNumber === p.seatNumber) visibleRole = p.role;
                     return { seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, role: visibleRole };
                 });
                 sendToPlayer(action.player.peerId, { type: 'GAME_INIT', payload: { seatNumber: action.player.seatNumber, role: action.player.role, players: customizedPlayers } });
+                
+                // 【問題1修復】盜賊選完牌後，動態將新身分插入接下來的夜間順序
+                const newSequence = buildNightSequence();
+                const remainingSteps = newSequence.filter(step => step.order > 1);
+                nightSequence.splice(currentNightStep + 1, nightSequence.length - currentNightStep - 1, ...remainingSteps);
+                
             } else resultText = "【放棄選牌】";
             break;
         case "烏鴉":
@@ -287,8 +297,7 @@ function evaluateStepActions() {
             if (target && action.specialValue) {
                 resultText = `【贈 ${action.specialValue} -> ${target}號】`;
                 const targetPlayer = playersData.find(p => p.seatNumber === target);
-                const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
-                if (targetPlayer && wolfRoles.includes(targetPlayer.role.split('-')[0])) nightTags.killed.push(action.player.seatNumber);
+                if (targetPlayer && isWolfRole(targetPlayer.role)) nightTags.killed.push(action.player.seatNumber);
                 else { gameState.merchantGiftTarget = target; gameState.merchantGiftType = action.specialValue; }
             } else resultText = "【放棄】";
             break;
@@ -337,10 +346,9 @@ function evaluateStepActions() {
                 const targetPlayer = playersData.find(p => p.seatNumber === target);
                 let resultMsg = "";
                 if (roleName === "純白之女") {
-                    resultMsg = `查驗結果：目標的具體身分是【${targetPlayer.role.split('-')[0]}】`;
+                    resultMsg = `查驗結果：目標的具體身分是【${targetPlayer.role ? targetPlayer.role.split('-')[0] : '未知'}】`;
                 } else {
-                    const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
-                    const isWolf = wolfRoles.includes(targetPlayer.role.split('-')[0]) && targetPlayer.role !== "隱狼";
+                    const isWolf = isWolfRole(targetPlayer.role) && targetPlayer.role !== "隱狼";
                     resultMsg = `查驗結果：該玩家為【${isWolf ? "狼人" : "好人"}】陣營`;
                     if (targetPlayer.role === "咒狐") nightTags.killed.push(target);
                 }
@@ -355,8 +363,7 @@ function evaluateStepActions() {
                 if (gameState.merchantGiftType === 'poison') nightTags.poisoned.push(target);
                 if (gameState.merchantGiftType === 'seer') {
                     const targetPlayer = playersData.find(p => p.seatNumber === target);
-                    const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
-                    const isWolf = wolfRoles.includes(targetPlayer.role.split('-')[0]) && targetPlayer.role !== "隱狼";
+                    const isWolf = isWolfRole(targetPlayer.role) && targetPlayer.role !== "隱狼";
                     if (targetPlayer.role === "咒狐") nightTags.killed.push(target);
                     sendToPlayer(action.player.peerId, { type: 'PHASE_CHANGE', payload: { phase: 'night', message: `查驗結果：該玩家為【${isWolf ? "狼人" : "好人"}】陣營` } });
                 }
@@ -409,7 +416,9 @@ function processDawnSettlement() {
 
     UI.renderPlayerGrid('host-players-grid', playersData, true);
     let resultMsg = deadPlayersThisNight.length > 0 ? `昨晚，${deadPlayersThisNight.join(', ')} 號玩家死亡。` : `昨晚是平安夜。`;
-    broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: resultMsg } });
+    
+    // 傳送附加狀態，通知白天按鈕解鎖
+    broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: resultMsg, isKnightUsed: gameState.isKnightUsed } });
     deadPlayersThisNight.forEach(seat => broadcastToAll({ type: 'DEATH_ANNOUNCEMENT', payload: { targetSeat: seat } }));
     
     document.getElementById('btn-end-night').classList.add('hidden');
@@ -552,6 +561,7 @@ function executeVoteDeath() {
 function handleDaySkillAction(peerId, payload) {
     const actingPlayer = playersData.find(p => p.peerId === peerId);
     
+    // 【問題3修復】強制結束未清理的 UI、重置按鈕狀態
     if (actingPlayer.role === '定序王子' && payload.skill === 'prince') {
         if (gameState.isPrinceUsed || currentVoteState !== 'cooldown') return;
         clearInterval(voteCooldownTimer);
@@ -559,37 +569,43 @@ function handleDaySkillAction(peerId, payload) {
         gameState.pendingVoteTarget = null;
         currentVotes = {}; 
         
-        broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: `【定序王子】發動技能！本次投票作廢，請重新組織發言或重新發起投票。` } });
-        document.getElementById('vote-results-container').innerHTML = '<p style="color:var(--accent-red);">定序王子發動技能，本次投票已被作廢。</p>';
+        broadcastToAll({ type: 'END_VOTE', payload: {} });
+        broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: `【定序王子】發動技能！本次投票作廢，請重新組織發言並重新發起投票。` } });
+        
+        const resultContainer = document.getElementById('vote-results-container');
+        if (resultContainer) resultContainer.innerHTML = '<p style="color:var(--accent-red);">定序王子發動技能，本次投票已被作廢。</p>';
         
         currentVoteState = 'idle';
         const flowBtn = document.getElementById('btn-vote-flow');
         if (flowBtn) {
-            flowBtn.textContent = '發起投票';
+            flowBtn.textContent = '發起新投票';
             flowBtn.disabled = false;
         }
         return;
     }
 
+    // 【問題4修復】騎士決鬥加入僅限一次防呆
     if (actingPlayer.role === '騎士' && payload.targets && payload.targets.length > 0) {
+        if (gameState.isKnightUsed) return;
+        gameState.isKnightUsed = true;
+        
         const target = payload.targets[0];
         const targetPlayer = playersData.find(p => p.seatNumber === target);
-        const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
-        const isWolf = wolfRoles.includes(targetPlayer.role.split('-')[0]) && targetPlayer.role !== "隱狼";
+        const isWolf = isWolfRole(targetPlayer.role) && targetPlayer.role !== "隱狼";
         
         let msg = `【騎士決鬥】騎士 ${actingPlayer.seatNumber} 號對 ${target} 號發起決鬥！`;
         if (isWolf) {
             msg += ` 目標為狼人，${target} 號玩家死亡，直接進入黑夜！`;
             targetPlayer.isDead = true;
             broadcastToAll({ type: 'DEATH_ANNOUNCEMENT', payload: { targetSeat: target } });
-            broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: msg } });
+            broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: msg, isKnightUsed: true } });
             UI.renderPlayerGrid('host-players-grid', playersData, true);
             setTimeout(startNightPhase, 4000);
         } else {
             msg += ` 目標為好人，騎士 ${actingPlayer.seatNumber} 號玩家死亡，白天繼續！`;
             actingPlayer.isDead = true;
             broadcastToAll({ type: 'DEATH_ANNOUNCEMENT', payload: { targetSeat: actingPlayer.seatNumber } });
-            broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: msg } });
+            broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: msg, isKnightUsed: true } });
             UI.renderPlayerGrid('host-players-grid', playersData, true);
         }
     }
@@ -614,14 +630,13 @@ function handleSelfDestruct(peerId, payload) {
     if (player.role === "血月使徒") {
         gameState.isBloodMoonActive = true;
         msg += " 觸發血月封鎖，今晚好人陣營無法使用技能。";
-        const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪", "隱狼"];
         playersData.forEach(p => {
-            if (!wolfRoles.includes(p.role.split('-')[0])) p.isSilenced = true;
+            if (p.role && !isWolfRole(p.role) && p.role !== "隱狼") p.isSilenced = true;
         });
     }
 
     UI.renderPlayerGrid('host-players-grid', playersData, true);
-    broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: msg } });
+    broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: msg, isKnightUsed: gameState.isKnightUsed } });
     broadcastToAll({ type: 'DEATH_ANNOUNCEMENT', payload: { targetSeat: player.seatNumber } });
     setTimeout(startNightPhase, 3000);
 }
