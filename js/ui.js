@@ -1,5 +1,3 @@
-// js/ui.js (1/2)
-
 const UI = {
     // 渲染座位網格 (主持人與玩家共用邏輯)
     renderPlayerGrid: function(containerId, players, isHost = false, onPlayerClick = null) {
@@ -86,8 +84,8 @@ const UI = {
     updateStatusMessage: function(message) {
         const statusEl = document.getElementById('player-status-message');
         if (statusEl) statusEl.textContent = message;
-    }
-},
+    },
+
     // ==========================================
     // 主持人端：夜晚流程圖渲染與狀態更新
     // ==========================================

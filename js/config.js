@@ -7,33 +7,7 @@ const peerConfig = {
         ] 
     } 
 };
-
-// ==================== 全域狀態變數 ====================
-let peer = null;                // PeerJS 實例
-let connections = {};           // 儲存所有與玩家的連線物件
-let players = [];               // 房間內玩家名單與狀態 (id, name, card, seat)
-let roomConfig = [];            // 主持人設定的本局牌庫配置
-let fullDeck = [];              // 洗牌後的完整卡牌陣列
-let nextSeatNumber = 1;         // 玩家加入時配置的座位號碼
-let myPeerId = null;            // 玩家本身的連線 ID
-let isGameDealt = false;        // 遊戲狀態：是否已完成發牌
-let library = [];               // 圖書管理員讀取之全域牌庫資料
-
-// 預設卡牌佔位圖片 (Base64 SVG)
-const defaultSvg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="%23555"><rect width="80" height="80"/></svg>';
-
-// ==================== 共用工具函數 ====================
-/**
- * 處理字串的 Base64 編碼，避免中文編碼錯誤
- * @param {string} data - 欲編碼的原始字串
- * @returns {string} - Base64 編碼字串
- */
-function utoa(data) { 
-    return btoa(unescape(encodeURIComponent(data))); 
-}
-// js/config.js (1/2)
-
-// 全域狀態變數預設值 (Global State Variables)
+// 2. 全域狀態變數預設值 (Global State Variables)
 const GAME_STATE = {
     isBloodMoonActive: false, // 血月使徒封鎖標記
     isPrinceUsed: false,      // 定序王子技能使用標記
@@ -46,7 +20,7 @@ const GAME_STATE = {
     isWolfCrowAwake: false    // 狼鴉之爪覺醒標記
 };
 
-// 角色邏輯字典 (Role Dictionary)
+// 3. 角色邏輯字典 (Role Dictionary)
 const ROLE_DICTIONARY = {
     // 【被動與不睜眼角色 (順序 0)】
     "平民": { wakeOrder: 0, actionType: "none", targetLimit: "無", prompt: "" },
@@ -60,67 +34,17 @@ const ROLE_DICTIONARY = {
     "狼人陣營-自爆": { wakeOrder: "Day", actionType: "interrupt", targetLimit: "隨時中斷", prompt: "立即進入黑夜" },
 
     // 【夜晚主動技能角色 (順序 1-10)】
-    "盜賊": { 
-        wakeOrder: 1, 
-        actionType: "card_select", 
-        targetLimit: "二選一", 
-        prompt: "選擇您本局的身分" 
-    },
-    "邱比特": { 
-        wakeOrder: 2, 
-        actionType: "double_select", 
-        targetLimit: "雙選", 
-        prompt: "選擇兩名玩家成為情侶" 
-    },
-    "咒狐": { 
-        wakeOrder: 3, 
-        actionType: "none", 
-        targetLimit: "無", 
-        prompt: "無" 
-    },
-    "暗戀者": { 
-        wakeOrder: 4, 
-        actionType: "single_select", 
-        targetLimit: "單點", 
-        prompt: "選擇本局的暗戀對象" 
-    },
-    "噩夢之影-恐懼": { 
-        wakeOrder: 5, 
-        actionType: "single_select", 
-        targetLimit: "單點", 
-        prompt: "選擇今晚的恐懼目標" 
-    },
-    "蝕時狼妃-封鎖": { 
-        wakeOrder: 6, 
-        actionType: "single_select", 
-        targetLimit: "單點", 
-        prompt: "選擇今晚的封鎖目標" 
-    },
-    "魔術師": { 
-        wakeOrder: 7, 
-        actionType: "double_select", 
-        targetLimit: "雙選", 
-        prompt: "選擇今晚兩名交換的目標" 
-    },
-    "奇蹟商人": { 
-        wakeOrder: 8, 
-        actionType: "complex_select", 
-        targetLimit: "複合雙選", 
-        prompt: "請先選擇一項要贈予的技能，接著點選一名幸運兒" 
-    },
-    "攝夢人": { 
-        wakeOrder: 9, 
-        actionType: "single_select", 
-        targetLimit: "單點", 
-        prompt: "選擇今晚成為夢遊者的目標" 
-    },
-    "守衛": { 
-        wakeOrder: 10, 
-        actionType: "single_select", 
-        targetLimit: "單點", 
-        prompt: "選擇今晚守護的目標" 
-    }
-},
+    "盜賊": { wakeOrder: 1, actionType: "card_select", targetLimit: "二選一", prompt: "選擇您本局的身分" },
+    "邱比特": { wakeOrder: 2, actionType: "double_select", targetLimit: "雙選", prompt: "選擇兩名玩家成為情侶" },
+    "咒狐": { wakeOrder: 3, actionType: "none", targetLimit: "無", prompt: "無" },
+    "暗戀者": { wakeOrder: 4, actionType: "single_select", targetLimit: "單點", prompt: "選擇本局的暗戀對象" },
+    "噩夢之影-恐懼": { wakeOrder: 5, actionType: "single_select", targetLimit: "單點", prompt: "選擇今晚的恐懼目標" },
+    "蝕時狼妃-封鎖": { wakeOrder: 6, actionType: "single_select", targetLimit: "單點", prompt: "選擇今晚的封鎖目標" },
+    "魔術師": { wakeOrder: 7, actionType: "double_select", targetLimit: "雙選", prompt: "選擇今晚兩名交換的目標" },
+    "奇蹟商人": { wakeOrder: 8, actionType: "complex_select", targetLimit: "複合雙選", prompt: "請先選擇一項要贈予的技能，接著點選一名幸運兒" },
+    "攝夢人": { wakeOrder: 9, actionType: "single_select", targetLimit: "單點", prompt: "選擇今晚成為夢遊者的目標" },
+    "守衛": { wakeOrder: 10, actionType: "single_select", targetLimit: "單點", prompt: "選擇今晚守護的目標" },
+
     // 【狼人陣營共同行動 (順序 11)】
     "狼人": { wakeOrder: 11, actionType: "consensus", targetLimit: "共識目標", prompt: "選擇今晚的襲擊目標" },
     "狼王": { wakeOrder: 11, actionType: "consensus", targetLimit: "共識目標", prompt: "選擇今晚的襲擊目標" },
