@@ -43,8 +43,11 @@ function renderHostCircle() {
     const radius = 140; 
     const center = 175; 
     
-    players.forEach((p, i) => {
-        const angle = (i / players.length) * 2 * Math.PI - (Math.PI / 2);
+    // 陣列排序邏輯：依照 seat 屬性由小到大排列
+    const sortedPlayers = [...players].sort((a, b) => a.seat - b.seat);
+    
+    sortedPlayers.forEach((p, i) => {
+        const angle = (i / sortedPlayers.length) * 2 * Math.PI - (Math.PI / 2);
         const x = center + radius * Math.cos(angle) - 30; 
         const y = center + radius * Math.sin(angle) - 30;
         
@@ -77,8 +80,11 @@ function renderPlayerCircle(playersList) {
     const radius = 170; 
     const center = 200; 
     
-    playersList.forEach((p, i) => {
-        const angle = (i / playersList.length) * 2 * Math.PI - (Math.PI / 2);
+    // 陣列排序邏輯：依照 seat 屬性由小到大排列
+    const sortedPlayers = [...playersList].sort((a, b) => a.seat - b.seat);
+    
+    sortedPlayers.forEach((p, i) => {
+        const angle = (i / sortedPlayers.length) * 2 * Math.PI - (Math.PI / 2);
         const x = center + radius * Math.cos(angle) - 30; 
         const y = center + radius * Math.sin(angle) - 30;
         
