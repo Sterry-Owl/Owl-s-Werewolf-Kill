@@ -1,59 +1,75 @@
 const UI = {
-    // 渲染座位網格 (主持人與玩家共用邏輯)
-renderPlayerGrid: function(containerId, players, isHost = false, onPlayerClick = null) {
+    renderPlayerGrid: function(containerId, players, isHost = false, onPlayerClick = null) {
         const container = document.getElementById(containerId);
         if (!container) return;
         container.innerHTML = '';
+        
+        const isVoting = containerId === 'voting-targets-grid';
 
-        // 動態寫入圓桌容器樣式
-        container.style.position = 'relative';
-        container.style.width = '350px';
-        container.style.height = '350px';
-        container.style.margin = '20px auto';
-        container.style.borderRadius = '50%';
-        container.style.border = '2px dashed #444';
-        container.style.display = 'block';
+        if (isVoting) {
+            container.className = 'players-grid';
+            container.style.display = 'grid';
+            container.style.gridTemplateColumns = 'repeat(auto-fit, minmax(80px, 1fr))';
+            container.style.gap = '15px';
+            container.style.position = '';
+            container.style.width = '100%';
+            container.style.height = 'auto';
+            container.style.border = 'none';
+        } else {
+            container.className = 'circle-container';
+            container.style.position = 'relative';
+            const size = containerId.includes('host') ? 400 : 350;
+            container.style.width = `${size}px`;
+            container.style.height = `${size}px`;
+            container.style.margin = '20px auto';
+            container.style.borderRadius = '50%';
+            container.style.border = '2px dashed #444';
+            container.style.display = 'block';
+        }
 
-        const radius = 140;
-        const centerX = 175;
-        const centerY = 175;
+        const radius = containerId.includes('host') ? 160 : 130;
+        const center = containerId.includes('host') ? 200 : 175;
 
         players.forEach((player, i) => {
-            const angle = (i * (2 * Math.PI) / players.length) - (Math.PI / 2);
-            const x = centerX + radius * Math.cos(angle);
-            const y = centerY + radius * Math.sin(angle);
-
             const seat = document.createElement('div');
-            seat.className = 'player-seat';
             seat.id = `${containerId}-seat-${player.seatNumber}`;
             seat.dataset.seatNumber = player.seatNumber;
 
-            // 覆寫座位為絕對定位
-            seat.style.position = 'absolute';
-            seat.style.left = `${x}px`;
-            seat.style.top = `${y}px`;
-            seat.style.transform = 'translate(-50%, -50%)';
-            seat.style.margin = '0';
+            if (isVoting) {
+                seat.className = 'player-seat';
+                seat.style.position = 'relative';
+                seat.style.margin = '0 auto';
+                seat.style.width = '80px';
+                seat.style.height = 'auto';
+                seat.style.background = '#333';
+                seat.style.padding = '10px';
+                seat.style.borderRadius = '8px';
+                seat.style.border = '2px solid transparent';
+            } else {
+                seat.className = 'seat player-seat';
+                seat.style.position = 'absolute';
+                const angle = (i * (2 * Math.PI) / players.length) - (Math.PI / 2);
+                const x = center + radius * Math.cos(angle);
+                const y = center + radius * Math.sin(angle);
+                seat.style.left = `${x}px`;
+                seat.style.top = `${y}px`;
+                seat.style.transform = 'translate(-50%, -50%)';
+                seat.style.margin = '0';
+            }
 
-            const numberSpan = document.createElement('span');
-            numberSpan.className = 'seat-number';
-            numberSpan.textContent = player.seatNumber;
-
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'seat-name';
-            nameSpan.textContent = player.name || '等待加入';
-
-            seat.appendChild(numberSpan);
-            seat.appendChild(nameSpan);
+            seat.innerHTML = `
+                <div class="role-label hidden"></div>
+                <img class="seat-img" src="./img/default_seat.png" onerror="this.style.display='none'">
+                <div class="player-name" style="margin-top: 5px;">${player.name || '等待加入'}</div>
+                <div class="badge" style="background: #555; border-radius: 12px; padding: 2px 8px; font-size: 12px; margin-top: 5px; color: white;">${player.seatNumber}號</div>
+            `;
 
             if (player.isDead) seat.classList.add('dead');
 
             if (isHost) {
-                const roleSpan = document.createElement('span');
-                roleSpan.className = 'seat-name';
-                roleSpan.style.color = '#ef233c';
-                roleSpan.textContent = player.role || '未分配';
-                seat.appendChild(roleSpan);
+                const roleLabel = seat.querySelector('.role-label');
+                roleLabel.textContent = player.role || '未分配';
+                roleLabel.classList.remove('hidden');
             } else if (onPlayerClick && !player.isDead) {
                 seat.addEventListener('click', () => onPlayerClick(player.seatNumber, seat));
             }
@@ -61,7 +77,7 @@ renderPlayerGrid: function(containerId, players, isHost = false, onPlayerClick =
             container.appendChild(seat);
         });
     },
-    // 渲染特殊複合選項 (適用於奇蹟商人選技能、盜賊選底牌)
+
     renderSpecialOptions: function(options, onOptionSelect) {
         const container = document.getElementById('special-options-container');
         if (!container) return;
@@ -74,7 +90,6 @@ renderPlayerGrid: function(containerId, players, isHost = false, onPlayerClick =
             btn.textContent = opt.label;
             btn.dataset.value = opt.value;
 
-            // 處理強制鎖定邏輯 (如盜賊底牌含狼人時)
             if (opt.disabled) {
                 btn.classList.add('disabled');
             } else {
@@ -84,12 +99,10 @@ renderPlayerGrid: function(containerId, players, isHost = false, onPlayerClick =
                     onOptionSelect(opt.value);
                 });
             }
-
             container.appendChild(btn);
         });
     },
 
-    // 隱藏特殊複合選項
     hideSpecialOptions: function() {
         const container = document.getElementById('special-options-container');
         if (container) {
@@ -98,15 +111,11 @@ renderPlayerGrid: function(containerId, players, isHost = false, onPlayerClick =
         }
     },
 
-    // 更新玩家狀態列訊息
     updateStatusMessage: function(message) {
         const statusEl = document.getElementById('player-status-message');
         if (statusEl) statusEl.textContent = message;
     },
 
-    // ==========================================
-    // 主持人端：夜晚流程圖渲染與狀態更新
-    // ==========================================
     renderNightFlow: function(flowSequence, currentWakeOrder) {
         const listEl = document.getElementById('night-flow-list');
         if (!listEl) return;
@@ -124,7 +133,6 @@ renderPlayerGrid: function(containerId, players, isHost = false, onPlayerClick =
             statusSpan.className = 'flow-status';
             statusSpan.textContent = '等待中';
 
-            // 狀態判定
             if (currentWakeOrder > role.order) {
                 li.classList.add('completed');
                 statusSpan.textContent = '已完成';
@@ -147,15 +155,15 @@ renderPlayerGrid: function(containerId, players, isHost = false, onPlayerClick =
         }
     },
 
-    // ==========================================
-    // 玩家端：介面鎖定與解鎖控制
-    // ==========================================
     lockPlayerInterface: function() {
         const grid = document.getElementById('player-targets-grid');
         if (grid) grid.classList.add('locked');
         
         const confirmBtn = document.getElementById('btn-confirm-action');
         if (confirmBtn) confirmBtn.disabled = true;
+        
+        const passBtn = document.getElementById('btn-pass-action');
+        if (passBtn) passBtn.classList.add('hidden');
         
         const cancelBtn = document.getElementById('btn-cancel-action');
         if (cancelBtn) cancelBtn.classList.add('hidden');
@@ -170,12 +178,12 @@ renderPlayerGrid: function(containerId, players, isHost = false, onPlayerClick =
         const promptEl = document.getElementById('action-prompt');
         if (promptEl) promptEl.textContent = promptText;
         
+        const passBtn = document.getElementById('btn-pass-action');
+        if (passBtn) passBtn.classList.remove('hidden');
+        
         this.updateStatusMessage('你的回合，請執行行動。');
     },
 
-    // ==========================================
-    // 玩家端：白天暗投面板控制
-    // ==========================================
     showVotingPanel: function(alivePlayers, onVoteSelect) {
         const panel = document.getElementById('player-voting-panel');
         const actionPanel = document.getElementById('player-action-panel');
@@ -185,7 +193,6 @@ renderPlayerGrid: function(containerId, players, isHost = false, onPlayerClick =
         this.renderPlayerGrid('voting-targets-grid', alivePlayers, false, (seatNumber, seatEl) => {
             const allSeats = panel.querySelectorAll('.player-seat');
             allSeats.forEach(s => s.classList.remove('selected'));
-            
             seatEl.classList.add('selected');
             onVoteSelect(seatNumber);
         });
