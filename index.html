@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>天黑請閉眼（鶯鶯製） v2.3 核心版</title>
+    <title>天黑請閉眼（鶯鶯製） v2.3</title>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="./css/style.css">
 </head>
@@ -21,7 +21,6 @@
 
     <div id="librarian-section" class="section hidden">
         <h3 style="color: var(--accent-blue);">圖書管理員：建置全局牌庫</h3>
-        
         <div style="background: #222; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--accent-red);">
             <h4 style="margin-top: 0; color: var(--accent-red);">🔑 系統連線設定 (僅本機儲存)</h4>
             <input type="text" id="gh-user" placeholder="您的 GitHub 帳號 (例: yourname)">
@@ -33,7 +32,6 @@
 
         <div style="background: #333; padding: 15px; border-radius: 8px;">
             <input type="text" id="lib-card-name" placeholder="卡牌名稱 (例：預言家)">
-            
             <label style="display: block; margin-top: 10px; font-size: 14px; color: var(--text-muted);">選擇陣營</label>
             <div style="display: flex; gap: 10px; margin-top: 5px; margin-bottom: 10px;">
                 <button type="button" class="faction-btn active" style="background: var(--accent-blue);" onclick="selectFaction('好人陣營', this)">好人陣營</button>
@@ -67,7 +65,7 @@
         <div id="host-players-grid"></div>
 
         <div id="host-setup-panel">
-            <h4 style="text-align: center; color: var(--text-muted); margin-top: 30px;">步驟一：設定本局角色數量</h4>
+            <h4 style="text-align: center; color: var(--text-muted); margin-top: 30px;">步驟一：設定本局角色數量 (當前牌堆: <span id="deck-count-display" style="color: var(--accent-red); font-size: 20px;">0</span>)</h4>
             <div id="role-selection-grid" class="config-gallery"></div>
             <div style="text-align: center; margin-top: 20px;">
                 <button id="btn-start-game-logic" style="background: var(--accent-red); font-size: 18px; padding: 12px 24px;">確認配置並發牌</button>
@@ -75,6 +73,7 @@
         </div>
 
         <div id="host-runtime-panel" class="hidden">
+            <button id="btn-end-game" class="btn-danger" style="margin-bottom: 15px;" onclick="location.reload()">結束遊戲並返回主畫面</button>
             <div class="host-layout">
                 <div class="control-panel-container" style="width: 100%;">
                     <div id="day-dashboard" class="phase-dashboard hidden">
@@ -98,7 +97,7 @@
         </div>
     </div>
 
-<div id="player-screen" class="section hidden">
+    <div id="player-screen" class="section hidden">
         <h3 style="text-align: center; color: var(--text-muted);">
             你的座位: <span id="player-seat-number" style="color: white;">-</span>號
         </h3>
@@ -115,7 +114,7 @@
         </div>
 
         <button id="btn-day-skill" class="btn-primary hidden" style="width: 100%; margin-bottom: 10px; padding: 15px; font-size: 18px;">發動騎士決鬥</button>
-        <button id="btn-self-destruct" class="btn-danger hidden">我要自爆</button>
+        <button id="btn-self-destruct" class="btn-danger hidden" style="width: 100%; margin-bottom: 10px; padding: 15px; font-size: 18px;">我要自爆</button>
         
         <div id="player-status-message" class="status-message">等待遊戲開始...</div>
 
@@ -137,6 +136,7 @@
             <button id="btn-abstain-vote" class="btn-secondary" style="margin-top: 15px;">棄票</button>
         </div>
     </div>
+</div>
 
 <script src="./js/config.js"></script>
 <script src="./js/ui.js"></script>
@@ -146,19 +146,27 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // 修正：限制僅生成基礎卡牌陣列
-    const baseRoles = ["平民", "獵人", "隱狼", "白痴", "騎士", "定序王子", "盜賊", "邱比特", "咒狐", "暗戀者", "噩夢之影", "蝕時狼妃", "魔術師", "奇蹟商人", "攝夢人", "守衛", "狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "血月使徒", "狼鴉之爪", "石像鬼", "女巫", "預言家", "純白之女", "守墓人", "烏鴉", "獵魔人"];
+    const baseRoles = ["平民", "獵人", "隱狼", "白痴", "騎士", "定序王子", "盜賊", "邱比特", "咒狐", "暗戀者", "噩夢之影-恐懼", "蝕時狼妃-封鎖", "魔術師", "奇蹟商人", "攝夢人", "守衛", "狼人", "狼王", "白狼王", "狼美人-魅惑", "惡靈騎士", "血月使徒", "狼鴉之爪-睜眼", "石像鬼", "女巫-解藥", "預言家", "純白之女", "守墓人", "烏鴉", "獵魔人"];
     
     const setupGrid = document.getElementById('role-selection-grid');
     baseRoles.forEach(roleName => {
+        let displayName = roleName.split('-')[0];
         const card = document.createElement('div');
         card.className = 'config-card';
         card.innerHTML = `
-            <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">${roleName}</div>
-            <input type="number" id="qty-${roleName}" value="0" min="0">
+            <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">${displayName}</div>
+            <input type="number" class="role-qty-input" id="qty-${roleName}" value="0" min="0">
         `;
         setupGrid.appendChild(card);
     });
+
+    const updateDeckCount = () => {
+        let count = 0;
+        document.querySelectorAll('.role-qty-input').forEach(inp => count += parseInt(inp.value) || 0);
+        const display = document.getElementById('deck-count-display');
+        if (display) display.textContent = count;
+    };
+    document.querySelectorAll('.role-qty-input').forEach(input => input.addEventListener('input', updateDeckCount));
 
     document.getElementById('btn-create-room')?.addEventListener('click', () => {
         const roomId = Math.floor(1000 + Math.random() * 9000).toString();
@@ -180,8 +188,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let deck = [];
         baseRoles.forEach(roleName => {
             const input = document.getElementById(`qty-${roleName}`);
+            let actualRoleName = roleName.split('-')[0];
             if (input && parseInt(input.value) > 0) {
-                for (let i = 0; i < parseInt(input.value); i++) deck.push(roleName);
+                for (let i = 0; i < parseInt(input.value); i++) deck.push(actualRoleName);
             }
         });
         
@@ -191,7 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
             startGame(deck); 
             document.getElementById('host-setup-panel').classList.add('hidden');
             document.getElementById('host-runtime-panel').classList.remove('hidden');
-            document.getElementById('day-dashboard').classList.remove('hidden'); 
         }
     });
 });
