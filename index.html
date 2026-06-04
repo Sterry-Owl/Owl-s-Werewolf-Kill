@@ -153,7 +153,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let displayName = roleName.split('-')[0];
         const card = document.createElement('div');
         card.className = 'config-card';
+        
+        // 修正：將被閹割的 <img src="..."> 補回來
         card.innerHTML = `
+            <img src="./img/${displayName}.png" style="width: 60px; height: 60px; object-fit: contain; margin-bottom: 5px; background: #222; border-radius: 6px;" onerror="this.style.display='none'">
             <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">${displayName}</div>
             <input type="number" class="role-qty-input" id="qty-${roleName}" value="0" min="0">
         `;
