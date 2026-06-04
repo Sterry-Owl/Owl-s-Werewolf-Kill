@@ -59,22 +59,21 @@ function handleGameInit(payload) {
     document.getElementById('player-role-display').classList.remove('hidden');
     document.getElementById('my-card-title').textContent = payload.role;
     
-    // 【修復身分圖片邏輯】
+    // 修正：讀取路徑對接 GitHub 本地資源夾，支援中文檔名
     const imgEl = document.getElementById('my-card-img');
-    let imgSrc = `./img/${payload.role}.png`; // 預設使用本地檔案路徑
+    let imgSrc = `./img/${payload.role}.png`;
 
-    // 如果 library 存在，優先讀取您的擴充牌庫設定
-    if (typeof library !== 'undefined' && library.length > 0) {
-        const cardData = library.find(c => c.name === payload.role);
-        if (cardData && cardData.img) {
-            imgSrc = cardData.img;
+    try {
+        if (typeof library !== 'undefined' && Array.isArray(library)) {
+            const cardData = library.find(c => c.name === payload.role);
+            if (cardData && cardData.img) imgSrc = cardData.img;
         }
-    }
-    
+    } catch(e) {}
+
     imgEl.src = imgSrc;
     imgEl.classList.remove('hidden');
     
-    // 防破圖：如果連本地對應名稱的圖都沒有，就直接隱藏，只留文字
+    // 雙重保險，圖檔不存在就隱藏
     imgEl.onerror = function() {
         this.style.display = 'none';
     };

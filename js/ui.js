@@ -57,11 +57,11 @@ const UI = {
                 seat.style.margin = '0';
             }
 
-            // 【防破版設計】如果圖片載入失敗，會隱藏 img 並顯示 span 裡的座位大數字
+            // 修正：圖片檔名改為 seat_1.png，並加入雙重防破版保護
             seat.innerHTML = `
                 <div class="role-label hidden"></div>
                 <div style="width: 60px; height: 60px; border-radius: 50%; background-color: #222; margin-bottom: 5px; display: flex; justify-content: center; align-items: center; border: 2px solid #555; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.4);">
-                    <img class="seat-img" src="./img/${player.seatNumber}.png" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <img class="seat-img" src="./img/seat_${player.seatNumber}.png" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                     <span style="display: none; color: #fff; font-size: 24px; font-weight: bold;">${player.seatNumber}</span>
                 </div>
                 <div class="player-name" style="margin-top: 5px;">${player.name || '等待加入'}</div>
