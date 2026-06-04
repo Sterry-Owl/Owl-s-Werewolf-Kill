@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>天黑請閉眼（鶯鶯製） v2.3 </title>
+    <title>天黑請閉眼（鶯鶯製） v2.3 核心版</title>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="./css/style.css">
 </head>
@@ -41,19 +41,12 @@
                 <button type="button" class="faction-btn" onclick="selectFaction('第三方陣營', this)">第三方陣營</button>
             </div>
             <input type="hidden" id="lib-card-faction" value="好人陣營">
-            
-            <label style="display: block; margin-top: 10px; font-size: 14px; color: var(--text-muted);">對應圖片檔名 (需預先上傳至 GitHub img 資料夾)</label>
-            <input type="text" id="lib-card-img" placeholder="例: seer.png (包含副檔名，留空則無圖片)">
-            
+            <input type="text" id="lib-card-img" placeholder="例: seer.png (包含副檔名，留空則無圖片)" style="margin-top: 10px;">
             <button id="btn-add-card" onclick="addCardToLibrary()" style="width: 100%; margin-top: 15px;" disabled>載入資料中...</button>
         </div>
         
-        <table id="lib-table">
-            <tr><th>圖片預覽</th><th>名稱</th><th>陣營</th><th>操作</th></tr>
-        </table>
-        
+        <table id="lib-table"><tr><th>圖片預覽</th><th>名稱</th><th>陣營</th><th>操作</th></tr></table>
         <button id="btn-sync" onclick="syncToGitHub()" style="margin-top: 20px; background: var(--accent-green); width: 100%; font-size: 18px; padding: 15px;" disabled>☁️ 將目前清單同步至 GitHub 伺服器</button>
-        
         <button onclick="location.reload()" style="background: var(--accent-red); width: 100%; margin-top: 15px; font-size: 18px; padding: 15px;">返回主畫面</button>
     </div>
 
@@ -70,10 +63,12 @@
         </h3>
         <hr style="border-color: var(--border-color); margin: 20px 0;">
         
+        <h4 style="text-align: center; color: var(--text-muted);">本局玩家總覽</h4>
+        <div id="host-players-grid"></div>
+
         <div id="host-setup-panel">
-            <h4 style="text-align: center; color: var(--text-muted);">步驟一：設定本局角色數量</h4>
-            <div id="role-selection-grid" class="config-gallery">
-                </div>
+            <h4 style="text-align: center; color: var(--text-muted); margin-top: 30px;">步驟一：設定本局角色數量</h4>
+            <div id="role-selection-grid" class="config-gallery"></div>
             <div style="text-align: center; margin-top: 20px;">
                 <button id="btn-start-game-logic" style="background: var(--accent-red); font-size: 18px; padding: 12px 24px;">確認配置並發牌</button>
             </div>
@@ -81,12 +76,7 @@
 
         <div id="host-runtime-panel" class="hidden">
             <div class="host-layout">
-                <div class="main-table-container">
-                    <h4 style="margin-top:0; color: var(--text-muted);">玩家狀態總覽</h4>
-                    <div id="host-players-grid" class="players-grid"></div>
-                </div>
-
-                <div class="control-panel-container">
+                <div class="control-panel-container" style="width: 100%;">
                     <div id="day-dashboard" class="phase-dashboard hidden">
                         <h4 style="margin-top:0; color: var(--accent-blue);">白天階段</h4>
                         <div class="action-buttons">
@@ -119,10 +109,11 @@
         <button id="btn-self-destruct" class="btn-danger hidden">我要自爆</button>
         <div id="player-status-message" class="status-message">等待遊戲開始...</div>
 
+        <div id="player-targets-grid"></div>
+
         <div id="player-action-panel" class="action-panel hidden">
             <h4 id="action-prompt" style="color: var(--accent-blue); margin-top: 0;">請選擇目標</h4>
             <div id="special-options-container" class="special-options hidden"></div>
-            <div id="player-targets-grid" class="players-grid"></div>
             <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
                 <button id="btn-confirm-action" class="btn-primary" disabled>確認</button>
                 <button id="btn-cancel-action" class="btn-secondary hidden">取消</button>
@@ -131,7 +122,7 @@
 
         <div id="player-voting-panel" class="voting-panel hidden">
             <h4 style="color: var(--accent-red); margin-top: 0;">放逐投票</h4>
-            <div id="voting-targets-grid" class="players-grid"></div>
+            <div id="voting-targets-grid"></div>
             <button id="btn-abstain-vote" class="btn-secondary" style="margin-top: 15px;">棄票</button>
         </div>
     </div>
@@ -145,23 +136,20 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // 動態生成配置表單
+    // 修正：限制僅生成基礎卡牌陣列
+    const baseRoles = ["平民", "獵人", "隱狼", "白痴", "騎士", "定序王子", "盜賊", "邱比特", "咒狐", "暗戀者", "噩夢之影", "蝕時狼妃", "魔術師", "奇蹟商人", "攝夢人", "守衛", "狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "血月使徒", "狼鴉之爪", "石像鬼", "女巫", "預言家", "純白之女", "守墓人", "烏鴉", "獵魔人"];
+    
     const setupGrid = document.getElementById('role-selection-grid');
-    if (typeof ROLE_DICTIONARY !== 'undefined') {
-        for (const [roleName, def] of Object.entries(ROLE_DICTIONARY)) {
-            if (roleName.includes("狼人陣營-") || roleName.includes("幸運兒")) continue;
-            
-            const card = document.createElement('div');
-            card.className = 'config-card';
-            card.innerHTML = `
-                <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">${roleName}</div>
-                <input type="number" id="qty-${roleName}" value="${roleName === '平民' || roleName === '狼人' ? '0' : '0'}" min="0">
-            `;
-            setupGrid.appendChild(card);
-        }
-    }
+    baseRoles.forEach(roleName => {
+        const card = document.createElement('div');
+        card.className = 'config-card';
+        card.innerHTML = `
+            <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">${roleName}</div>
+            <input type="number" id="qty-${roleName}" value="0" min="0">
+        `;
+        setupGrid.appendChild(card);
+    });
 
-    // 綁定按鈕切換與初始化事件
     document.getElementById('btn-create-room')?.addEventListener('click', () => {
         const roomId = Math.floor(1000 + Math.random() * 9000).toString();
         document.getElementById('role-selection').classList.add('hidden');
@@ -178,17 +166,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof initPlayer === 'function') initPlayer(roomId, name);
     });
 
-    // 綁定發牌事件
     document.getElementById('btn-start-game-logic')?.addEventListener('click', () => {
         let deck = [];
-        for (const roleName in ROLE_DICTIONARY) {
+        baseRoles.forEach(roleName => {
             const input = document.getElementById(`qty-${roleName}`);
             if (input && parseInt(input.value) > 0) {
-                for (let i = 0; i < parseInt(input.value); i++) {
-                    deck.push(roleName);
-                }
+                for (let i = 0; i < parseInt(input.value); i++) deck.push(roleName);
             }
-        }
+        });
         
         if (deck.length === 0) return alert('請至少選擇一名角色！');
         
