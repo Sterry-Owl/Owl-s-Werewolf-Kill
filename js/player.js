@@ -1,4 +1,4 @@
-// js/player.js (1/2)
+// js/player.js
 
 let playerPeer = null;
 let hostConnection = null;
@@ -21,7 +21,6 @@ let actionPayload = {
 // 1. 初始化與連線設定
 // ==========================================
 function initPlayer(roomId, playerName) {
-    // 假設 peerConfig 定義在 config.js 最上方
     playerPeer = new Peer(peerConfig);
 
     playerPeer.on('open', (id) => {
@@ -53,6 +52,13 @@ function initPlayer(roomId, playerName) {
 function setupConnectionListeners() {
     hostConnection.on('data', (data) => {
         switch(data.type) {
+            case 'JOIN_SUCCESS':
+                playerInfo.seatNumber = data.payload.seatNumber;
+                document.getElementById('player-seat-number').textContent = data.payload.seatNumber;
+                break;
+            case 'LOBBY_UPDATE':
+                UI.renderPlayerGrid('player-targets-grid', data.payload.players, false, onTargetSelect);
+                break;
             case 'GAME_INIT':
                 handleGameInit(data.payload);
                 break;
@@ -103,7 +109,7 @@ function handleGameInit(payload) {
     UI.renderPlayerGrid('player-targets-grid', payload.players, false, onTargetSelect);
     
     // 若為狼人陣營，顯示白天自爆按鈕
-    const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人-狼刀", "惡靈騎士", "噩夢之影-狼刀", "血月使徒", "蝕時狼妃-狼刀", "狼鴉之爪-睜眼"];
+    const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
     if (wolfRoles.includes(playerInfo.role)) {
         document.getElementById('btn-self-destruct').classList.remove('hidden');
     }
@@ -132,7 +138,6 @@ function handleDeath(payload) {
         if (mySeat) mySeat.classList.add('dead');
     }
 }
-// js/player.js (2/2)
 
 // ==========================================
 // 4. 技能介面解鎖與事件處理
@@ -243,7 +248,6 @@ function handleStartVote(payload) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 夜間行動確認
     document.getElementById('btn-confirm-action').addEventListener('click', () => {
         UI.lockPlayerInterface();
         hostConnection.send({
@@ -257,18 +261,15 @@ document.addEventListener('DOMContentLoaded', () => {
         resetActionPayload();
     });
 
-    // 夜間行動取消
     document.getElementById('btn-cancel-action').addEventListener('click', () => {
         resetActionPayload();
     });
 
-    // 白天棄票
     document.getElementById('btn-abstain-vote').addEventListener('click', () => {
         UI.hideVotingPanel();
         hostConnection.send({ type: 'VOTE_SUBMIT', payload: { target: 'abstain' } });
     });
     
-    // 狼人白天自爆
     document.getElementById('btn-self-destruct').addEventListener('click', () => {
         if (confirm('確定要自爆嗎？')) {
             hostConnection.send({ type: 'TRIGGER_SELF_DESTRUCT', payload: {} });

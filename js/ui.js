@@ -1,15 +1,39 @@
 const UI = {
     // 渲染座位網格 (主持人與玩家共用邏輯)
-    renderPlayerGrid: function(containerId, players, isHost = false, onPlayerClick = null) {
+renderPlayerGrid: function(containerId, players, isHost = false, onPlayerClick = null) {
         const container = document.getElementById(containerId);
         if (!container) return;
         container.innerHTML = '';
 
-        players.forEach(player => {
+        // 動態寫入圓桌容器樣式
+        container.style.position = 'relative';
+        container.style.width = '350px';
+        container.style.height = '350px';
+        container.style.margin = '20px auto';
+        container.style.borderRadius = '50%';
+        container.style.border = '2px dashed #444';
+        container.style.display = 'block';
+
+        const radius = 140;
+        const centerX = 175;
+        const centerY = 175;
+
+        players.forEach((player, i) => {
+            const angle = (i * (2 * Math.PI) / players.length) - (Math.PI / 2);
+            const x = centerX + radius * Math.cos(angle);
+            const y = centerY + radius * Math.sin(angle);
+
             const seat = document.createElement('div');
             seat.className = 'player-seat';
             seat.id = `${containerId}-seat-${player.seatNumber}`;
             seat.dataset.seatNumber = player.seatNumber;
+
+            // 覆寫座位為絕對定位
+            seat.style.position = 'absolute';
+            seat.style.left = `${x}px`;
+            seat.style.top = `${y}px`;
+            seat.style.transform = 'translate(-50%, -50%)';
+            seat.style.margin = '0';
 
             const numberSpan = document.createElement('span');
             numberSpan.className = 'seat-number';
@@ -22,27 +46,21 @@ const UI = {
             seat.appendChild(numberSpan);
             seat.appendChild(nameSpan);
 
-            // 狀態外觀判定
-            if (player.isDead) {
-                seat.classList.add('dead');
-            }
+            if (player.isDead) seat.classList.add('dead');
 
             if (isHost) {
-                // 主持人視角額外顯示身分
                 const roleSpan = document.createElement('span');
                 roleSpan.className = 'seat-name';
-                roleSpan.style.color = '#e94560';
+                roleSpan.style.color = '#ef233c';
                 roleSpan.textContent = player.role || '未分配';
                 seat.appendChild(roleSpan);
             } else if (onPlayerClick && !player.isDead) {
-                // 玩家視角綁定點擊事件
                 seat.addEventListener('click', () => onPlayerClick(player.seatNumber, seat));
             }
 
             container.appendChild(seat);
         });
     },
-
     // 渲染特殊複合選項 (適用於奇蹟商人選技能、盜賊選底牌)
     renderSpecialOptions: function(options, onOptionSelect) {
         const container = document.getElementById('special-options-container');
