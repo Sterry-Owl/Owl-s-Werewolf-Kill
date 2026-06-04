@@ -121,9 +121,11 @@ function handleDeath(payload) {
         UI.updateStatusMessage('你已經死亡。');
         document.getElementById('btn-self-destruct').classList.add('hidden');
         document.getElementById('btn-day-skill').classList.add('hidden');
-        const mySeat = document.getElementById(`player-targets-grid-seat-${playerInfo.seatNumber}`);
-        if (mySeat) mySeat.classList.add('dead');
     }
+    
+    // 【修復 25-2】將更新網格狀態的邏輯移出 if 判斷，確保每個人都能看到別人死亡
+    const targetSeatEl = document.getElementById(`player-targets-grid-seat-${payload.targetSeat}`);
+    if (targetSeatEl) targetSeatEl.classList.add('dead');
 }
 
 // 【問題11修復】定序王子按鈕解鎖
