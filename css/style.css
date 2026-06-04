@@ -42,7 +42,7 @@ th { background: #333; }
 .seat-img { width: 60px; height: 60px; object-fit: contain; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.4); margin-bottom: 5px; border: 2px solid transparent; }
 .seat.is-me .seat-img { border-color: var(--accent-green); }
 
-.player-name { font-size: 14pt; line-height: 1.2; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
+.player-name { font-size: 12pt; line-height: 1.2; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
 .seat.is-me .player-name { color: var(--accent-green); font-weight: bold; }
 
 .role-label { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); background: var(--accent-blue); color: white; font-size: 11px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; z-index: 3; }
