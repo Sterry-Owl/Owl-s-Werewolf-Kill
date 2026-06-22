@@ -28,9 +28,6 @@ const UI = {
         });
     },
 
-    // ----------------------------------------------------
-    // 玩家端視圖渲染 (Player View)
-    // ----------------------------------------------------
     renderPlayerView: function(state, onSeatSelect, selectedTargets = []) {
         document.getElementById('player-seat-number').textContent = state.mySeat || '-';
         if (state.myRole) {
@@ -118,9 +115,6 @@ const UI = {
         }
     },
 
-    // ----------------------------------------------------
-    // 主持人端視圖渲染 (Host View)
-    // ----------------------------------------------------
     renderHostView: function(state, onHostAction) {
         document.getElementById('host-status-log').innerHTML = state.systemLog || '等待中...';
         
@@ -129,17 +123,16 @@ const UI = {
         const dayPanel = document.getElementById('host-day-panel');
         const nightPanel = document.getElementById('host-night-panel');
         
-        if (state.phase === 'LOBBY') {
+        // 嚴格依照主機配發的 layout 狀態渲染，不解析字串
+        if (state.layout.showSetupPanel) {
             setupPanel.classList.remove('hidden');
             controlPanel.classList.add('hidden');
         } else {
             setupPanel.classList.add('hidden');
             controlPanel.classList.remove('hidden');
             
-            if (state.phase.includes('NIGHT')) {
-                dayPanel.classList.add('hidden');
+            if (state.layout.showNightPanel) {
                 nightPanel.classList.remove('hidden');
-                
                 const listEl = document.getElementById('night-flow-list');
                 listEl.innerHTML = '';
                 if (state.nightFlow) {
@@ -158,7 +151,7 @@ const UI = {
                 }
                 
                 const forceBtn = document.getElementById('btn-force-next');
-                if(state.allowForceNext) {
+                if (state.allowForceNext) {
                     forceBtn.classList.remove('hidden');
                     forceBtn.onclick = () => onHostAction('FORCE_NEXT');
                 } else {
@@ -166,12 +159,16 @@ const UI = {
                 }
             } else {
                 nightPanel.classList.add('hidden');
+            }
+
+            if (state.layout.showDayPanel) {
                 dayPanel.classList.remove('hidden');
-                
                 const actionBtn = document.getElementById('btn-host-action');
                 actionBtn.textContent = state.dayBtnText;
                 actionBtn.disabled = state.dayBtnDisabled;
                 actionBtn.onclick = () => onHostAction(state.dayBtnCommand);
+            } else {
+                dayPanel.classList.add('hidden');
             }
         }
 

@@ -7,26 +7,20 @@ let hostConnection = null;
 let localState = null;
 let selectedTargets = [];
 let specialValue = null;
-let currentPrompt = ""; // 紀錄當前行動提示，用於防洗除機制
+let currentPrompt = ""; 
 
 window.initPlayer = function(roomId, playerName) {
     playerPeer = new Peer(PEER_CONFIG);
-    
     playerPeer.on('open', (id) => {
         UI.updateStatusMessage('正在連線至房間...');
         hostConnection = playerPeer.connect(roomId);
-        
         hostConnection.on('open', () => {
             UI.updateStatusMessage('成功加入房間，等待遊戲開始。');
             hostConnection.send({ type: PACKET_TYPE.JOIN_ROOM, payload: { name: playerName } });
         });
-        
         hostConnection.on('data', handleHostData);
     });
-    
-    playerPeer.on('error', () => { 
-        UI.updateStatusMessage('連線失敗，請確認房間號碼。'); 
-    });
+    playerPeer.on('error', () => { UI.updateStatusMessage('連線失敗，請確認房間號碼。'); });
 };
 
 function handleHostData(data) {
@@ -34,13 +28,11 @@ function handleHostData(data) {
         const newState = data.payload;
         const newPrompt = (newState.actionPanel && newState.actionPanel.show) ? newState.actionPanel.prompt : "";
         
-        // 僅在遊戲階段改變或提示文字改變時，才清空本地的選取狀態
         if (!localState || localState.phase !== newState.phase || currentPrompt !== newPrompt) {
             selectedTargets = [];
             specialValue = null;
             currentPrompt = newPrompt;
         }
-        
         localState = newState;
         UI.renderPlayerView(localState, handleSeatSelect, selectedTargets);
     } 
@@ -51,10 +43,8 @@ function handleHostData(data) {
 
 function handleSeatSelect(seatNum) {
     if (!localState || !localState.actionPanel || !localState.actionPanel.show) return;
-
     if (localState.actionPanel.type === 'single_select' || localState.actionPanel.type === 'consensus') {
         selectedTargets = [seatNum];
-        
         UI.renderPlayerView(localState, handleSeatSelect, selectedTargets);
         
         if (localState.actionPanel.type === 'consensus') {
@@ -65,21 +55,25 @@ function handleSeatSelect(seatNum) {
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-confirm-action')?.addEventListener('click', () => {
-        if (!hostConnection) return;
+        if (!hostConnection || !localState || !localState.actionPanel) return;
+        
+        // 嚴格依賴主機指示的封包類型，不介入遊戲邏輯判斷
         hostConnection.send({ 
-            type: PACKET_TYPE.ACTION_SUBMIT, 
+            type: localState.actionPanel.submitPacketType, 
             payload: { targets: selectedTargets, specialValue: specialValue } 
         });
         UI.blockActionPanel(); 
     });
 
     document.getElementById('btn-pass-action')?.addEventListener('click', () => {
-        if (!hostConnection) return;
+        if (!hostConnection || !localState || !localState.actionPanel) return;
+        
         if (localState.actionPanel.type === 'consensus') {
             hostConnection.send({ type: PACKET_TYPE.WOLF_PREVIEW, payload: { target: 'pass' } });
         }
+        
         hostConnection.send({ 
-            type: PACKET_TYPE.ACTION_SUBMIT, 
+            type: localState.actionPanel.submitPacketType, 
             payload: { targets: [], specialValue: 'pass' } 
         });
         UI.blockActionPanel();
