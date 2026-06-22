@@ -10,7 +10,7 @@
 <body>
 
 <div class="container">
-    <h2 style="text-align: center; color: #fff;">天黑請閉眼 v3.0 核心測試</h2>
+    <h2 style="text-align: center; color: #fff;">天黑請閉眼 v3.1 核心測試</h2>
 
     <div id="section-entry" class="section" style="text-align: center; max-width: 400px; margin: auto;">
         <h3 style="color: var(--accent-blue);">建立 / 加入房間</h3>
@@ -28,7 +28,9 @@
         <hr style="border-color: var(--border-color); margin: 20px 0;">
         
         <h4 style="text-align: center; color: var(--text-muted);">本局玩家總覽</h4>
-        <div id="host-players-grid"></div>
+        <div style="position: relative; width: 400px; height: 400px; margin: 20px auto; border-radius: 50%; border: 2px dashed #444;">
+            <div id="host-players-grid" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+        </div>
 
         <div id="host-setup-panel">
             <h4 style="text-align: center; color: var(--text-muted); margin-top: 30px;">步驟一：設定本局角色數量 (當前牌堆: <span id="deck-count-display" style="color: var(--accent-red); font-size: 20px;">0</span>)</h4>
@@ -39,7 +41,7 @@
         </div>
 
         <div id="host-control-panel" class="hidden">
-            <div class="host-layout">
+            <div style="display: flex; flex-direction: column; gap: 20px;">
                 <div class="control-panel-container" style="width: 100%;">
                     <div id="host-status-log" class="system-log">等待系統狀態更新...</div>
                     <div id="host-night-panel" class="hidden" style="margin-top: 15px;">
@@ -66,7 +68,7 @@
             <span style="color: var(--text-muted); font-size: 14px; width: 100%; text-align: center;">本局配置 (等待同步...)</span>
         </div>
 
-        <div style="position: relative; width: 450px; height: 450px; margin: 20px auto;">
+        <div style="position: relative; width: 450px; height: 450px; margin: 20px auto; border-radius: 50%; border: 2px dashed #444;">
             <div id="player-targets-grid" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
             <div id="player-center-card" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100px; text-align: center; z-index: 10;">
                 <h3 style="color: var(--text-muted); margin: 0 0 5px 0; font-size: 14px;">等待發牌...</h3>
@@ -91,6 +93,7 @@
 <script src="./js/ui.js"></script>
 <script src="./js/player.js"></script>
 <script src="./js/host.js"></script>
-<script src="./js/app.js"></script>
+<script src="./js/app.js"></script> 
+
 </body>
 </html>
