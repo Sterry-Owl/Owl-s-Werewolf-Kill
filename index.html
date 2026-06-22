@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>天黑請閉眼（鶯鶯製） v2.5</title>
+    <title>天黑請閉眼（鶯鶯製） v2.6</title>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
 
 <div class="container">
-    <h2 style="text-align: center; color: #fff;">天黑請閉眼（鶯鶯製） v2.5</h2>
+    <h2 style="text-align: center; color: #fff;">天黑請閉眼（鶯鶯製） v2.6</h2>
 
     <div id="role-selection" class="section" style="text-align: center;">
         <h3>請選擇登入身分</h3>
@@ -19,7 +19,6 @@
         <button onclick="document.getElementById('role-selection').classList.add('hidden'); document.getElementById('player-join-section').classList.remove('hidden');" style="background: var(--accent-green);">一般玩家 (加入房間)</button>
     </div>
 
-    <!-- 圖書管理員 (省略，保持不變) -->
     <div id="librarian-section" class="section hidden">
         <h3 style="color: var(--accent-blue);">圖書管理員：建置全局牌庫</h3>
         <div style="background: #222; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--accent-red);">
@@ -30,6 +29,7 @@
             <button onclick="saveGitHubAuth()" style="background: var(--accent-red); width: 100%;">儲存連線設定並讀取牌庫</button>
             <p id="gh-status" style="font-size: 12px; color: var(--text-muted);"></p>
         </div>
+
         <div style="background: #333; padding: 15px; border-radius: 8px;">
             <input type="text" id="lib-card-name" placeholder="卡牌名稱 (例：預言家)">
             <label style="display: block; margin-top: 10px; font-size: 14px; color: var(--text-muted);">選擇陣營</label>
@@ -42,12 +42,12 @@
             <input type="text" id="lib-card-img" placeholder="例: seer.png (包含副檔名，留空則無圖片)" style="margin-top: 10px;">
             <button id="btn-add-card" onclick="addCardToLibrary()" style="width: 100%; margin-top: 15px;" disabled>載入資料中...</button>
         </div>
+        
         <table id="lib-table"><tr><th>圖片預覽</th><th>名稱</th><th>陣營</th><th>操作</th></tr></table>
         <button id="btn-sync" onclick="syncToGitHub()" style="margin-top: 20px; background: var(--accent-green); width: 100%; font-size: 18px; padding: 15px;" disabled>☁️ 將目前清單同步至 GitHub 伺服器</button>
         <button onclick="location.reload()" style="background: var(--accent-red); width: 100%; margin-top: 15px; font-size: 18px; padding: 15px;">返回主畫面</button>
     </div>
 
-    <!-- 玩家加入 -->
     <div id="player-join-section" class="section hidden" style="max-width: 400px; margin: auto;">
         <h3 style="text-align: center; color: var(--accent-green);">加入房間</h3>
         <input type="text" id="input-room-id" placeholder="請輸入房間代碼 (4碼)" style="font-size: 18px; text-align: center; letter-spacing: 2px;">
@@ -55,12 +55,12 @@
         <button id="btn-join-room" style="width: 100%; font-size: 18px; background: var(--accent-green); padding: 12px; margin-top: 15px;">進入房間</button>
     </div>
 
-    <!-- 主持人主控台 -->
     <div id="host-screen" class="section hidden">
         <h3 style="color: var(--accent-blue); display: flex; justify-content: space-between; align-items: center;">
             主控台 <span style="color: #fff; font-size: 16px;">房間代碼：<strong id="display-room-id" style="color: var(--accent-red); font-size: 32px;">...</strong></span>
         </h3>
         <hr style="border-color: var(--border-color); margin: 20px 0;">
+        
         <h4 style="text-align: center; color: var(--text-muted);">本局玩家總覽</h4>
         <div id="host-players-grid"></div>
 
@@ -79,11 +79,12 @@
                     <div id="day-dashboard" class="phase-dashboard hidden">
                         <h4 style="margin-top:0; color: var(--accent-blue);">白天階段</h4>
                         <div class="action-buttons">
-                            <!-- 作廢按鈕移除，統合進 btn-vote-flow -->
                             <button id="btn-vote-flow" style="background: var(--accent-blue); color: white; padding: 10px; border-radius: 6px; font-weight: bold; border: none;">發起投票</button>
+                            <button id="btn-interrupt-skill" class="btn-secondary">作廢/插隊技能</button>
                         </div>
                         <div id="vote-results-container" class="system-log">等待行動...</div>
                     </div>
+
                     <div id="night-dashboard" class="phase-dashboard hidden">
                         <h4 style="margin-top:0; color: var(--accent-blue);">夜晚階段</h4>
                         <button id="btn-start-night" style="background: var(--accent-blue); color: white; padding: 10px; border-radius: 6px; font-weight: bold; border: none;">開始夜晚推進</button>
@@ -95,7 +96,6 @@
         </div>
     </div>
 
-    <!-- 玩家操作介面 -->
     <div id="player-screen" class="section hidden">
         <h3 style="text-align: center; color: var(--text-muted);">
             你的座位: <span id="player-seat-number" style="color: white;">-</span>號
@@ -104,7 +104,6 @@
             身分: <span id="player-role-name"></span>
         </div>
 
-        <!-- 【問題12修復】玩家介面同步顯示本局配置 -->
         <div id="player-config-display" style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-bottom: 15px; padding: 10px; background: #222; border-radius: 8px; border: 1px solid var(--border-color);">
             <span style="color: var(--text-muted); font-size: 14px; width: 100%; text-align: center;">本局配置 (等待同步...)</span>
         </div>
@@ -155,8 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let displayName = roleName.split('-')[0];
         const card = document.createElement('div');
         card.className = 'config-card';
-        
-        // 【問題13修復】更改為加減按鈕配置
         card.innerHTML = `
             <img src="./img/${displayName}.png" style="width: 60px; height: 60px; object-fit: contain; margin-bottom: 5px; background: #222; border-radius: 6px;" onerror="this.style.display='none'">
             <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">${displayName}</div>
@@ -176,16 +173,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (display) display.textContent = count;
     };
 
-    // 綁定加減按鈕事件
     document.getElementById('role-selection-grid').addEventListener('click', (e) => {
         if (e.target.classList.contains('btn-minus') || e.target.classList.contains('btn-plus')) {
             const role = e.target.dataset.role;
             const span = document.getElementById(`qty-${role}`);
             let val = parseInt(span.dataset.val) || 0;
-            
             if (e.target.classList.contains('btn-minus') && val > 0) val--;
             if (e.target.classList.contains('btn-plus')) val++;
-            
             span.dataset.val = val;
             span.textContent = val;
             updateDeckCount();
