@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>天黑請閉眼（鶯鶯製） v2.6</title>
+    <title>天黑請閉眼（鶯鶯製） v2.6.1</title>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
 
 <div class="container">
-    <h2 style="text-align: center; color: #fff;">天黑請閉眼（鶯鶯製） v2.6</h2>
+    <h2 style="text-align: center; color: #fff;">天黑請閉眼（鶯鶯製） v2.6.1</h2>
 
     <div id="role-selection" class="section" style="text-align: center;">
         <h3>請選擇登入身分</h3>
@@ -19,6 +19,7 @@
         <button onclick="document.getElementById('role-selection').classList.add('hidden'); document.getElementById('player-join-section').classList.remove('hidden');" style="background: var(--accent-green);">一般玩家 (加入房間)</button>
     </div>
 
+    <!-- 圖書管理員 -->
     <div id="librarian-section" class="section hidden">
         <h3 style="color: var(--accent-blue);">圖書管理員：建置全局牌庫</h3>
         <div style="background: #222; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--accent-red);">
@@ -48,6 +49,7 @@
         <button onclick="location.reload()" style="background: var(--accent-red); width: 100%; margin-top: 15px; font-size: 18px; padding: 15px;">返回主畫面</button>
     </div>
 
+    <!-- 玩家加入 -->
     <div id="player-join-section" class="section hidden" style="max-width: 400px; margin: auto;">
         <h3 style="text-align: center; color: var(--accent-green);">加入房間</h3>
         <input type="text" id="input-room-id" placeholder="請輸入房間代碼 (4碼)" style="font-size: 18px; text-align: center; letter-spacing: 2px;">
@@ -55,6 +57,7 @@
         <button id="btn-join-room" style="width: 100%; font-size: 18px; background: var(--accent-green); padding: 12px; margin-top: 15px;">進入房間</button>
     </div>
 
+    <!-- 主持人主控台 -->
     <div id="host-screen" class="section hidden">
         <h3 style="color: var(--accent-blue); display: flex; justify-content: space-between; align-items: center;">
             主控台 <span style="color: #fff; font-size: 16px;">房間代碼：<strong id="display-room-id" style="color: var(--accent-red); font-size: 32px;">...</strong></span>
@@ -96,6 +99,7 @@
         </div>
     </div>
 
+    <!-- 玩家操作介面 -->
     <div id="player-screen" class="section hidden">
         <h3 style="text-align: center; color: var(--text-muted);">
             你的座位: <span id="player-seat-number" style="color: white;">-</span>號
@@ -108,7 +112,8 @@
             <span style="color: var(--text-muted); font-size: 14px; width: 100%; text-align: center;">本局配置 (等待同步...)</span>
         </div>
 
-        <div style="position: relative; width: 350px; height: 350px; margin: 20px auto;">
+        <!-- 修正圓桌外層容器避免被裁切 -->
+        <div style="position: relative; width: 450px; height: 450px; margin: 20px auto;">
             <div id="player-targets-grid" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
             <div id="player-circle-container" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100px; text-align: center; z-index: 10;">
                 <h3 id="my-card-title" style="color: var(--text-muted); margin: 0 0 5px 0; font-size: 14px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">等待發牌...</h3>
@@ -126,7 +131,7 @@
             <div id="special-options-container" class="special-options hidden"></div>
             <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
                 <button id="btn-confirm-action" class="btn-primary" disabled>確認</button>
-                <button id="btn-pass-action" class="btn-secondary hidden">放棄 / 跳過</button>
+                <button id="btn-pass-action" class="btn-secondary hidden">跳過</button>
                 <button id="btn-cancel-action" class="btn-secondary hidden">取消</button>
             </div>
         </div>
@@ -168,9 +173,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const updateDeckCount = () => {
         let count = 0;
-        document.querySelectorAll('.role-qty-display').forEach(span => count += parseInt(span.dataset.val) || 0);
+        let currentDeck = [];
+        document.querySelectorAll('.role-qty-display').forEach(span => {
+            let val = parseInt(span.dataset.val) || 0;
+            count += val;
+            let fullRoleName = span.id.replace('qty-', '');
+            let actualRoleName = fullRoleName.split('-')[0];
+            for (let i = 0; i < val; i++) currentDeck.push(actualRoleName);
+        });
         const display = document.getElementById('deck-count-display');
         if (display) display.textContent = count;
+        
+        // 觸發實時同步
+        if (typeof syncDeckToPlayers === 'function') syncDeckToPlayers(currentDeck);
     };
 
     document.getElementById('role-selection-grid').addEventListener('click', (e) => {
@@ -216,9 +231,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (deck.length === 0) return alert('請至少選擇一名角色！');
         
         if (typeof startGame === 'function') {
-            startGame(deck); 
-            document.getElementById('host-setup-panel').classList.add('hidden');
-            document.getElementById('host-runtime-panel').classList.remove('hidden');
+            // 防呆機制：如果回傳 true 才隱藏配置介面
+            if (startGame(deck)) {
+                document.getElementById('host-setup-panel').classList.add('hidden');
+                document.getElementById('host-runtime-panel').classList.remove('hidden');
+            }
         }
     });
 });
