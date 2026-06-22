@@ -32,7 +32,6 @@ const UI = {
     // 玩家端視圖渲染 (Player View)
     // ----------------------------------------------------
     renderPlayerView: function(state, onSeatSelect, selectedTargets = []) {
-        // 1. 基本資訊更新
         document.getElementById('player-seat-number').textContent = state.mySeat || '-';
         if (state.myRole) {
             document.getElementById('player-role-name').textContent = state.myRole;
@@ -44,7 +43,6 @@ const UI = {
 
         this.updateStatusMessage(state.message || '');
 
-        // 2. 圓桌渲染
         const grid = document.getElementById('player-targets-grid');
         if (!grid) return;
         grid.innerHTML = '';
@@ -59,7 +57,6 @@ const UI = {
             const isSelected = selectedTargets.includes(p.seatNumber);
             if (isSelected) seat.classList.add('selected');
 
-            // 判斷是否可點擊
             if (state.actionPanel.show && !p.isDead && state.actionPanel.selectableSeats.includes(p.seatNumber)) {
                 seat.style.cursor = 'pointer';
                 seat.addEventListener('click', () => onSeatSelect(p.seatNumber));
@@ -67,7 +64,6 @@ const UI = {
                 seat.style.pointerEvents = 'none';
             }
 
-            // 計算圓周座標
             const angle = (i * (2 * Math.PI) / state.players.length) - (Math.PI / 2);
             seat.style.position = 'absolute';
             seat.style.left = `${center + radius * Math.cos(angle)}px`;
@@ -75,7 +71,6 @@ const UI = {
             seat.style.transform = 'translate(-50%, -50%)';
             seat.style.zIndex = '15';
 
-            // 處理黃色遮罩與狼人預覽標籤 (由主機傳來的 p.wolfTags 決定)
             let wolfTagsHtml = '';
             if (p.wolfTags && p.wolfTags.length > 0) {
                 p.wolfTags.forEach((tag, idx) => {
@@ -96,14 +91,13 @@ const UI = {
             grid.appendChild(seat);
         });
 
-        // 3. 行動面板渲染
         const actionPanel = document.getElementById('player-action-panel');
         if (state.actionPanel.show) {
             actionPanel.classList.remove('hidden');
             document.getElementById('action-prompt').textContent = state.actionPanel.prompt;
             
             const btnConfirm = document.getElementById('btn-confirm-action');
-            btnConfirm.disabled = selectedTargets.length === 0; // 沒選人不能按確認
+            btnConfirm.disabled = selectedTargets.length === 0;
 
             const btnPass = document.getElementById('btn-pass-action');
             if (state.actionPanel.allowPass) {
@@ -111,7 +105,6 @@ const UI = {
                 btnPass.innerHTML = '跳過';
                 btnPass.style.position = 'relative';
                 
-                // 處理空刀的黃色標籤
                 if (state.actionPanel.passTags && state.actionPanel.passTags.length > 0) {
                     state.actionPanel.passTags.forEach((tag, idx) => {
                         btnPass.innerHTML += `<span class="wolf-tag" style="top: ${-10 - (idx*15)}px; right: -10px;">${tag}</span>`;
@@ -147,7 +140,6 @@ const UI = {
                 dayPanel.classList.add('hidden');
                 nightPanel.classList.remove('hidden');
                 
-                // 渲染夜間流程圖
                 const listEl = document.getElementById('night-flow-list');
                 listEl.innerHTML = '';
                 if (state.nightFlow) {
@@ -183,7 +175,6 @@ const UI = {
             }
         }
 
-        // 渲染主持人圓桌總覽
         const grid = document.getElementById('host-players-grid');
         grid.innerHTML = '';
         const radius = 160;
