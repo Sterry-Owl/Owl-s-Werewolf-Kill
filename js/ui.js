@@ -1,216 +1,215 @@
+// ==========================================
+// v3.0 視圖渲染引擎 (Pure View)
+// ==========================================
+
 const UI = {
-    renderPlayerGrid: function(containerId, players, isHost = false, onPlayerClick = null) {
-        const container = document.getElementById(containerId);
+    updateStatusMessage: function(msg) {
+        const el = document.getElementById('player-status-message');
+        if (el) el.textContent = msg;
+    },
+
+    renderDeck: function(roleCounts) {
+        const container = document.getElementById('player-config-display');
         if (!container) return;
         container.innerHTML = '';
-        
-        const isVoting = containerId === 'voting-targets-grid';
+        Object.entries(roleCounts).forEach(([role, count]) => {
+            if (count > 0) {
+                container.innerHTML += `<div style="display:flex; align-items:center; gap:5px;"><img src="./img/${role}.png" style="width:30px;height:30px;border-radius:4px;" onerror="this.style.display='none'"> <span style="color:#ccc;font-size:14px;">x${count}</span></div>`;
+            }
+        });
+    },
 
-        if (isVoting) {
-            container.className = 'players-grid';
-            container.style.display = 'grid';
-            container.style.gridTemplateColumns = 'repeat(auto-fit, minmax(80px, 1fr))';
-            container.style.gap = '15px';
-            container.style.position = '';
-            container.style.width = '100%';
-            container.style.height = 'auto';
-            container.style.border = 'none';
-        } else {
-            container.className = 'circle-container';
-            container.style.position = 'relative';
-            // 將玩家圓桌尺寸放大，防止中央身分牌遮住下方的玩家
-            const size = containerId.includes('host') ? 400 : 450;
-            container.style.width = `${size}px`;
-            container.style.height = `${size}px`;
-            container.style.margin = '20px auto';
-            container.style.borderRadius = '50%';
-            container.style.border = '2px dashed #444';
-            container.style.display = 'block';
+    blockActionPanel: function() {
+        const panel = document.getElementById('player-action-panel');
+        if(panel) panel.classList.add('hidden');
+        this.updateStatusMessage('行動已送出，等待系統結算...');
+        document.querySelectorAll('#player-targets-grid .player-seat').forEach(s => {
+            s.style.pointerEvents = 'none';
+        });
+    },
+
+    // ----------------------------------------------------
+    // 玩家端視圖渲染 (Player View)
+    // ----------------------------------------------------
+    renderPlayerView: function(state, onSeatSelect, selectedTargets = []) {
+        // 1. 基本資訊更新
+        document.getElementById('player-seat-number').textContent = state.mySeat || '-';
+        if (state.myRole) {
+            document.getElementById('player-role-name').textContent = state.myRole;
+            document.getElementById('player-role-display').classList.remove('hidden');
+            document.getElementById('my-card-img').src = `./img/${state.myRole}.png`;
+            document.getElementById('my-card-img').classList.remove('hidden');
+            document.querySelector('#player-center-card h3').textContent = state.myRole;
         }
 
-        // 半徑與中心點配合放大
-        const radius = containerId.includes('host') ? 160 : 190;
-        const center = containerId.includes('host') ? 200 : 225;
+        this.updateStatusMessage(state.message || '');
 
-        players.forEach((player, i) => {
+        // 2. 圓桌渲染
+        const grid = document.getElementById('player-targets-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        const radius = 190;
+        const center = 225;
+
+        state.players.forEach((p, i) => {
             const seat = document.createElement('div');
-            seat.id = `${containerId}-seat-${player.seatNumber}`;
-            seat.dataset.seatNumber = player.seatNumber;
+            seat.className = 'seat player-seat';
+            if (p.isDead) seat.classList.add('dead');
+            
+            const isSelected = selectedTargets.includes(p.seatNumber);
+            if (isSelected) seat.classList.add('selected');
 
-            if (isVoting) {
-                seat.className = 'player-seat';
-                seat.style.position = 'relative';
-                seat.style.margin = '0 auto';
-                seat.style.width = '80px';
-                seat.style.height = 'auto';
-                seat.style.background = '#333';
-                seat.style.padding = '10px';
-                seat.style.borderRadius = '8px';
-                seat.style.border = '2px solid transparent';
+            // 判斷是否可點擊
+            if (state.actionPanel.show && !p.isDead && state.actionPanel.selectableSeats.includes(p.seatNumber)) {
+                seat.style.cursor = 'pointer';
+                seat.addEventListener('click', () => onSeatSelect(p.seatNumber));
             } else {
-                seat.className = 'seat player-seat';
-                seat.style.position = 'absolute';
-                const angle = (i * (2 * Math.PI) / players.length) - (Math.PI / 2);
-                const x = center + radius * Math.cos(angle);
-                const y = center + radius * Math.sin(angle);
-                seat.style.left = `${x}px`;
-                seat.style.top = `${y}px`;
-                seat.style.transform = 'translate(-50%, -50%)';
-                seat.style.margin = '0';
-                seat.style.background = 'transparent';
-                seat.style.border = 'none';
-                seat.style.boxShadow = 'none';
-                seat.style.zIndex = '15'; // 確保外圍座位永遠在中央大卡牌(z-index:10)的上方
+                seat.style.pointerEvents = 'none';
+            }
+
+            // 計算圓周座標
+            const angle = (i * (2 * Math.PI) / state.players.length) - (Math.PI / 2);
+            seat.style.position = 'absolute';
+            seat.style.left = `${center + radius * Math.cos(angle)}px`;
+            seat.style.top = `${center + radius * Math.sin(angle)}px`;
+            seat.style.transform = 'translate(-50%, -50%)';
+            seat.style.zIndex = '15';
+
+            // 處理黃色遮罩與狼人預覽標籤 (由主機傳來的 p.wolfTags 決定)
+            let wolfTagsHtml = '';
+            if (p.wolfTags && p.wolfTags.length > 0) {
+                p.wolfTags.forEach((tag, idx) => {
+                    wolfTagsHtml += `<div class="wolf-tag" style="top: ${10 + (idx*15)}px; right: -40px;">${tag}</div>`;
+                });
+                if (!isSelected) seat.classList.add('wolf-selected');
             }
 
             seat.innerHTML = `
-                <div class="role-label ${player.role ? '' : 'hidden'}" style="position: absolute; top: -25px; left: 50%; transform: translateX(-50%); background: var(--accent-blue); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; white-space: nowrap; z-index: 5;">${player.role || '未分配'}</div>
-                <div class="seat-img-wrapper" style="width: 60px; height: 60px; border-radius: 50%; background-color: #222; display: flex; justify-content: center; align-items: center; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.4); z-index: 2; position: relative; border: 3px solid #555; transition: all 0.2s;">
-                    <img class="seat-img" src="./img/seat_${player.seatNumber}.png" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                    <span style="display: none; color: #fff; font-size: 24px; font-weight: bold;">${player.seatNumber}</span>
+                <div class="role-label ${p.roleInfo ? '' : 'hidden'}">${p.roleInfo || ''}</div>
+                <div class="seat-img-wrapper">
+                    <img class="seat-img" src="./img/seat_${p.seatNumber}.png" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <span style="display: none; color: #fff; font-size: 24px; font-weight: bold;">${p.seatNumber}</span>
                 </div>
-                <div class="wolf-tags-container" style="position: absolute; right: -40px; top: 10px; z-index: 10; display:flex; flex-direction:column; gap:2px;"></div>
-                <div class="player-name" style="margin-top: 5px; font-size: 12px; color: var(--text-muted); white-space: nowrap; z-index: 3;">${player.name || '等待加入'}</div>
+                ${wolfTagsHtml}
+                <div class="player-name">${p.name || '等待加入'}</div>
             `;
-
-            if (player.isDead) seat.classList.add('dead');
-
-            if (isHost) {
-                const roleLabel = seat.querySelector('.role-label');
-                roleLabel.style.background = 'var(--accent-blue)';
-                roleLabel.classList.remove('hidden');
-            } else if (onPlayerClick && !player.isDead) {
-                seat.addEventListener('click', () => onPlayerClick(player.seatNumber, seat));
-            }
-
-            container.appendChild(seat);
+            grid.appendChild(seat);
         });
-    },
 
-    renderSpecialOptions: function(options, onOptionSelect) {
-        const container = document.getElementById('special-options-container');
-        if (!container) return;
-        container.innerHTML = '';
-        container.classList.remove('hidden');
+        // 3. 行動面板渲染
+        const actionPanel = document.getElementById('player-action-panel');
+        if (state.actionPanel.show) {
+            actionPanel.classList.remove('hidden');
+            document.getElementById('action-prompt').textContent = state.actionPanel.prompt;
+            
+            const btnConfirm = document.getElementById('btn-confirm-action');
+            btnConfirm.disabled = selectedTargets.length === 0; // 沒選人不能按確認
 
-        options.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.className = 'special-btn';
-            btn.dataset.value = opt.value;
-            btn.textContent = opt.label;
-            btn.style.position = 'relative';
-
-            if (opt.disabled) {
-                btn.classList.add('disabled');
+            const btnPass = document.getElementById('btn-pass-action');
+            if (state.actionPanel.allowPass) {
+                btnPass.classList.remove('hidden');
+                btnPass.innerHTML = '跳過';
+                btnPass.style.position = 'relative';
+                
+                // 處理空刀的黃色標籤
+                if (state.actionPanel.passTags && state.actionPanel.passTags.length > 0) {
+                    state.actionPanel.passTags.forEach((tag, idx) => {
+                        btnPass.innerHTML += `<span class="wolf-tag" style="top: ${-10 - (idx*15)}px; right: -10px;">${tag}</span>`;
+                    });
+                }
             } else {
-                btn.addEventListener('click', () => {
-                    Array.from(container.children).forEach(c => c.classList.remove('selected'));
-                    btn.classList.add('selected');
-                    onOptionSelect(opt.value);
-                });
+                btnPass.classList.add('hidden');
             }
-            container.appendChild(btn);
-        });
-    },
-
-    hideSpecialOptions: function() {
-        const container = document.getElementById('special-options-container');
-        if (container) {
-            container.innerHTML = '';
-            container.classList.add('hidden');
+        } else {
+            actionPanel.classList.add('hidden');
         }
     },
 
-    updateStatusMessage: function(message) {
-        const statusEl = document.getElementById('player-status-message');
-        if (statusEl) statusEl.textContent = message;
-    },
-
-    renderNightFlow: function(flowSequence, currentWakeOrder) {
-        const listEl = document.getElementById('night-flow-list');
-        if (!listEl) return;
-        listEl.innerHTML = '';
-
-        flowSequence.forEach(role => {
-            const li = document.createElement('li');
-            li.className = 'flow-item';
-            li.id = `flow-item-${role.order}`;
+    // ----------------------------------------------------
+    // 主持人端視圖渲染 (Host View)
+    // ----------------------------------------------------
+    renderHostView: function(state, onHostAction) {
+        document.getElementById('host-status-log').innerHTML = state.systemLog || '等待中...';
+        
+        const setupPanel = document.getElementById('host-setup-panel');
+        const controlPanel = document.getElementById('host-control-panel');
+        const dayPanel = document.getElementById('host-day-panel');
+        const nightPanel = document.getElementById('host-night-panel');
+        
+        if (state.phase === 'LOBBY') {
+            setupPanel.classList.remove('hidden');
+            controlPanel.classList.add('hidden');
+        } else {
+            setupPanel.classList.add('hidden');
+            controlPanel.classList.remove('hidden');
             
-            const nameSpan = document.createElement('span');
-            nameSpan.textContent = `${role.order}. ${role.name}`;
-            
-            const statusSpan = document.createElement('span');
-            statusSpan.className = 'flow-status';
-
-            if (currentWakeOrder > role.order) {
-                li.classList.add('completed');
-                statusSpan.textContent = role.resultText || '已完成';
-                nameSpan.style.color = '#888';
-                statusSpan.style.color = '#888';
-            } else if (currentWakeOrder === role.order) {
-                li.classList.add('active');
-                statusSpan.textContent = '行動中...';
-                nameSpan.style.color = 'var(--accent-green)';
-                statusSpan.style.color = 'var(--accent-green)';
-                nameSpan.style.fontWeight = 'bold';
-                statusSpan.style.fontWeight = 'bold';
+            if (state.phase.includes('NIGHT')) {
+                dayPanel.classList.add('hidden');
+                nightPanel.classList.remove('hidden');
+                
+                // 渲染夜間流程圖
+                const listEl = document.getElementById('night-flow-list');
+                listEl.innerHTML = '';
+                if (state.nightFlow) {
+                    state.nightFlow.forEach(step => {
+                        const li = document.createElement('li');
+                        li.className = 'flow-item';
+                        if (step.status === 'completed') li.classList.add('completed');
+                        else if (step.status === 'active') li.classList.add('active');
+                        
+                        li.innerHTML = `
+                            <span style="font-weight:bold; color: ${step.status==='active'?'var(--accent-green)':'inherit'}">${step.title}</span>
+                            <span class="flow-status" style="color: ${step.status==='active'?'var(--accent-green)': (step.status==='completed'?'#888':'#ccc')}">${step.result || '等待中'}</span>
+                        `;
+                        listEl.appendChild(li);
+                    });
+                }
+                
+                const forceBtn = document.getElementById('btn-force-next');
+                if(state.allowForceNext) {
+                    forceBtn.classList.remove('hidden');
+                    forceBtn.onclick = () => onHostAction('FORCE_NEXT');
+                } else {
+                    forceBtn.classList.add('hidden');
+                }
             } else {
-                statusSpan.textContent = '等待中';
-                nameSpan.style.color = '#ccc';
-                statusSpan.style.color = '#ccc';
+                nightPanel.classList.add('hidden');
+                dayPanel.classList.remove('hidden');
+                
+                const actionBtn = document.getElementById('btn-host-action');
+                actionBtn.textContent = state.dayBtnText;
+                actionBtn.disabled = state.dayBtnDisabled;
+                actionBtn.onclick = () => onHostAction(state.dayBtnCommand);
             }
+        }
 
-            li.appendChild(nameSpan);
-            li.appendChild(statusSpan);
-            listEl.appendChild(li);
+        // 渲染主持人圓桌總覽
+        const grid = document.getElementById('host-players-grid');
+        grid.innerHTML = '';
+        const radius = 160;
+        const center = 200;
+        
+        state.players.forEach((p, i) => {
+            const seat = document.createElement('div');
+            seat.className = 'seat player-seat';
+            if (p.isDead) seat.classList.add('dead');
+            
+            const angle = (i * (2 * Math.PI) / state.players.length) - (Math.PI / 2);
+            seat.style.position = 'absolute';
+            seat.style.left = `${center + radius * Math.cos(angle)}px`;
+            seat.style.top = `${center + radius * Math.sin(angle)}px`;
+            seat.style.transform = 'translate(-50%, -50%)';
+            seat.style.zIndex = '15';
+            
+            seat.innerHTML = `
+                <div class="role-label" style="background:var(--accent-blue)">${p.role || '未分配'}</div>
+                <div class="seat-img-wrapper" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid #555; background: #222; overflow: hidden; position: relative;">
+                    <img class="seat-img" src="./img/seat_${p.seatNumber}.png" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <span style="display: none; color: #fff; font-size: 24px; font-weight: bold;">${p.seatNumber}</span>
+                </div>
+                <div class="player-name">${p.name || '等待加入'}</div>
+            `;
+            grid.appendChild(seat);
         });
-    },
-
-    lockPlayerInterface: function() {
-        const grid = document.getElementById('player-targets-grid');
-        if (grid) grid.classList.add('locked');
-        
-        const confirmBtn = document.getElementById('btn-confirm-action');
-        if (confirmBtn) confirmBtn.disabled = true;
-        
-        const passBtn = document.getElementById('btn-pass-action');
-        if (passBtn) passBtn.classList.add('hidden');
-        
-        const cancelBtn = document.getElementById('btn-cancel-action');
-        if (cancelBtn) cancelBtn.classList.add('hidden');
-        
-        this.updateStatusMessage('請閉眼或等待他人行動...');
-    },
-
-    unlockPlayerInterface: function(promptText) {
-        const grid = document.getElementById('player-targets-grid');
-        if (grid) grid.classList.remove('locked');
-        
-        const promptEl = document.getElementById('action-prompt');
-        if (promptEl) promptEl.textContent = promptText;
-        
-        const passBtn = document.getElementById('btn-pass-action');
-        if (passBtn) passBtn.classList.remove('hidden');
-        
-        this.updateStatusMessage('你的回合，請執行行動。');
-    },
-
-    showVotingPanel: function(alivePlayers, onVoteSelect) {
-        const panel = document.getElementById('player-voting-panel');
-        const actionPanel = document.getElementById('player-action-panel');
-        if (panel) panel.classList.remove('hidden');
-        if (actionPanel) actionPanel.classList.add('hidden');
-
-        this.renderPlayerGrid('voting-targets-grid', alivePlayers, false, (seatNumber, seatEl) => {
-            const allSeats = panel.querySelectorAll('.player-seat');
-            allSeats.forEach(s => s.classList.remove('selected'));
-            seatEl.classList.add('selected');
-            onVoteSelect(seatNumber);
-        });
-    },
-
-    hideVotingPanel: function() {
-        const panel = document.getElementById('player-voting-panel');
-        if (panel) panel.classList.add('hidden');
     }
 };
