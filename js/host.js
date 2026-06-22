@@ -3,13 +3,11 @@ let connections = {};
 let playersData = [];
 let currentRoomId = null;
 
-// 加入騎士全域狀態
-let gameState = { ...GAME_STATE, pendingVoteTarget: null, pendingVoteTie: false, isWitchAntidoteUsed: false, isWitchPoisonUsed: false, isKnightUsed: false };
+let gameState = { ...GAME_STATE };
 let availableRoles = [];
 let thiefSpareCards = []; 
 let wolfPreviews = {}; 
 
-// 安全判斷狼人陣營的輔助函式，避免 null 導致系統崩潰
 function isWolfRole(roleStr) {
     if (!roleStr) return false;
     const baseRole = roleStr.split('-')[0];
@@ -95,7 +93,7 @@ function validateThiefDeal(shuffled) {
     if (!shuffled.includes("盜賊")) return true;
     const spare1 = shuffled[shuffled.length - 2];
     const spare2 = shuffled[shuffled.length - 1];
-    if (isWolfRole(spare1) && isWolfRole(spare2)) return false;
+    if ((isWolfRole(spare1) || spare1 === "隱狼") && (isWolfRole(spare2) || spare2 === "隱狼")) return false;
     return true;
 }
 
@@ -116,7 +114,6 @@ function handleWolfPreview(peerId, targetSeat) {
     if(!p) return;
     wolfPreviews[peerId] = { name: p.name, seat: p.seatNumber, target: targetSeat };
     
-    // 【問題2修復】使用安全檢查函式，避免角色為空時崩潰
     const aliveWolves = playersData.filter(x => !x.isDead && isWolfRole(x.role));
     aliveWolves.forEach(wolf => {
         sendToPlayer(wolf.peerId, { type: 'WOLF_PREVIEW_UPDATE', payload: wolfPreviews });
@@ -129,6 +126,7 @@ let expectedActionResponses = 0;
 let nightTags = { guarded: [], killed: [], poisoned: [], dreamed: [], revenged: null, witchUsedSaveTonight: false };
 
 function startNightPhase() {
+    gameState.nightCount++; // 推近天數
     broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'night' } });
     document.getElementById('day-dashboard').classList.add('hidden');
     document.getElementById('night-dashboard').classList.remove('hidden');
@@ -170,6 +168,8 @@ function buildNightSequence() {
         let currentRoleName = "";
         alivePlayers.forEach(p => {
             for (const [roleName, roleDef] of Object.entries(ROLE_DICTIONARY)) {
+                // 奇蹟商人必須在首夜發動
+                if (roleName === "奇蹟商人" && gameState.nightCount > 1) continue;
                 const isMatch = (p.role === roleName) || (roleName.startsWith(p.role + "-"));
                 if (roleDef.wakeOrder === order && isMatch) {
                     if (roleName === "狼鴉之爪-復仇" && !gameState.isWolfCrowAwake) return;
@@ -200,7 +200,13 @@ function processNextNightStep() {
         let payloadData = { roleDef: JSON.parse(JSON.stringify(stepData.roleDef)), specialOptions: null };
         
         if (stepData.order === 1) {
-            payloadData.specialOptions = thiefSpareCards.map(card => ({ label: card, value: card, disabled: (card !== "狼人" && thiefSpareCards.includes("狼人")) }));
+            // 盜賊防呆：若底牌有狼，非狼卡禁用
+            const hasWolf = thiefSpareCards.some(c => isWolfRole(c) || c === "隱狼");
+            payloadData.specialOptions = thiefSpareCards.map(card => ({ 
+                label: card, 
+                value: card, 
+                disabled: hasWolf && !isWolfRole(card) && card !== "隱狼"
+            }));
         }
         
         if (stepData.name === "女巫-解藥") {
@@ -243,6 +249,8 @@ function evaluateStepActions() {
             if (action.targets.length > 0) {
                 const t = action.targets[0];
                 targetCounts[t] = (targetCounts[t] || 0) + 1;
+            } else if (action.specialValue === 'pass') {
+                targetCounts['pass'] = (targetCounts['pass'] || 0) + 1;
             }
         });
         let maxVotes = 0;
@@ -282,11 +290,10 @@ function evaluateStepActions() {
                 });
                 sendToPlayer(action.player.peerId, { type: 'GAME_INIT', payload: { seatNumber: action.player.seatNumber, role: action.player.role, players: customizedPlayers } });
                 
-                // 【問題1修復】盜賊選完牌後，動態將新身分插入接下來的夜間順序
                 const newSequence = buildNightSequence();
                 const remainingSteps = newSequence.filter(step => step.order > 1);
                 nightSequence.splice(currentNightStep + 1, nightSequence.length - currentNightStep - 1, ...remainingSteps);
-                
+                UI.renderNightFlow(nightSequence, currentNightStep + 1);
             } else resultText = "【放棄選牌】";
             break;
         case "烏鴉":
@@ -367,7 +374,9 @@ function evaluateStepActions() {
                     if (targetPlayer.role === "咒狐") nightTags.killed.push(target);
                     sendToPlayer(action.player.peerId, { type: 'PHASE_CHANGE', payload: { phase: 'night', message: `查驗結果：該玩家為【${isWolf ? "狼人" : "好人"}】陣營` } });
                 }
-            } else resultText = "【放棄】";
+            } else {
+                resultText = "【放棄】"; // 放棄不扣除狀態，明晚可繼續使用
+            }
             break;
         default:
             if (target) resultText = `【選擇: ${target}號】`;
@@ -379,6 +388,15 @@ function evaluateStepActions() {
 
 function processDawnSettlement() {
     let deadPlayersThisNight = [];
+    
+    // 結算前晚血月使徒的延遲死亡
+    if (gameState.bloodMoonDelayedDeath) {
+        const p = playersData.find(x => x.seatNumber === gameState.bloodMoonDelayedDeath);
+        if (p) p.isDead = true;
+        deadPlayersThisNight.push(gameState.bloodMoonDelayedDeath);
+        gameState.bloodMoonDelayedDeath = null;
+    }
+
     playersData.forEach(player => {
         if (player.isDead) return;
         const seat = player.seatNumber;
@@ -417,7 +435,6 @@ function processDawnSettlement() {
     UI.renderPlayerGrid('host-players-grid', playersData, true);
     let resultMsg = deadPlayersThisNight.length > 0 ? `昨晚，${deadPlayersThisNight.join(', ')} 號玩家死亡。` : `昨晚是平安夜。`;
     
-    // 傳送附加狀態，通知白天按鈕解鎖
     broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: resultMsg, isKnightUsed: gameState.isKnightUsed } });
     deadPlayersThisNight.forEach(seat => broadcastToAll({ type: 'DEATH_ANNOUNCEMENT', payload: { targetSeat: seat } }));
     
@@ -469,7 +486,11 @@ document.getElementById('btn-vote-flow')?.addEventListener('click', () => {
                 clearInterval(voteCooldownTimer);
                 if (currentVoteState === 'cooldown') { 
                     executeVoteDeath();
-                    btn.textContent = '進入黑夜';
+                    if(gameState.bloodMoonDelayedDeath) {
+                        btn.textContent = '血月強制天黑';
+                    } else {
+                        btn.textContent = '進入黑夜';
+                    }
                     btn.disabled = false;
                     currentVoteState = 'ready_for_night';
                 }
@@ -549,6 +570,19 @@ function executeVoteDeath() {
         if (targetPlayer && targetPlayer.role === "白痴") {
             resultContainer.innerHTML = `<p>結算完成：${gameState.pendingVoteTarget} 號最高票。觸發【白痴】技能，免除出局。</p>`;
         } else if (targetPlayer) {
+            // 血月使徒最後一狼延遲死亡判定
+            if (targetPlayer.role === "血月使徒") {
+                const otherAliveWolves = playersData.filter(p => !p.isDead && p.seatNumber !== targetPlayer.seatNumber && isWolfRole(p.role));
+                if (otherAliveWolves.length === 0) {
+                    resultContainer.innerHTML = `<p>結算完成：${gameState.pendingVoteTarget} 號為最高票，但其為【血月使徒】且為最後一狼，延遲死亡，強制進入黑夜！</p>`;
+                    gameState.bloodMoonDelayedDeath = targetPlayer.seatNumber;
+                    broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: `【血月使徒】作為最後一狼出局，觸發延遲死亡，強制進入黑夜！`, isKnightUsed: gameState.isKnightUsed } });
+                    gameState.pendingVoteTarget = null;
+                    setTimeout(startNightPhase, 4000);
+                    return;
+                }
+            }
+            
             resultContainer.innerHTML = `<p>結算完成：${gameState.pendingVoteTarget} 號玩家被放逐出局。</p>`;
             targetPlayer.isDead = true;
             broadcastToAll({ type: 'DEATH_ANNOUNCEMENT', payload: { targetSeat: gameState.pendingVoteTarget } });
@@ -561,16 +595,21 @@ function executeVoteDeath() {
 function handleDaySkillAction(peerId, payload) {
     const actingPlayer = playersData.find(p => p.peerId === peerId);
     
-    // 【問題3修復】強制結束未清理的 UI、重置按鈕狀態
     if (actingPlayer.role === '定序王子' && payload.skill === 'prince') {
-        if (gameState.isPrinceUsed || currentVoteState !== 'cooldown') return;
+        if (gameState.isPrinceUsed) return;
+        
+        if (currentVoteState !== 'cooldown') {
+            sendToPlayer(peerId, { type: 'PHASE_CHANGE', payload: { phase: 'day', message: '發動失敗！定序王子只能在「公告結果」的 5 秒內發動技能。', isKnightUsed: gameState.isKnightUsed } });
+            return;
+        }
+        
         clearInterval(voteCooldownTimer);
         gameState.isPrinceUsed = true;
         gameState.pendingVoteTarget = null;
         currentVotes = {}; 
         
         broadcastToAll({ type: 'END_VOTE', payload: {} });
-        broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: `【定序王子】發動技能！本次投票作廢，請重新組織發言並重新發起投票。` } });
+        broadcastToAll({ type: 'PHASE_CHANGE', payload: { phase: 'day', message: `【定序王子】發動技能！本次投票作廢，請重新組織發言並重新發起投票。`, isKnightUsed: gameState.isKnightUsed } });
         
         const resultContainer = document.getElementById('vote-results-container');
         if (resultContainer) resultContainer.innerHTML = '<p style="color:var(--accent-red);">定序王子發動技能，本次投票已被作廢。</p>';
@@ -584,14 +623,14 @@ function handleDaySkillAction(peerId, payload) {
         return;
     }
 
-    // 【問題4修復】騎士決鬥加入僅限一次防呆
+    // 騎士決鬥：涵蓋隱狼與鎖定使用次數
     if (actingPlayer.role === '騎士' && payload.targets && payload.targets.length > 0) {
         if (gameState.isKnightUsed) return;
-        gameState.isKnightUsed = true;
+        gameState.isKnightUsed = true; // 發動即鎖定
         
         const target = payload.targets[0];
         const targetPlayer = playersData.find(p => p.seatNumber === target);
-        const isWolf = isWolfRole(targetPlayer.role) && targetPlayer.role !== "隱狼";
+        const isWolf = isWolfRole(targetPlayer.role) || targetPlayer.role === "隱狼";
         
         let msg = `【騎士決鬥】騎士 ${actingPlayer.seatNumber} 號對 ${target} 號發起決鬥！`;
         if (isWolf) {

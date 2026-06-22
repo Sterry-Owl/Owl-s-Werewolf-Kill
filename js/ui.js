@@ -61,8 +61,8 @@ const UI = {
             }
 
             seat.innerHTML = `
-                <div class="role-label ${player.role ? '' : 'hidden'}">${player.role || '未分配'}</div>
-                <div class="seat-img-wrapper" style="width: 60px; height: 60px; border-radius: 50%; background-color: #222; display: flex; justify-content: center; align-items: center; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.4); z-index: 2; position: relative;">
+                <div class="role-label ${player.role ? '' : 'hidden'}" style="position: absolute; top: -25px; left: 50%; transform: translateX(-50%); background: var(--accent-blue); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; white-space: nowrap; z-index: 5;">${player.role || '未分配'}</div>
+                <div class="seat-img-wrapper" style="width: 60px; height: 60px; border-radius: 50%; background-color: #222; display: flex; justify-content: center; align-items: center; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.4); z-index: 2; position: relative; border: 3px solid #555; transition: all 0.2s;">
                     <img class="seat-img" src="./img/seat_${player.seatNumber}.png" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                     <span style="display: none; color: #fff; font-size: 24px; font-weight: bold;">${player.seatNumber}</span>
                 </div>
@@ -95,6 +95,7 @@ const UI = {
             btn.className = 'special-btn';
             btn.dataset.value = opt.value;
             btn.textContent = opt.label;
+            btn.style.position = 'relative';
 
             if (opt.disabled) {
                 btn.classList.add('disabled');
@@ -138,7 +139,6 @@ const UI = {
             const statusSpan = document.createElement('span');
             statusSpan.className = 'flow-status';
 
-            // 【HUX 更新】依據狀態改變顏色與文案
             if (currentWakeOrder > role.order) {
                 li.classList.add('completed');
                 statusSpan.textContent = role.resultText || '已完成';

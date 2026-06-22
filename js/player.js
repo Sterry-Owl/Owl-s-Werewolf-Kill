@@ -73,7 +73,6 @@ function handleGameInit(payload) {
 
     imgEl.src = imgSrc;
     imgEl.classList.remove('hidden');
-    
     imgEl.onerror = function() { this.style.display = 'none'; };
     imgEl.onload = function() { this.style.display = 'block'; };
 
@@ -92,14 +91,16 @@ function handleGameInit(payload) {
 }
 
 function handlePhaseChange(payload) {
-    const wolfRoles = ["狼人", "狼王", "白狼王", "狼美人", "惡靈騎士", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
+    // 嚴格自爆名單：剔除隱狼、惡靈騎士與狼美人
+    const selfDestructRoles = ["狼人", "狼王", "白狼王", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
     if (payload.phase === 'day') {
-        if (!playerInfo.isDead && playerInfo.role && wolfRoles.includes(playerInfo.role.split('-')[0])) {
+        if (!playerInfo.isDead && playerInfo.role && selfDestructRoles.includes(playerInfo.role.split('-')[0])) {
             document.getElementById('btn-self-destruct').classList.remove('hidden');
+        } else {
+            document.getElementById('btn-self-destruct').classList.add('hidden');
         }
         
         const btnDaySkill = document.getElementById('btn-day-skill');
-        // 騎士確認沒有發動過技能才能解鎖
         if (!playerInfo.isDead && playerInfo.role === '騎士' && !payload.isKnightUsed) {
             btnDaySkill.textContent = '發動騎士決鬥';
             btnDaySkill.classList.remove('hidden');
@@ -124,7 +125,6 @@ function handleDeath(payload) {
         document.getElementById('btn-self-destruct').classList.add('hidden');
         document.getElementById('btn-day-skill').classList.add('hidden');
     }
-    
     const targetSeatEl = document.getElementById(`player-targets-grid-seat-${payload.targetSeat}`);
     if (targetSeatEl) targetSeatEl.classList.add('dead');
 }
@@ -167,11 +167,24 @@ function handleWakeUp(payload) {
         });
     } else if (['consensus', 'consensus_dynamic'].includes(actionPayload.type)) {
         UI.renderSpecialOptions([{ label: '空刀 (不殺)', value: 'pass' }], (selectedValue) => {
-            actionPayload.targets = [selectedValue];
-            actionPayload.specialValue = null;
-            document.querySelectorAll('#player-targets-grid .player-seat').forEach(s => s.classList.remove('selected'));
+            actionPayload.targets = [];
+            actionPayload.specialValue = 'pass';
+            
+            document.querySelectorAll('#player-targets-grid .player-seat').forEach(s => {
+                s.classList.remove('selected');
+                const w = s.querySelector('.seat-img-wrapper');
+                if (w) {
+                    if (s.classList.contains('wolf-selected')) {
+                        w.style.borderColor = '#ffb703';
+                        w.style.boxShadow = '0 0 15px rgba(255, 183, 3, 0.8)';
+                    } else {
+                        w.style.borderColor = '#555';
+                        w.style.boxShadow = 'none';
+                    }
+                }
+            });
             document.getElementById('btn-confirm-action').disabled = false;
-            hostConnection.send({ type: 'WOLF_TARGET_PREVIEW', payload: { target: selectedValue } });
+            hostConnection.send({ type: 'WOLF_TARGET_PREVIEW', payload: { target: 'pass' } });
         });
     } else {
         UI.hideSpecialOptions();
@@ -191,11 +204,30 @@ function onTargetSelect(seatNumber, seatEl) {
             break;
         case 'consensus': case 'consensus_dynamic':
             actionPayload.targets = [seatNumber];
-            document.querySelectorAll('#player-targets-grid .player-seat').forEach(s => s.classList.remove('selected'));
+            actionPayload.specialValue = null;
+            
+            document.querySelectorAll('#player-targets-grid .player-seat').forEach(s => {
+                s.classList.remove('selected');
+                const w = s.querySelector('.seat-img-wrapper');
+                if (w) {
+                    if (s.classList.contains('wolf-selected')) {
+                        w.style.borderColor = '#ffb703';
+                        w.style.boxShadow = '0 0 15px rgba(255, 183, 3, 0.8)';
+                    } else {
+                        w.style.borderColor = '#555';
+                        w.style.boxShadow = 'none';
+                    }
+                }
+            });
+            
             seatEl.classList.add('selected');
+            const cw = seatEl.querySelector('.seat-img-wrapper');
+            if (cw) {
+                cw.style.borderColor = 'var(--accent-green)';
+                cw.style.boxShadow = '0 0 15px var(--accent-green)';
+            }
             
             document.querySelectorAll('#special-options-container .special-btn').forEach(btn => btn.classList.remove('selected'));
-            
             document.getElementById('btn-confirm-action').disabled = false;
             hostConnection.send({ type: 'WOLF_TARGET_PREVIEW', payload: { target: seatNumber } });
             break;
@@ -222,7 +254,14 @@ function onTargetSelect(seatNumber, seatEl) {
 
 function handleWolfPreview(previews) {
     document.querySelectorAll('.wolf-tag').forEach(el => el.remove());
-    document.querySelectorAll('.player-seat').forEach(el => el.classList.remove('wolf-selected'));
+    document.querySelectorAll('.player-seat').forEach(el => {
+        el.classList.remove('wolf-selected');
+        const w = el.querySelector('.seat-img-wrapper');
+        if (w && !el.classList.contains('selected')) {
+            w.style.borderColor = '#555';
+            w.style.boxShadow = 'none';
+        }
+    });
     
     Object.values(previews).forEach(preview => {
         if(preview.seat !== playerInfo.seatNumber) {
@@ -234,6 +273,12 @@ function handleWolfPreview(previews) {
                     tag.style.position = 'absolute';
                     tag.style.top = '-10px';
                     tag.style.right = '-10px';
+                    tag.style.background = '#ffb703';
+                    tag.style.color = '#000';
+                    tag.style.fontSize = '10px';
+                    tag.style.padding = '2px 4px';
+                    tag.style.borderRadius = '4px';
+                    tag.style.fontWeight = 'bold';
                     tag.textContent = `${preview.seat}號`;
                     passBtn.appendChild(tag);
                 }
@@ -241,10 +286,22 @@ function handleWolfPreview(previews) {
                 const targetSeatEl = document.getElementById(`player-targets-grid-seat-${preview.target}`);
                 if(targetSeatEl) {
                     targetSeatEl.classList.add('wolf-selected');
+                    const w = targetSeatEl.querySelector('.seat-img-wrapper');
+                    if (w && !targetSeatEl.classList.contains('selected')) {
+                        w.style.borderColor = '#ffb703';
+                        w.style.boxShadow = '0 0 15px rgba(255, 183, 3, 0.8)';
+                    }
                     const tagContainer = targetSeatEl.querySelector('.wolf-tags-container');
                     if(tagContainer) {
                         const tag = document.createElement('div');
                         tag.className = 'wolf-tag';
+                        tag.style.background = '#ffb703';
+                        tag.style.color = '#000';
+                        tag.style.fontSize = '10px';
+                        tag.style.padding = '2px 4px';
+                        tag.style.borderRadius = '4px';
+                        tag.style.fontWeight = 'bold';
+                        tag.style.whiteSpace = 'nowrap';
                         tag.textContent = `${preview.seat}號選擇`;
                         tagContainer.appendChild(tag);
                     }
@@ -257,8 +314,12 @@ function handleWolfPreview(previews) {
 function resetActionPayload() {
     actionPayload = { type: 'none', targets: [], specialValue: null, isDaySkill: false, isWWK: false };
     document.querySelectorAll('.player-seat').forEach(s => {
-        s.classList.remove('selected');
-        s.classList.remove('wolf-selected');
+        s.classList.remove('selected', 'wolf-selected');
+        const w = s.querySelector('.seat-img-wrapper');
+        if(w) {
+            w.style.borderColor = '#555';
+            w.style.boxShadow = 'none';
+        }
     });
     document.querySelectorAll('.wolf-tag').forEach(el => el.remove());
     document.getElementById('btn-confirm-action').disabled = true;
@@ -287,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 UI.unlockPlayerInterface('請選擇你要決鬥的目標');
             }
         } else if (playerInfo.role === '定序王子') {
-            if (confirm('確定要發動技能作廢本次投票嗎？(全局限用一次)')) {
+            if (confirm('確定要發動技能作廢本次投票嗎？\n(注意：必須在主持人按下「公告結果」後的 5 秒內發動才會生效)')) {
                 document.getElementById('btn-day-skill').classList.add('hidden');
                 hostConnection.send({ type: 'DAY_SKILL_ACTION', payload: { skill: 'prince' } });
             }
