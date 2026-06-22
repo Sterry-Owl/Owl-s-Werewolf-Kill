@@ -3,7 +3,7 @@ let connections = {};
 let playersData = [];
 let currentRoomId = null;
 
-let gameState = { ...GAME_STATE };
+let gameState = { ...GAME_STATE, pendingVoteTarget: null, pendingVoteTie: false, isWitchAntidoteUsed: false, isWitchPoisonUsed: false, isKnightUsed: false };
 let availableRoles = [];
 let thiefSpareCards = []; 
 let wolfPreviews = {}; 
@@ -15,7 +15,14 @@ function isWolfRole(roleStr) {
     return wolfRoles.includes(baseRole);
 }
 
-function initHost(roomId) {
+// 【問題3修復】對外開放實時同步牌堆的函式
+window.syncDeckToPlayers = function(deck) {
+    let roleCounts = {};
+    deck.forEach(r => roleCounts[r] = (roleCounts[r] || 0) + 1);
+    broadcastToAll({ type: 'DECK_UPDATE', payload: { roleCounts: roleCounts } });
+};
+
+window.initHost = function(roomId) {
     hostPeer = new Peer(roomId, peerConfig);
     hostPeer.on('open', (id) => {
         currentRoomId = id;
@@ -30,7 +37,7 @@ function initHost(roomId) {
     hostPeer.on('error', (err) => {
         alert('建立房間失敗，可能是房間號碼已被使用。');
     });
-}
+};
 
 function setupHostConnectionListeners(conn) {
     conn.on('data', (data) => {
@@ -53,9 +60,11 @@ function handlePlayerJoin(peerId, playerName) {
     UI.renderPlayerGrid('host-players-grid', playersData, true);
 }
 
-function startGame(selectedRoles) {
+window.startGame = function(selectedRoles) {
+    // 【問題2修復】如果人數不符，回傳 false 讓前端介面不隱藏，主持人可繼續修改
     if (selectedRoles.length !== playersData.length && !(selectedRoles.includes("盜賊") && selectedRoles.length === playersData.length + 2)) {
-        return alert('角色數量與玩家人數不符！');
+        alert('角色數量與玩家人數不符！');
+        return false;
     }
     availableRoles = [...selectedRoles];
     let isValidDeal = false;
@@ -87,7 +96,8 @@ function startGame(selectedRoles) {
     UI.renderPlayerGrid('host-players-grid', playersData, true);
     alert('發牌完成！請玩家確認身分，5秒後進入首夜。');
     setTimeout(startNightPhase, 5000); 
-}
+    return true; // 驗證成功，允許前端隱藏設定面板
+};
 
 function validateThiefDeal(shuffled) {
     if (!shuffled.includes("盜賊")) return true;
@@ -152,14 +162,15 @@ function buildNightSequence() {
             sequence.push({ order: 11, name: "狼人陣營", players: aliveWolves, roleDef: ROLE_DICTIONARY["狼人"] });
             continue;
         }
-        if (order === 21 && gameState.merchantGiftTarget) {
+        // 【問題5修復】動態檢查是否有幸運兒 (順序9)
+        if (order === 9 && gameState.merchantGiftTarget) {
             const luckyBoy = alivePlayers.find(p => p.seatNumber === gameState.merchantGiftTarget);
             if (luckyBoy && !gameState.isMerchantUsed) {
                 let inheritedRoleDef = null;
                 if (gameState.merchantGiftType === 'seer') inheritedRoleDef = ROLE_DICTIONARY["預言家"];
                 if (gameState.merchantGiftType === 'poison') inheritedRoleDef = ROLE_DICTIONARY["女巫-毒藥"];
                 if (gameState.merchantGiftType === 'guard') inheritedRoleDef = ROLE_DICTIONARY["守衛"];
-                if (inheritedRoleDef) sequence.push({ order: 21, name: "幸運兒", players: [luckyBoy], roleDef: inheritedRoleDef });
+                if (inheritedRoleDef) sequence.push({ order: 9, name: "幸運兒", players: [luckyBoy], roleDef: inheritedRoleDef });
             }
             continue;
         }
@@ -168,8 +179,9 @@ function buildNightSequence() {
         let currentRoleName = "";
         alivePlayers.forEach(p => {
             for (const [roleName, roleDef] of Object.entries(ROLE_DICTIONARY)) {
-                // 奇蹟商人必須在首夜發動
+                // 【問題7修復】奇蹟商人僅限首夜發動
                 if (roleName === "奇蹟商人" && gameState.nightCount > 1) continue;
+                
                 const isMatch = (p.role === roleName) || (roleName.startsWith(p.role + "-"));
                 if (roleDef.wakeOrder === order && isMatch) {
                     if (roleName === "狼鴉之爪-復仇" && !gameState.isWolfCrowAwake) return;
@@ -200,7 +212,6 @@ function processNextNightStep() {
         let payloadData = { roleDef: JSON.parse(JSON.stringify(stepData.roleDef)), specialOptions: null };
         
         if (stepData.order === 1) {
-            // 盜賊防呆：若底牌有狼，非狼卡禁用
             const hasWolf = thiefSpareCards.some(c => isWolfRole(c) || c === "隱狼");
             payloadData.specialOptions = thiefSpareCards.map(card => ({ 
                 label: card, 
@@ -214,7 +225,7 @@ function processNextNightStep() {
                 payloadData.roleDef.prompt = `你的解藥已經用過，無法得知今晚的襲擊目標。(請點選放棄)`;
             } else {
                 const victim = nightTags.killed.length > 0 ? nightTags.killed[0] : "無";
-                payloadData.roleDef.prompt = `昨晚被襲擊的是 ${victim} 號，是否使用解藥？(點選該號碼使用解藥，或點選放棄)`;
+                payloadData.roleDef.prompt = `昨晚被襲擊的是 ${victim} 號，是否使用解藥？(點選該號碼使用解藥，或點選跳過)`;
             }
         }
 
@@ -246,10 +257,11 @@ function evaluateStepActions() {
     if (stepData.order === 11) {
         let targetCounts = {};
         currentStepActions.forEach(action => {
-            if (action.targets.length > 0) {
+            // 【問題4修復】精準判定空刀：如果陣列為空，就是跳過/空刀
+            if (action.targets && action.targets.length > 0) {
                 const t = action.targets[0];
                 targetCounts[t] = (targetCounts[t] || 0) + 1;
-            } else if (action.specialValue === 'pass') {
+            } else {
                 targetCounts['pass'] = (targetCounts['pass'] || 0) + 1;
             }
         });
@@ -294,19 +306,28 @@ function evaluateStepActions() {
                 const remainingSteps = newSequence.filter(step => step.order > 1);
                 nightSequence.splice(currentNightStep + 1, nightSequence.length - currentNightStep - 1, ...remainingSteps);
                 UI.renderNightFlow(nightSequence, currentNightStep + 1);
-            } else resultText = "【放棄選牌】";
+            } else resultText = "【跳過選牌】";
             break;
         case "烏鴉":
             if (target) { gameState.crowTarget = target; resultText = `【詛咒: ${target}號】`; }
-            else resultText = "【放棄詛咒】";
+            else resultText = "【跳過】";
             break;
         case "奇蹟商人":
             if (target && action.specialValue) {
                 resultText = `【贈 ${action.specialValue} -> ${target}號】`;
                 const targetPlayer = playersData.find(p => p.seatNumber === target);
-                if (targetPlayer && isWolfRole(targetPlayer.role)) nightTags.killed.push(action.player.seatNumber);
-                else { gameState.merchantGiftTarget = target; gameState.merchantGiftType = action.specialValue; }
-            } else resultText = "【放棄】";
+                if (targetPlayer && isWolfRole(targetPlayer.role)) {
+                    nightTags.killed.push(action.player.seatNumber);
+                } else { 
+                    gameState.merchantGiftTarget = target; 
+                    gameState.merchantGiftType = action.specialValue; 
+                    // 【問題5修復】動態重構流程，把「幸運兒」無縫插入今晚的清單中
+                    const newSequence = buildNightSequence();
+                    const remainingSteps = newSequence.filter(step => step.order > 6);
+                    nightSequence.splice(currentNightStep + 1, nightSequence.length - currentNightStep - 1, ...remainingSteps);
+                    UI.renderNightFlow(nightSequence, currentNightStep + 1);
+                }
+            } else resultText = "【跳過】"; 
             break;
         case "守衛":
             if (target) { nightTags.guarded.push(target); resultText = `【守護: ${target}號】`; }
@@ -322,7 +343,7 @@ function evaluateStepActions() {
                     gameState.isWitchAntidoteUsed = true;
                     resultText = `【解救: ${target}號】`;
                 }
-            } else resultText = "【不使用】";
+            } else resultText = "【跳過】";
             break;
         case "女巫-毒藥":
             if (target) {
@@ -336,7 +357,7 @@ function evaluateStepActions() {
                     gameState.isWitchPoisonUsed = true;
                     resultText = `【毒殺: ${target}號】`;
                 }
-            } else resultText = "【不使用】";
+            } else resultText = "【跳過】";
             break;
         case "攝夢人":
             if (target) { nightTags.dreamed.push(target); resultText = `【入夢: ${target}號】`; }
@@ -344,7 +365,7 @@ function evaluateStepActions() {
             break;
         case "狼鴉之爪-復仇":
             if (target) { nightTags.revenged = target; resultText = `【復仇: ${target}號】`; }
-            else resultText = "【放棄復仇】";
+            else resultText = "【跳過】";
             break;
         case "預言家":
         case "純白之女":
@@ -360,7 +381,7 @@ function evaluateStepActions() {
                     if (targetPlayer.role === "咒狐") nightTags.killed.push(target);
                 }
                 sendToPlayer(action.player.peerId, { type: 'PHASE_CHANGE', payload: { phase: 'night', message: resultMsg } });
-            } else resultText = "【放棄查驗】";
+            } else resultText = "【跳過】";
             break;
         case "幸運兒":
             if (target) {
@@ -375,12 +396,12 @@ function evaluateStepActions() {
                     sendToPlayer(action.player.peerId, { type: 'PHASE_CHANGE', payload: { phase: 'night', message: `查驗結果：該玩家為【${isWolf ? "狼人" : "好人"}】陣營` } });
                 }
             } else {
-                resultText = "【放棄】"; // 放棄不扣除狀態，明晚可繼續使用
+                resultText = "【跳過】"; // 放棄不扣除狀態，明晚可繼續使用
             }
             break;
         default:
             if (target) resultText = `【選擇: ${target}號】`;
-            else resultText = "【放棄】";
+            else resultText = "【跳過】";
             break;
     }
     stepData.resultText = resultText;
@@ -389,7 +410,6 @@ function evaluateStepActions() {
 function processDawnSettlement() {
     let deadPlayersThisNight = [];
     
-    // 結算前晚血月使徒的延遲死亡
     if (gameState.bloodMoonDelayedDeath) {
         const p = playersData.find(x => x.seatNumber === gameState.bloodMoonDelayedDeath);
         if (p) p.isDead = true;
@@ -570,7 +590,6 @@ function executeVoteDeath() {
         if (targetPlayer && targetPlayer.role === "白痴") {
             resultContainer.innerHTML = `<p>結算完成：${gameState.pendingVoteTarget} 號最高票。觸發【白痴】技能，免除出局。</p>`;
         } else if (targetPlayer) {
-            // 血月使徒最後一狼延遲死亡判定
             if (targetPlayer.role === "血月使徒") {
                 const otherAliveWolves = playersData.filter(p => !p.isDead && p.seatNumber !== targetPlayer.seatNumber && isWolfRole(p.role));
                 if (otherAliveWolves.length === 0) {
@@ -623,10 +642,9 @@ function handleDaySkillAction(peerId, payload) {
         return;
     }
 
-    // 騎士決鬥：涵蓋隱狼與鎖定使用次數
     if (actingPlayer.role === '騎士' && payload.targets && payload.targets.length > 0) {
         if (gameState.isKnightUsed) return;
-        gameState.isKnightUsed = true; // 發動即鎖定
+        gameState.isKnightUsed = true; 
         
         const target = payload.targets[0];
         const targetPlayer = playersData.find(p => p.seatNumber === target);

@@ -18,7 +18,8 @@ const UI = {
         } else {
             container.className = 'circle-container';
             container.style.position = 'relative';
-            const size = containerId.includes('host') ? 400 : 350;
+            // 將玩家圓桌尺寸放大，防止中央身分牌遮住下方的玩家
+            const size = containerId.includes('host') ? 400 : 450;
             container.style.width = `${size}px`;
             container.style.height = `${size}px`;
             container.style.margin = '20px auto';
@@ -27,8 +28,9 @@ const UI = {
             container.style.display = 'block';
         }
 
-        const radius = containerId.includes('host') ? 160 : 130;
-        const center = containerId.includes('host') ? 200 : 175;
+        // 半徑與中心點配合放大
+        const radius = containerId.includes('host') ? 160 : 190;
+        const center = containerId.includes('host') ? 200 : 225;
 
         players.forEach((player, i) => {
             const seat = document.createElement('div');
@@ -58,6 +60,7 @@ const UI = {
                 seat.style.background = 'transparent';
                 seat.style.border = 'none';
                 seat.style.boxShadow = 'none';
+                seat.style.zIndex = '15'; // 確保外圍座位永遠在中央大卡牌(z-index:10)的上方
             }
 
             seat.innerHTML = `

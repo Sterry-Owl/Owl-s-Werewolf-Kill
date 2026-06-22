@@ -27,7 +27,12 @@ function setupConnectionListeners() {
             case 'LOBBY_UPDATE':
                 UI.renderPlayerGrid('player-targets-grid', data.payload.players, false, onTargetSelect);
                 break;
-            case 'GAME_INIT': handleGameInit(data.payload); break;
+            case 'DECK_UPDATE': // 接收大廳實時配置更新
+                handleDeckUpdate(data.payload); 
+                break;
+            case 'GAME_INIT': 
+                handleGameInit(data.payload); 
+                break;
             case 'PHASE_CHANGE': handlePhaseChange(data.payload); break;
             case 'WAKE_UP': handleWakeUp(data.payload); break;
             case 'SLEEP':
@@ -49,6 +54,18 @@ function setupConnectionListeners() {
             case 'WOLF_PREVIEW_UPDATE': handleWolfPreview(data.payload); break; 
         }
     });
+}
+
+function handleDeckUpdate(payload) {
+    if (payload.roleCounts) {
+        const configContainer = document.getElementById('player-config-display');
+        configContainer.innerHTML = '';
+        Object.entries(payload.roleCounts).forEach(([role, count]) => {
+            if(count > 0) {
+                configContainer.innerHTML += `<div style="display:flex; align-items:center; gap:5px;"><img src="./img/${role}.png" style="width:30px;height:30px;border-radius:4px;" onerror="this.style.display='none'"> <span style="color:#ccc;font-size:14px;">x${count}</span></div>`;
+            }
+        });
+    }
 }
 
 function handleGameInit(payload) {
@@ -76,22 +93,12 @@ function handleGameInit(payload) {
     imgEl.onerror = function() { this.style.display = 'none'; };
     imgEl.onload = function() { this.style.display = 'block'; };
 
-    if (payload.roleCounts) {
-        const configContainer = document.getElementById('player-config-display');
-        configContainer.innerHTML = '';
-        Object.entries(payload.roleCounts).forEach(([role, count]) => {
-            if(count > 0) {
-                configContainer.innerHTML += `<div style="display:flex; align-items:center; gap:5px;"><img src="./img/${role}.png" style="width:30px;height:30px;border-radius:4px;" onerror="this.style.display='none'"> <span style="color:#ccc;font-size:14px;">x${count}</span></div>`;
-            }
-        });
-    }
-
+    handleDeckUpdate(payload);
     UI.renderPlayerGrid('player-targets-grid', payload.players, false, onTargetSelect);
     UI.updateStatusMessage('遊戲準備開始。');
 }
 
 function handlePhaseChange(payload) {
-    // 嚴格自爆名單：剔除隱狼、惡靈騎士與狼美人
     const selfDestructRoles = ["狼人", "狼王", "白狼王", "噩夢之影", "血月使徒", "蝕時狼妃", "狼鴉之爪"];
     if (payload.phase === 'day') {
         if (!playerInfo.isDead && playerInfo.role && selfDestructRoles.includes(playerInfo.role.split('-')[0])) {
@@ -165,33 +172,17 @@ function handleWakeUp(payload) {
             actionPayload.specialValue = selectedValue;
             document.getElementById('btn-confirm-action').disabled = (actionPayload.targets.length === 0);
         });
-    } else if (['consensus', 'consensus_dynamic'].includes(actionPayload.type)) {
-        UI.renderSpecialOptions([{ label: '空刀 (不殺)', value: 'pass' }], (selectedValue) => {
-            actionPayload.targets = [];
-            actionPayload.specialValue = 'pass';
-            
-            document.querySelectorAll('#player-targets-grid .player-seat').forEach(s => {
-                s.classList.remove('selected');
-                const w = s.querySelector('.seat-img-wrapper');
-                if (w) {
-                    if (s.classList.contains('wolf-selected')) {
-                        w.style.borderColor = '#ffb703';
-                        w.style.boxShadow = '0 0 15px rgba(255, 183, 3, 0.8)';
-                    } else {
-                        w.style.borderColor = '#555';
-                        w.style.boxShadow = 'none';
-                    }
-                }
-            });
-            document.getElementById('btn-confirm-action').disabled = false;
-            hostConnection.send({ type: 'WOLF_TARGET_PREVIEW', payload: { target: 'pass' } });
-        });
     } else {
         UI.hideSpecialOptions();
     }
 
     document.getElementById('player-action-panel').classList.remove('hidden');
     UI.unlockPlayerInterface(roleDef.prompt);
+    
+    // 奇蹟商人防呆：強制隱藏跳過按鈕
+    if (playerInfo.role === '奇蹟商人') {
+        document.getElementById('btn-pass-action').classList.add('hidden');
+    }
 }
 
 function onTargetSelect(seatNumber, seatEl) {
@@ -243,6 +234,10 @@ function onTargetSelect(seatNumber, seatEl) {
             document.getElementById('btn-confirm-action').disabled = (actionPayload.targets.length !== 2);
             break;
         case 'complex_select':
+            // 商人防呆：禁止選擇自己
+            if (playerInfo.role === '奇蹟商人' && seatNumber === playerInfo.seatNumber) {
+                return alert('奇蹟商人不能將技能贈予給自己！');
+            }
             if (!actionPayload.specialValue) return alert('請先於上方選擇要贈予的技能');
             actionPayload.targets = [seatNumber];
             document.querySelectorAll('#player-targets-grid .player-seat').forEach(s => s.classList.remove('selected'));
@@ -266,8 +261,9 @@ function handleWolfPreview(previews) {
     Object.values(previews).forEach(preview => {
         if(preview.seat !== playerInfo.seatNumber) {
             if (preview.target === 'pass') {
-                const passBtn = document.querySelector('#special-options-container .special-btn[data-value="pass"]');
-                if (passBtn) {
+                // 將空刀標記掛在統一的「跳過」按鈕上
+                const passBtn = document.getElementById('btn-pass-action');
+                if (passBtn && !passBtn.classList.contains('hidden')) {
                     const tag = document.createElement('span');
                     tag.className = 'wolf-tag';
                     tag.style.position = 'absolute';
@@ -279,7 +275,9 @@ function handleWolfPreview(previews) {
                     tag.style.padding = '2px 4px';
                     tag.style.borderRadius = '4px';
                     tag.style.fontWeight = 'bold';
-                    tag.textContent = `${preview.seat}號`;
+                    tag.textContent = `${preview.seat}號 空刀`;
+                    // 給按鈕 relative 以正確顯示標籤
+                    passBtn.style.position = 'relative';
                     passBtn.appendChild(tag);
                 }
             } else {
@@ -371,6 +369,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-pass-action')?.addEventListener('click', () => {
         UI.lockPlayerInterface();
+        // 如果是狼人按下跳過，必須通知隊友是空刀
+        if (['consensus', 'consensus_dynamic'].includes(actionPayload.type)) {
+            hostConnection.send({ type: 'WOLF_TARGET_PREVIEW', payload: { target: 'pass' } });
+        }
         hostConnection.send({ type: 'ACTION_COMPLETE', payload: { targets: [], specialValue: null } });
         UI.hideSpecialOptions();
         document.getElementById('player-action-panel').classList.add('hidden');
