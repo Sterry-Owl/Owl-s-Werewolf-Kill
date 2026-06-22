@@ -40,7 +40,6 @@ th { background: #333; }
 .action-buttons { display: flex; flex-direction: column; gap: 10px; }
 .system-log { background: #1a1a1a; padding: 15px; border-radius: 6px; border-left: 4px solid var(--accent-blue); margin-top: 15px; }
 
-/* --- 夜晚流程圖 (HUX 更新) --- */
 .flow-list { list-style: none; padding: 0; max-height: 350px; overflow-y: auto; }
 .flow-item { padding: 10px; background: #333; margin-bottom: 8px; border-radius: 5px; font-size: 14px; display: flex; justify-content: space-between; border-left: 4px solid #555; transition: all 0.3s; }
 .flow-item.active { background: #1e3a1e; border-left-color: var(--accent-green); }
@@ -55,7 +54,6 @@ th { background: #333; }
 .player-seat:hover:not(.locked):not(.dead) .seat-img-wrapper { border-color: var(--accent-blue); }
 .player-seat.selected .seat-img-wrapper { border-color: var(--accent-green) !important; box-shadow: 0 0 15px var(--accent-green) !important; }
 .player-seat.wolf-selected .seat-img-wrapper { border-color: #ffb703 !important; box-shadow: 0 0 15px rgba(255, 183, 3, 0.8) !important; }
-
 .wolf-tag { background: #ffb703; color: #000; font-size: 10px; padding: 2px 4px; border-radius: 4px; font-weight: bold; white-space: nowrap; }
 
 .player-seat.dead { opacity: 0.4; filter: grayscale(100%); cursor: not-allowed; }
@@ -65,8 +63,6 @@ th { background: #333; }
 .status-message { padding: 15px; background: #333; border-radius: 8px; text-align: center; font-size: 18px; margin-bottom: 20px; border: 1px solid var(--border-color); }
 .action-panel, .voting-panel { background: #222; padding: 20px; border-radius: 10px; text-align: center; border: 1px solid var(--border-color); }
 .special-options { display: flex; gap: 10px; justify-content: center; margin-bottom: 15px; }
-
-/* 修改特殊按鈕為相對定位，以裝載狼人標記 */
 .special-btn { position: relative; background: #333; border: 1px solid var(--border-color); flex: 1; }
 .special-btn.selected { background: var(--accent-red); border-color: white; }
 
@@ -74,10 +70,3 @@ th { background: #333; }
 .seat { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2; text-align: center; }
 .role-label { position: absolute; top: -25px; left: 50%; transform: translateX(-50%); background: var(--accent-blue); color: white; font-size: 12px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
 .center-card-view { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
-
-/* 技能選取與狼人共識遮罩視覺 */
-.seat-img-wrapper { border: 3px solid transparent; transition: all 0.2s; }
-.player-seat:hover:not(.locked):not(.dead) .seat-img-wrapper { border-color: var(--accent-blue); }
-.player-seat.selected .seat-img-wrapper { border-color: var(--accent-green) !important; box-shadow: 0 0 15px var(--accent-green) !important; }
-.player-seat.wolf-selected .seat-img-wrapper { border-color: #ffb703 !important; box-shadow: 0 0 15px rgba(255, 183, 3, 0.8) !important; }
-.wolf-tag { background: #ffb703; color: #000; font-size: 10px; padding: 2px 4px; border-radius: 4px; font-weight: bold; white-space: nowrap; }
