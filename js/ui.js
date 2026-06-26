@@ -1,5 +1,5 @@
 // ==========================================
-// v3.6.7 視圖渲染引擎 (Pure View)
+// v3.6.8 視圖渲染引擎 (Pure View)
 // ==========================================
 
 const UI = {
@@ -27,9 +27,10 @@ const UI = {
             
             const cardImg = document.getElementById('my-card-img');
             if (cardImg) {
-                // 確保讀取 GitHub 資料夾內的圖片
+                // 強制渲染卡牌，不論成功與否，利用 CSS 絕對定位確保不被隱藏
                 cardImg.src = `./img/${state.myRole.split('-')[0]}.png`;
                 cardImg.classList.remove('hidden');
+                cardImg.style.display = 'block';
             }
         }
 
@@ -44,6 +45,10 @@ const UI = {
             showCenterSeat = selectedTargets[0];
             const tData = state.players.find(p => p.seatNumber === showCenterSeat);
             if (tData && tData.knownAlignment) showCenterAlignment = tData.knownAlignment;
+        } else if (state.actionPanel && state.actionPanel.preSelectedTarget) {
+            // [新增] 接收伺服器下發的女巫刀口資訊
+            showCenterSeat = state.actionPanel.preSelectedTarget;
+            showCenterAlignment = "刀口";
         } else if (state.latestCheckResult) {
             showCenterSeat = state.latestCheckResult.seat;
             showCenterAlignment = state.latestCheckResult.alignment;
@@ -56,7 +61,11 @@ const UI = {
             if (previewLabel) {
                 if (showCenterAlignment) {
                     previewLabel.textContent = showCenterAlignment;
-                    previewLabel.style.background = showCenterAlignment === '狼人' ? 'var(--accent-red)' : 'var(--accent-blue)';
+                    if (showCenterAlignment === '狼人' || showCenterAlignment === '刀口') {
+                        previewLabel.style.background = 'var(--accent-red)';
+                    } else {
+                        previewLabel.style.background = 'var(--accent-blue)';
+                    }
                     previewLabel.classList.remove('hidden');
                 } else {
                     previewLabel.classList.add('hidden');
@@ -101,7 +110,6 @@ const UI = {
                 tagsHtml += `<div style="position: absolute; bottom: 12px; left: -10px; background: ${bgColor}; color: white; font-size: 10px; padding: 2px 4px; border-radius: 4px; font-weight: bold; z-index: 15; box-shadow: 0 0 5px rgba(0,0,0,0.5);">${p.knownAlignment}</div>`;
             }
 
-            // [修復] 加入 onerror 事件，若找不到圖片，則顯示完美置中的純文字號碼
             seat.innerHTML = `
                 <div class="role-label ${p.roleInfo ? '' : 'hidden'}">${p.roleInfo || ''}</div>
                 <div class="seat-img-wrapper">

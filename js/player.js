@@ -1,5 +1,5 @@
 // ==========================================
-// v3.6.3 player
+// v3.6.8 玩家終端層 (Dumb Client)
 // ==========================================
 
 let playerPeer = null;
@@ -51,11 +51,13 @@ function handleHostData(data) {
         const newState = data.payload;
         const newPrompt = (newState.actionPanel && newState.actionPanel.show) ? newState.actionPanel.prompt : "";
         
-        if (!localState || localState.phase !== newState.phase || currentPrompt !== newPrompt) {
+        // [關鍵修復] 只有在階段切換，或操作面板徹底隱藏時，才清空選擇目標。
+        // 送出後等待隊友時，面板依然顯示，因此選擇目標會繼續保留在畫面上。
+        if (!localState || localState.phase !== newState.phase || (!newState.actionPanel.show && localState.actionPanel.show)) {
             selectedTargets = [];
-            currentPrompt = newPrompt;
         }
         
+        currentPrompt = newPrompt;
         localState = newState;
         UI.renderPlayerView(localState, handleSeatSelect, submitPlayerAction, selectedTargets);
     } 

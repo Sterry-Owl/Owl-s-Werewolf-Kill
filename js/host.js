@@ -1,5 +1,5 @@
 // ==========================================
-// v3.7 核心主機引擎 (Smart Server / Strategy Pattern)
+// v3.6.8 核心主機引擎 (Smart Server / Strategy Pattern)
 // ==========================================
 
 let hostPeer = null;
@@ -77,6 +77,10 @@ const RolePlugins = {
             }
             btns.push({ id: 'pass', text: '跳過', requiresTarget: false });
             return btns;
+        },
+        // [新增] 傳送刀口座位給 UI 渲染用
+        getPreSelectedTarget: () => {
+            return (!gameState.witchState.antidoteUsed && gameState.nightTags.killed.length > 0) ? gameState.nightTags.killed[0] : null;
         },
         getPassTags: () => [],
         resolve: (actions) => {
@@ -245,16 +249,19 @@ function buildStateForPlayer(player) {
         
         if (isMyTurn && !player.isDead) {
             actionPanel.show = true;
+            const plugin = RolePlugins[currentStep.roleName];
+            actionPanel.type = currentStep.roleDef.actionType;
+            actionPanel.prompt = plugin ? plugin.getPrompt() : "請行動：";
+            actionPanel.selectableSeats = plugin ? plugin.getSelectableSeats() : [];
+            actionPanel.buttons = plugin ? plugin.getButtons() : [];
+            actionPanel.passTags = plugin ? plugin.getPassTags(player.seatNumber) : [];
+            // [新增] 傳遞暗置目標給 UI
+            actionPanel.preSelectedTarget = plugin && plugin.getPreSelectedTarget ? plugin.getPreSelectedTarget() : null; 
+            actionPanel.submitPacketType = PACKET_TYPE.ACTION_SUBMIT;
+
             if (hasActed) {
                 actionPanel.prompt = (currentStep.roleName === "狼人") ? "等待隊友決定目標..." : "行動已送出，等待系統結算...";
-            } else {
-                const plugin = RolePlugins[currentStep.roleName];
-                actionPanel.type = currentStep.roleDef.actionType;
-                actionPanel.prompt = plugin ? plugin.getPrompt() : "請行動：";
-                actionPanel.selectableSeats = plugin ? plugin.getSelectableSeats() : [];
-                actionPanel.buttons = plugin ? plugin.getButtons() : [];
-                actionPanel.passTags = plugin ? plugin.getPassTags(player.seatNumber) : [];
-                actionPanel.submitPacketType = PACKET_TYPE.ACTION_SUBMIT;
+                actionPanel.buttons = []; // 僅隱藏按鈕，讓框與目標繼續保留
             }
         }
     } 
@@ -264,6 +271,7 @@ function buildStateForPlayer(player) {
             actionPanel.show = true;
             if (hasVoted) {
                 actionPanel.prompt = "你已經投票完成，等待其他玩家投票...";
+                actionPanel.buttons = []; // 僅隱藏按鈕
             } else {
                 actionPanel.type = 'single_select'; 
                 actionPanel.prompt = '請選擇放逐投票的目標：';
@@ -282,6 +290,7 @@ function buildStateForPlayer(player) {
             actionPanel.show = true;
             if (hasActed) {
                 actionPanel.prompt = "開槍決定已送出，等待系統結算...";
+                actionPanel.buttons = [];
             } else {
                 actionPanel.type = 'single_select';
                 actionPanel.prompt = '你已死亡，請選擇要開槍帶走的目標：';
@@ -293,7 +302,6 @@ function buildStateForPlayer(player) {
                 ];
             }
         } else {
-            // [修復] 其他玩家在獵人發動技能時，只會看到通用結算訊息，隱蔽獵人資訊
             actionPanel.show = true;
             actionPanel.prompt = "系統結算中，請等待...";
             actionPanel.buttons = [];
@@ -324,7 +332,7 @@ function getPhaseMessageForPlayer() {
         case GAME_PHASE.DAY_DISCUSSION: return "白天發言階段。";
         case GAME_PHASE.DAY_VOTING: return "正在進行放逐投票...";
         case GAME_PHASE.VOTE_SETTLEMENT: return "投票結算中，請等待...";
-        case GAME_PHASE.HUNTER_ACTION: return "系統結算中，請等待..."; // [修復] 隱藏獵人出局資訊
+        case GAME_PHASE.HUNTER_ACTION: return "系統結算中，請等待..."; 
         default: return "等待中...";
     }
 }
@@ -406,7 +414,6 @@ function handleActionSubmit(peerId, payload) {
             broadcastTempMessage(`【突發事件】一聲槍響，${target} 號玩家被帶走。`);
         } else {
             gameState.systemLog = `獵人選擇不開槍/無技能。`;
-            // 若不開槍，不會向任何人廣播，達到完全隱密
         }
         
         gameState.phase = gameState.hunterOriginPhase;
@@ -455,7 +462,6 @@ function processDawn() {
         }
     });
 
-    // [修復] 絕對不提及獵人死亡
     let msg = deadThisNight.length > 0 ? `昨晚，${deadThisNight.join(', ')} 號玩家死亡。` : `昨晚是平安夜。`;
     gameState.systemLog = msg;
     broadcastTempMessage(msg);
@@ -514,8 +520,6 @@ function resolveVoting() {
         } else {
             tPlayer.isDead = true;
             if (tPlayer.role === '獵人') hunterDied = true;
-            
-            // [修復] 放逐只廣播誰出局，絕對不提獵人
             gameState.systemLog = `${finalTarget} 號被放逐出局。`;
             broadcastTempMessage(`${finalTarget} 號被放逐出局。`);
         }
