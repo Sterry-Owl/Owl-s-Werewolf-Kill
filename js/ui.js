@@ -1,39 +1,71 @@
 // ==========================================
-// v3.6.8 視圖渲染引擎 (Pure View)
+// v3.6.9 視圖渲染引擎 (Pure View)
 // ==========================================
 
 const UI = {
     updateStatusMessage: function(msg) {
-        const el = document.getElementById('player-status-message');
+        // [重構] 系統提示一律寫入綠色面板內的 action-prompt
+        const el = document.getElementById('action-prompt');
         if (el) el.textContent = msg;
     },
 
     blockActionPanel: function() {
-        const panel = document.getElementById('player-action-panel');
-        const statusMsg = document.getElementById('player-status-message');
-        if(panel) panel.classList.add('hidden');
-        if(statusMsg) {
-            statusMsg.textContent = '行動已送出，等待系統結算...';
-        }
+        const btnContainer = document.getElementById('dynamic-buttons-container');
+        if(btnContainer) btnContainer.innerHTML = '';
+        const promptEl = document.getElementById('action-prompt');
+        if(promptEl) promptEl.textContent = '行動已送出，等待系統結算...';
+        
         document.querySelectorAll('.player-seat').forEach(s => {
             s.style.pointerEvents = 'none';
         });
     },
 
-    renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = []) {
+    // ----------------------------------------------------
+    // 玩家端 4:5 結構視圖渲染 (Player View)
+    // ----------------------------------------------------
+    renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = [], showVoteHistory = false) {
+        // 1. 頂部個人資訊
         document.getElementById('player-seat-number').textContent = state.mySeat || '-';
         if (state.myRole) {
             document.getElementById('player-role-name').textContent = state.myRole;
-            
-            const cardImg = document.getElementById('my-card-img');
-            if (cardImg) {
-                // 強制渲染卡牌，不論成功與否，利用 CSS 絕對定位確保不被隱藏
+        }
+
+        // 2. 浮動按鈕控制
+        const btnExplode = document.getElementById('btn-self-explode');
+        if (btnExplode) {
+            // 只有主機下發允許自爆時才顯示紅圈
+            if (state.allowSelfExplode) btnExplode.classList.remove('hidden');
+            else btnExplode.classList.add('hidden');
+        }
+
+        const btnHistory = document.getElementById('btn-vote-history');
+        if (btnHistory) {
+            // 只要有歷史紀錄就允許切換黃圈
+            if (state.voteHistory && state.voteHistory.length > 0) btnHistory.classList.remove('hidden');
+            else btnHistory.classList.add('hidden');
+        }
+
+        // 3. 歷史紀錄 vs 身分卡牌切換
+        const cardImg = document.getElementById('my-card-img');
+        const historyPanel = document.getElementById('vote-history-panel');
+
+        if (showVoteHistory) {
+            if (cardImg) cardImg.classList.add('hidden');
+            if (historyPanel) {
+                historyPanel.classList.remove('hidden');
+                // 將歷史陣列渲染為多行區塊
+                historyPanel.innerHTML = state.voteHistory.map(h => `<div style="margin-bottom:8px; border-bottom:1px solid #444; padding-bottom:5px; white-space:pre-wrap;">${h}</div>`).join('');
+            }
+        } else {
+            if (historyPanel) historyPanel.classList.add('hidden');
+            if (cardImg && state.myRole) {
                 cardImg.src = `./img/${state.myRole.split('-')[0]}.png`;
                 cardImg.classList.remove('hidden');
                 cardImg.style.display = 'block';
             }
         }
 
+        // 4. 目標預覽圓圈
         const previewEl = document.getElementById('target-preview-circle');
         const previewImg = document.getElementById('target-preview-img');
         let previewLabel = document.getElementById('target-preview-label');
@@ -46,7 +78,6 @@ const UI = {
             const tData = state.players.find(p => p.seatNumber === showCenterSeat);
             if (tData && tData.knownAlignment) showCenterAlignment = tData.knownAlignment;
         } else if (state.actionPanel && state.actionPanel.preSelectedTarget) {
-            // [新增] 接收伺服器下發的女巫刀口資訊
             showCenterSeat = state.actionPanel.preSelectedTarget;
             showCenterAlignment = "刀口";
         } else if (state.latestCheckResult) {
@@ -75,6 +106,7 @@ const UI = {
             if (previewEl) previewEl.classList.add('hidden');
         }
 
+        // 5. 左右玩家列表
         const leftSeats = document.getElementById('left-seats');
         const rightSeats = document.getElementById('right-seats');
         if (!leftSeats || !rightSeats) return;
@@ -105,6 +137,13 @@ const UI = {
                 if (!isSelected) seat.classList.add('wolf-selected');
             }
 
+            // [新增] 自動掛載任何後端傳來的標籤 (例如：銀水)
+            if (p.tags && p.tags.length > 0) {
+                p.tags.forEach((tag, idx) => {
+                    tagsHtml += `<div class="silver-water-tag" style="top: -22px; left: ${-12 + (idx*15)}px;">${tag}</div>`;
+                });
+            }
+
             if (p.knownAlignment) {
                 const bgColor = p.knownAlignment === '狼人' ? 'var(--accent-red)' : 'var(--accent-blue)';
                 tagsHtml += `<div style="position: absolute; bottom: 12px; left: -10px; background: ${bgColor}; color: white; font-size: 10px; padding: 2px 4px; border-radius: 4px; font-weight: bold; z-index: 15; box-shadow: 0 0 5px rgba(0,0,0,0.5);">${p.knownAlignment}</div>`;
@@ -127,17 +166,13 @@ const UI = {
             }
         });
 
-        const actionPanel = document.getElementById('player-action-panel');
-        const statusMsg = document.getElementById('player-status-message');
-
+        // 6. 綠色操作區/系統訊息面板整合
+        const promptEl = document.getElementById('action-prompt');
+        const btnContainer = document.getElementById('dynamic-buttons-container');
+        
         if (state.actionPanel.show) {
-            if(actionPanel) actionPanel.classList.remove('hidden');
-            if(statusMsg) statusMsg.textContent = ''; 
-            
-            const promptEl = document.getElementById('action-prompt');
             if(promptEl) promptEl.textContent = state.actionPanel.prompt;
             
-            const btnContainer = document.getElementById('dynamic-buttons-container');
             if (btnContainer) {
                 btnContainer.innerHTML = '';
                 if (state.actionPanel.buttons && state.actionPanel.buttons.length > 0) {
@@ -166,10 +201,9 @@ const UI = {
                 }
             }
         } else {
-            if(actionPanel) actionPanel.classList.add('hidden');
-            if(statusMsg) {
-                statusMsg.textContent = state.message || '';
-            }
+            // [重構] 若非操作階段，直接將 state.message 顯示於綠區
+            if(promptEl) promptEl.textContent = state.message || '等待系統指示...';
+            if(btnContainer) btnContainer.innerHTML = '';
         }
     },
 

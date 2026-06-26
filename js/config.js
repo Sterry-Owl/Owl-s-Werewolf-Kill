@@ -1,5 +1,5 @@
 // ==========================================
-// v3.7 系統靜態常數與設定檔 (Static Config)
+// v3.6.9 系統靜態常數與設定檔 (Static Config)
 // ==========================================
 
 const PEER_CONFIG = { 
@@ -20,6 +20,8 @@ const GAME_PHASE = {
     DAY_DISCUSSION: 'DAY_DISCUSSION',
     DAY_VOTING: 'DAY_VOTING',
     VOTE_SETTLEMENT: 'VOTE_SETTLEMENT',
+    VOTE_RESULT_DISPLAY: 'VOTE_RESULT_DISPLAY', // [新增] 投票詳細結果展示階段
+    LAST_WORDS: 'LAST_WORDS',                   // [新增] 遺言階段
     HUNTER_ACTION: 'HUNTER_ACTION'
 };
 
@@ -32,7 +34,8 @@ const PACKET_TYPE = {
     STATE_SYNC: 'STATE_SYNC',       
     ACTION_SUBMIT: 'ACTION_SUBMIT', 
     VOTE_SUBMIT: 'VOTE_SUBMIT',     
-    WOLF_PREVIEW: 'WOLF_PREVIEW'    
+    WOLF_PREVIEW: 'WOLF_PREVIEW',
+    WOLF_EXPLODE: 'WOLF_EXPLODE'    // [新增] 狼人自爆封包
 };
 
 // 預設版型清單 (Board Templates)
