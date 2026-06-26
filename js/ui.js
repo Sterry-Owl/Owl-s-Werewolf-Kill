@@ -1,15 +1,11 @@
 // ==========================================
-// v3.6.1 視圖渲染引擎 (Pure View)
+// v3.6.2 視圖渲染引擎 (Pure View)
 // ==========================================
 
 const UI = {
     updateStatusMessage: function(msg) {
         const el = document.getElementById('player-status-message');
         if (el) el.textContent = msg;
-    },
-
-    renderDeck: function(roleCounts) {
-        // [保留供主控台使用]
     },
 
     blockActionPanel: function() {
@@ -25,24 +21,36 @@ const UI = {
         });
     },
 
+    // ----------------------------------------------------
+    // 玩家端 4:5 結構視圖渲染 (Player View)
+    // ----------------------------------------------------
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = []) {
+        // 1. 渲染頂部個人資訊
         document.getElementById('player-seat-number').textContent = state.mySeat || '-';
         if (state.myRole) {
             document.getElementById('player-role-name').textContent = state.myRole;
-            document.getElementById('my-card-img').src = `./img/${state.myRole.split('-')[0]}.png`;
-            document.getElementById('my-card-img').classList.remove('hidden');
+            
+            // [修復] 精準對接綠區的角色卡元件
+            const cardImg = document.getElementById('my-card-img');
+            if (cardImg) {
+                cardImg.src = `./img/${state.myRole.split('-')[0]}.png`;
+                cardImg.classList.remove('hidden');
+                cardImg.style.display = 'block';
+            }
         }
 
+        // 2. 渲染中央目標預覽 (白圓)
         const previewEl = document.getElementById('target-preview-circle');
         const previewImg = document.getElementById('target-preview-img');
         if (selectedTargets.length > 0) {
-            previewEl.classList.remove('hidden');
-            previewImg.src = `./img/seat_${selectedTargets[0]}.png`;
+            if(previewEl) previewEl.classList.remove('hidden');
+            if(previewImg) previewImg.src = `./img/seat_${selectedTargets[0]}.png`;
         } else {
-            previewEl.classList.add('hidden');
-            previewImg.src = '';
+            if(previewEl) previewEl.classList.add('hidden');
+            if(previewImg) previewImg.src = '';
         }
 
+        // 3. 渲染左右玩家列表 (黃區)
         const leftSeats = document.getElementById('left-seats');
         const rightSeats = document.getElementById('right-seats');
         if (!leftSeats || !rightSeats) return;
@@ -67,7 +75,6 @@ const UI = {
             let wolfTagsHtml = '';
             if (p.wolfTags && p.wolfTags.length > 0) {
                 p.wolfTags.forEach((tag, idx) => {
-                    // [修復] 將標籤位置調整至頭像邊緣重疊，避免超出容器遭裁切
                     wolfTagsHtml += `<div class="wolf-tag" style="top: ${-5 - (idx*15)}px; right: -5px;">${tag}</div>`;
                 });
                 if (!isSelected) seat.classList.add('wolf-selected');
@@ -86,6 +93,7 @@ const UI = {
             else rightSeats.appendChild(seat);
         });
 
+        // 4. 渲染底部操作與訊息區 (綠區)
         const actionPanel = document.getElementById('player-action-panel');
         const statusMsg = document.getElementById('player-status-message');
 
@@ -112,7 +120,6 @@ const UI = {
                             btn.disabled = true;
                         }
 
-                        // [修復] 空刀標籤對齊
                         if (bInfo.id === 'pass' && state.actionPanel.passTags && state.actionPanel.passTags.length > 0) {
                             btn.style.position = 'relative';
                             state.actionPanel.passTags.forEach((tag, idx) => {
