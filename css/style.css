@@ -27,7 +27,6 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .flow-item.active { background: #1e3a1e; border-left-color: var(--accent-green); }
 .flow-item.completed { background: #222; border-left-color: #444; opacity: 0.6; }
 
-/* 主持人視圖網格 */
 .host-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 15px; background: #222; padding: 15px; border-radius: 8px; border: 1px dashed #555; }
 
 /* ==================================================== */
@@ -39,6 +38,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     height: 85vh; min-height: 600px; max-height: 750px; 
     margin: 0 auto; background: #1a1a1a; border-radius: 12px; overflow: hidden; 
     border: 1px solid var(--border-color); box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    position: relative; /* 提供浮動按鈕絕對定位依據 */
 }
 
 .app-header { 
@@ -52,31 +52,28 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     background: #2a2515; overflow: hidden; position: relative;
 }
 
-/* 左右玩家列 (向上對齊，空出下方三分之一區域以容納身分牌卡) */
 .seat-column { 
     display: flex; flex-direction: column; justify-content: flex-start;
-    padding-top: 10px;
-    padding-bottom: 140px;
-    gap: 12px; width: 60px; flex-shrink: 0;
+    padding-top: 10px; padding-bottom: 140px;
+    gap: 12px; width: 60px; flex-shrink: 0; z-index: 5;
 }
 
-/* 中央動態區塊 */
 .center-column { 
     flex: 1; display: flex; flex-direction: column; justify-content: space-between; 
-    align-items: center; padding: 5px 0 15px 0; min-width: 0; gap: 15px;
+    align-items: center; padding: 5px 0 15px 0; min-width: 0; z-index: 10; pointer-events: none;
 }
 
-/* 綠色操作區 */
+/* 綠色操作區 (現已兼任所有系統訊息面板) */
 .action-panel {
-    width: 85%; max-width: 200px; min-height: 240px; background: #2d5a2d; 
+    width: 85%; max-width: 210px; min-height: 200px; background: #2d5a2d; 
     border-radius: 16px; padding: 20px 10px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;
     border: 2px solid #3d7a3d; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    pointer-events: auto; transition: 0.3s;
 }
 
-/* 中間目標預覽白圈 */
 .target-preview { 
-    width: 65px; height: 65px; border-radius: 50%; border: 3px solid white; 
+    width: 60px; height: 60px; border-radius: 50%; border: 3px solid white; 
     background: #222; position: relative; display: flex; justify-content: center; align-items: center; 
 }
 .target-preview img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
@@ -85,22 +82,43 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     font-weight: bold; font-size: 11px; color: white; white-space: nowrap; z-index: 20; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
 }
 
-.action-prompt { font-weight: bold; color: white; text-align: center; font-size: 14px; line-height: 1.4; width: 100%; }
-.action-buttons-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; width: 100%; }
-.action-buttons-row button { flex: 1; min-width: 65px; padding: 12px 5px; font-size: 13px; }
-
-/* 底部身分與狀態列 (維持貼底對齊) */
-.card-panel {
-    display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%;
-    margin-top: auto;
+/* [修改] 支援多行文本的提示區域 */
+.action-prompt { 
+    font-weight: bold; color: white; text-align: center; font-size: 14px; 
+    line-height: 1.5; width: 100%; white-space: pre-wrap; 
 }
-.status-message { font-size: 14px; color: #aaffaa; text-align: center; font-weight: bold; min-height: 20px; }
-.my-card { width: 90px; height: 130px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #111; }
+.action-buttons-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; width: 100%; }
+.action-buttons-row button { flex: 1; min-width: 60px; padding: 12px 5px; font-size: 13px; }
 
-/* 玩家座位元件調整 */
+/* 底部身分與歷史紀錄列 */
+.card-panel {
+    position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; width: 80%;
+    pointer-events: auto; z-index: 15;
+}
+.my-card { width: 80px; height: 115px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #111; }
+
+/* [新增] 投票歷史紀錄面板 */
+.vote-history-panel {
+    width: 100%; height: 115px; background: rgba(0,0,0,0.85); border-radius: 8px;
+    border: 2px solid var(--wolf-yellow); padding: 10px; overflow-y: auto;
+    color: white; font-size: 12px; line-height: 1.6; box-sizing: border-box; text-align: left;
+}
+
+/* [新增] 左下/右下 浮動圓形按鈕 */
+.floating-btn {
+    position: absolute; bottom: 20px; width: 45px; height: 45px; border-radius: 50%;
+    display: flex; justify-content: center; align-items: center; font-weight: bold; 
+    font-size: 14px; color: white; cursor: pointer; z-index: 30; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.6); border: 2px solid #fff; pointer-events: auto; transition: 0.2s;
+}
+.floating-btn:active { transform: scale(0.9); }
+.floating-btn.red { background: var(--accent-red); left: 15px; }
+.floating-btn.yellow { background: var(--wolf-yellow); color: #000; right: 15px; }
+
 .player-seat { display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; width: 100%; }
 .seat-img-wrapper { 
-    width: 48px; height: 48px; border-radius: 50%; background: #ddd; 
+    width: 42px; height: 42px; border-radius: 50%; background: #ddd; 
     border: 2px solid #555; position: relative; transition: 0.2s; flex-shrink: 0; overflow: hidden;
 }
 .player-seat:hover:not(.locked):not(.dead) .seat-img-wrapper { border-color: var(--accent-blue); }
@@ -109,6 +127,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .player-seat.dead { opacity: 0.4; filter: grayscale(100%); cursor: not-allowed; }
 .player-seat.dead::after { content: '✖'; position: absolute; font-size: 32px; color: var(--accent-red); z-index: 10; top: 0px; }
 
-.role-label { position: absolute; top: -14px; background: var(--accent-blue); color: white; padding: 2px 4px; border-radius: 4px; font-size: 10px; z-index: 5; white-space: nowrap; }
+.role-label { position: absolute; top: -16px; background: var(--accent-blue); color: white; padding: 2px 4px; border-radius: 4px; font-size: 10px; z-index: 5; white-space: nowrap; }
 .wolf-tag { background: var(--wolf-yellow); color: #000; font-size: 10px; padding: 2px 4px; border-radius: 3px; font-weight: bold; position: absolute; z-index: 15; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+.silver-water-tag { background: #eee; color: #333; font-size: 10px; padding: 2px 4px; border-radius: 3px; font-weight: bold; position: absolute; z-index: 15; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
 .player-name { margin-top: 4px; font-size: 11px; color: var(--text-muted); white-space: nowrap; text-align: center; overflow: hidden; text-overflow: ellipsis; width: 100%; max-width: 60px; }
