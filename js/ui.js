@@ -1,5 +1,5 @@
 // ==========================================
-// v3.0 視圖渲染引擎 (Pure View)
+// v3.5 Pure View
 // ==========================================
 
 const UI = {
@@ -54,6 +54,7 @@ const UI = {
             const isSelected = selectedTargets.includes(p.seatNumber);
             if (isSelected) seat.classList.add('selected');
 
+            // 只要 selectableSeats 為空，前端座位自然無法點擊，完美防呆
             if (state.actionPanel.show && !p.isDead && state.actionPanel.selectableSeats.includes(p.seatNumber)) {
                 seat.style.cursor = 'pointer';
                 seat.addEventListener('click', () => onSeatSelect(p.seatNumber));
@@ -94,7 +95,13 @@ const UI = {
             document.getElementById('action-prompt').textContent = state.actionPanel.prompt;
             
             const btnConfirm = document.getElementById('btn-confirm-action');
-            btnConfirm.disabled = selectedTargets.length === 0;
+            // [新增] 根據主機狀態決定是否隱藏確認按鈕
+            if (state.actionPanel.hideConfirm) {
+                btnConfirm.classList.add('hidden');
+            } else {
+                btnConfirm.classList.remove('hidden');
+                btnConfirm.disabled = selectedTargets.length === 0;
+            }
 
             const btnPass = document.getElementById('btn-pass-action');
             if (state.actionPanel.allowPass) {
@@ -123,7 +130,6 @@ const UI = {
         const dayPanel = document.getElementById('host-day-panel');
         const nightPanel = document.getElementById('host-night-panel');
         
-        // 嚴格依照主機配發的 layout 狀態渲染，不解析字串
         if (state.layout.showSetupPanel) {
             setupPanel.classList.remove('hidden');
             controlPanel.classList.add('hidden');

@@ -1,5 +1,5 @@
 // ==========================================
-// v3.0 核心主機引擎 (Smart Server / State Machine)
+// v3.5 核心主機引擎 (Smart Server / State Machine)
 // ==========================================
 
 let hostPeer = null;
@@ -30,7 +30,6 @@ function isWolfRole(roleStr) {
     return roleStr.startsWith('狼人');
 }
 
-// 輔助過濾器：處理特殊角色的提示文案替換
 function resolvePrompt(roleName, basePrompt) {
     if (roleName === "女巫-解藥") {
         if (gameState.witchState.antidoteUsed) return "你的解藥已用過，無法得知刀口。(請跳過)";
@@ -44,7 +43,6 @@ function resolvePrompt(roleName, basePrompt) {
     return basePrompt;
 }
 
-// 輔助過濾器：獲取合法目標列表
 function getSelectableSeats(roleName) {
     if (roleName === "女巫-解藥" && gameState.witchState.antidoteUsed) return [];
     if (roleName === "女巫-毒藥" && (gameState.witchState.poisonUsed || gameState.nightTags.witchUsedSaveTonight)) return [];
@@ -152,36 +150,56 @@ function buildStateForPlayer(player) {
         return { seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, roleInfo: visibleRole, wolfTags: wolfTags };
     });
 
-    let actionPanel = { show: false, type: 'none', prompt: '', selectableSeats: [], allowPass: false, passTags: [], submitPacketType: PACKET_TYPE.ACTION_SUBMIT };
+    let actionPanel = { show: false, type: 'none', prompt: '', selectableSeats: [], allowPass: false, passTags: [], submitPacketType: PACKET_TYPE.ACTION_SUBMIT, hideConfirm: false };
     let personalMessage = getPhaseMessageForPlayer();
 
     if (gameState.phase === GAME_PHASE.NIGHT_ACTION) {
         const currentStep = gameState.nightSequence[gameState.currentNightStepIndex];
         const isMyTurn = currentStep && currentStep.activePlayers.some(ap => ap.seatNumber === player.seatNumber);
+        const hasActed = gameState.currentStepActions.some(act => act.player.seatNumber === player.seatNumber);
         
         if (isMyTurn && !player.isDead) {
-            actionPanel.show = true;
-            actionPanel.type = currentStep.roleDef.actionType;
-            actionPanel.prompt = resolvePrompt(currentStep.roleName, currentStep.roleDef.prompt);
-            actionPanel.selectableSeats = getSelectableSeats(currentStep.roleName);
-            actionPanel.allowPass = true;
-            actionPanel.submitPacketType = PACKET_TYPE.ACTION_SUBMIT;
+            // [新增 UX] 如果該玩家已經送出行動，畫面保留但轉為等待狀態
+            if (hasActed) {
+                actionPanel.show = true;
+                actionPanel.prompt = (currentStep.roleName === "狼人") ? "你已經完成選擇，等待隊友決定目標..." : "行動已送出，等待其他玩家...";
+                actionPanel.selectableSeats = [];
+                actionPanel.allowPass = false;
+                actionPanel.hideConfirm = true; // 隱藏按鈕防呆
+            } else {
+                actionPanel.show = true;
+                actionPanel.type = currentStep.roleDef.actionType;
+                actionPanel.prompt = resolvePrompt(currentStep.roleName, currentStep.roleDef.prompt);
+                actionPanel.selectableSeats = getSelectableSeats(currentStep.roleName);
+                actionPanel.allowPass = true;
+                actionPanel.submitPacketType = PACKET_TYPE.ACTION_SUBMIT;
 
-            if (currentStep.roleName === "狼人" && isWolfRole(player.role)) {
-                Object.values(wolfPreviews).forEach(preview => {
-                    if (preview.target === 'pass' && preview.seat !== player.seatNumber) actionPanel.passTags.push(`${preview.seat}號`);
-                });
+                if (currentStep.roleName === "狼人" && isWolfRole(player.role)) {
+                    Object.values(wolfPreviews).forEach(preview => {
+                        if (preview.target === 'pass' && preview.seat !== player.seatNumber) actionPanel.passTags.push(`${preview.seat}號`);
+                    });
+                }
             }
         }
     } 
     else if (gameState.phase === GAME_PHASE.DAY_VOTING) {
+        const hasVoted = gameState.votes[player.seatNumber] !== undefined;
         if (!player.isDead) {
-            actionPanel.show = true;
-            actionPanel.type = 'single_select'; 
-            actionPanel.prompt = '請選擇放逐投票的目標：';
-            actionPanel.selectableSeats = playersData.filter(p => !p.isDead).map(p => p.seatNumber);
-            actionPanel.allowPass = true; 
-            actionPanel.submitPacketType = PACKET_TYPE.VOTE_SUBMIT;
+            // [新增 UX] 如果該玩家已經完成投票，畫面保留但轉為等待狀態
+            if (hasVoted) {
+                actionPanel.show = true;
+                actionPanel.prompt = "你已經投票完成，等待其他玩家投票...";
+                actionPanel.selectableSeats = [];
+                actionPanel.allowPass = false;
+                actionPanel.hideConfirm = true;
+            } else {
+                actionPanel.show = true;
+                actionPanel.type = 'single_select'; 
+                actionPanel.prompt = '請選擇放逐投票的目標：';
+                actionPanel.selectableSeats = playersData.filter(p => !p.isDead).map(p => p.seatNumber);
+                actionPanel.allowPass = true; 
+                actionPanel.submitPacketType = PACKET_TYPE.VOTE_SUBMIT;
+            }
         }
     }
     else if (gameState.phase === GAME_PHASE.HUNTER_ACTION) {
@@ -324,20 +342,24 @@ function resolveNightStep() {
     let resultText = "【未行動】";
 
     if (step.roleName === "狼人") {
-        let voteCounts = {};
+        // [修改邏輯] 狼刀隨機抽取機制，過濾空刀除非全空
+        let validTargets = [];
         gameState.currentStepActions.forEach(act => {
-            const t = act.targets.length > 0 ? act.targets[0] : 'pass';
-            voteCounts[t] = (voteCounts[t] || 0) + 1;
+            if (act.targets && act.targets.length > 0) {
+                validTargets.push(act.targets[0]);
+            }
         });
 
-        let maxVotes = 0;
         let finalTarget = 'pass';
-        for (const [t, votes] of Object.entries(voteCounts)) {
-            if (votes > maxVotes) { maxVotes = votes; finalTarget = t; }
+        if (validTargets.length > 0) {
+            // 從所有被指定的目標中隨機選出一人
+            const randomIndex = Math.floor(Math.random() * validTargets.length);
+            finalTarget = validTargets[randomIndex];
         }
 
-        if (finalTarget === 'pass') resultText = "【空刀】";
-        else {
+        if (finalTarget === 'pass') {
+            resultText = "【空刀】";
+        } else {
             resultText = `【襲擊: ${finalTarget}號】`;
             gameState.nightTags.killed.push(parseInt(finalTarget));
         }
