@@ -1,5 +1,5 @@
 // ==========================================
-// v3.7 視圖渲染引擎 (Pure View)
+// v3.6.6 視圖渲染引擎 (Pure View)
 // ==========================================
 
 const UI = {
@@ -13,7 +13,6 @@ const UI = {
         const statusMsg = document.getElementById('player-status-message');
         if(panel) panel.classList.add('hidden');
         if(statusMsg) {
-            statusMsg.classList.remove('hidden');
             statusMsg.textContent = '行動已送出，等待系統結算...';
         }
         document.querySelectorAll('.player-seat').forEach(s => {
@@ -25,6 +24,7 @@ const UI = {
     // 玩家端 4:5 結構視圖渲染 (Player View)
     // ----------------------------------------------------
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = []) {
+        // 1. 渲染頂部個人資訊
         document.getElementById('player-seat-number').textContent = state.mySeat || '-';
         if (state.myRole) {
             document.getElementById('player-role-name').textContent = state.myRole;
@@ -33,29 +33,17 @@ const UI = {
             if (cardImg) {
                 cardImg.src = `./img/${state.myRole.split('-')[0]}.png`;
                 cardImg.classList.remove('hidden');
-                cardImg.style.display = 'block';
             }
         }
 
-        // --- 中央目標預覽與查驗結果標籤 ---
+        // 2. 渲染中央目標預覽與查驗結果標籤
         const previewEl = document.getElementById('target-preview-circle');
         const previewImg = document.getElementById('target-preview-img');
         let previewLabel = document.getElementById('target-preview-label');
-        
-        // 動態建立中央下方標籤
-        if (previewEl && !previewLabel) {
-            previewLabel = document.createElement('div');
-            previewLabel.id = 'target-preview-label';
-            previewLabel.style.cssText = "position: absolute; bottom: -15px; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; color: white; white-space: nowrap; z-index: 20;";
-            previewEl.style.overflow = 'visible'; 
-            if (previewImg) previewImg.style.borderRadius = '50%'; // 避免溢出裁切失效
-            previewEl.appendChild(previewLabel);
-        }
 
         let showCenterSeat = null;
         let showCenterAlignment = null;
 
-        // 優先顯示當前選取的目標，若無選取目標，則顯示當晚預言家的最新查驗結果
         if (selectedTargets.length > 0) {
             showCenterSeat = selectedTargets[0];
             const tData = state.players.find(p => p.seatNumber === showCenterSeat);
@@ -82,14 +70,14 @@ const UI = {
             if (previewEl) previewEl.classList.add('hidden');
         }
 
-        // --- 左右玩家列表區 ---
+        // 3. 渲染左右玩家列表
         const leftSeats = document.getElementById('left-seats');
         const rightSeats = document.getElementById('right-seats');
         if (!leftSeats || !rightSeats) return;
         leftSeats.innerHTML = '';
         rightSeats.innerHTML = '';
 
-        state.players.forEach((p, i) => {
+        state.players.forEach((p) => {
             const seat = document.createElement('div');
             seat.className = 'player-seat';
             if (p.isDead) seat.classList.add('dead');
@@ -106,7 +94,6 @@ const UI = {
 
             let tagsHtml = '';
             
-            // 狼人隊友空刀標籤
             if (p.wolfTags && p.wolfTags.length > 0) {
                 p.wolfTags.forEach((tag, idx) => {
                     tagsHtml += `<div class="wolf-tag" style="top: ${-5 - (idx*15)}px; right: -5px;">${tag}</div>`;
@@ -114,14 +101,13 @@ const UI = {
                 if (!isSelected) seat.classList.add('wolf-selected');
             }
 
-            // 預言家永久查驗陣營標籤 (放置於左下角)
             if (p.knownAlignment) {
                 const bgColor = p.knownAlignment === '狼人' ? 'var(--accent-red)' : 'var(--accent-blue)';
-                tagsHtml += `<div style="position: absolute; bottom: 15px; left: -15px; background: ${bgColor}; color: white; font-size: 10px; padding: 2px 4px; border-radius: 4px; font-weight: bold; z-index: 15; box-shadow: 0 0 5px rgba(0,0,0,0.5);">${p.knownAlignment}</div>`;
+                tagsHtml += `<div style="position: absolute; bottom: 12px; left: -10px; background: ${bgColor}; color: white; font-size: 10px; padding: 2px 4px; border-radius: 4px; font-weight: bold; z-index: 15; box-shadow: 0 0 5px rgba(0,0,0,0.5);">${p.knownAlignment}</div>`;
             }
 
             seat.innerHTML = `
-                <div class="role-label ${p.roleInfo ? '' : 'hidden'}" style="top:-15px;">${p.roleInfo || ''}</div>
+                <div class="role-label ${p.roleInfo ? '' : 'hidden'}">${p.roleInfo || ''}</div>
                 <div class="seat-img-wrapper">
                     <img src="./img/seat_${p.seatNumber}.png" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none';">
                 </div>
@@ -129,7 +115,7 @@ const UI = {
                 <div class="player-name">${p.name || '等待加入'}</div>
             `;
 
-            // [修改] 1~6 號靠左，7~12 號靠右
+            // 1~6 左側，7~12 右側
             if (p.seatNumber <= 6) {
                 leftSeats.appendChild(seat);
             } else {
@@ -137,13 +123,13 @@ const UI = {
             }
         });
 
-        // --- 底部操作與訊息區 ---
+        // 4. 渲染中間操作區
         const actionPanel = document.getElementById('player-action-panel');
         const statusMsg = document.getElementById('player-status-message');
 
         if (state.actionPanel.show) {
             if(actionPanel) actionPanel.classList.remove('hidden');
-            if(statusMsg) statusMsg.classList.add('hidden'); 
+            if(statusMsg) statusMsg.textContent = ''; 
             
             const promptEl = document.getElementById('action-prompt');
             if(promptEl) promptEl.textContent = state.actionPanel.prompt;
@@ -179,7 +165,6 @@ const UI = {
         } else {
             if(actionPanel) actionPanel.classList.add('hidden');
             if(statusMsg) {
-                statusMsg.classList.remove('hidden');
                 statusMsg.textContent = state.message || '';
             }
         }
