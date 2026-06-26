@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>天黑請閉眼 v3.6.8 核心系統</title>
+    <title>天黑請閉眼 v3.6.9</title>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
 
 <div class="container">
-    <h2 style="text-align: center; color: #fff; margin-bottom: 20px;">天黑請閉眼 v3.6.8</h2>
+    <h2 style="text-align: center; color: #fff; margin-bottom: 20px;">天黑請閉眼 v3.6.9</h2>
 
     <div id="section-entry" class="section" style="max-width: 400px; margin: auto; text-align: center;">
         <h3 style="color: var(--accent-blue);">建立 / 加入房間</h3>
@@ -55,23 +55,25 @@
                 <span>身分：<span id="player-role-name" style="color: #ffcccc;">-</span></span>
             </div>
 
+            <div id="btn-self-explode" class="floating-btn red hidden">爆</div>
+            <div id="btn-vote-history" class="floating-btn yellow hidden">票</div>
+
             <div class="app-body">
                 <div id="left-seats" class="seat-column"></div>
                 
                 <div class="center-column">
-                    
-                    <div id="player-action-panel" class="action-panel hidden">
+                    <div id="player-action-panel" class="action-panel">
                         <div id="target-preview-circle" class="target-preview hidden">
                             <img id="target-preview-img" src="">
                             <div id="target-preview-label" class="hidden"></div>
                         </div>
-                        <div id="action-prompt" class="action-prompt"></div>
+                        <div id="action-prompt" class="action-prompt">等待遊戲開始...</div>
                         <div id="dynamic-buttons-container" class="action-buttons-row"></div>
                     </div>
 
                     <div class="card-panel">
-                        <div id="player-status-message" class="status-message">等待遊戲開始...</div>
                         <img id="my-card-img" class="my-card hidden" src="" onerror="this.style.display='none'">
+                        <div id="vote-history-panel" class="vote-history-panel hidden"></div>
                     </div>
                 </div>
 
