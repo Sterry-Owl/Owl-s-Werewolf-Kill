@@ -1,5 +1,5 @@
 // ==========================================
-// v3.6.2 視圖渲染引擎 (Pure View)
+// v3.7 視圖渲染引擎 (Pure View)
 // ==========================================
 
 const UI = {
@@ -25,12 +25,10 @@ const UI = {
     // 玩家端 4:5 結構視圖渲染 (Player View)
     // ----------------------------------------------------
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = []) {
-        // 1. 渲染頂部個人資訊
         document.getElementById('player-seat-number').textContent = state.mySeat || '-';
         if (state.myRole) {
             document.getElementById('player-role-name').textContent = state.myRole;
             
-            // [修復] 精準對接綠區的角色卡元件
             const cardImg = document.getElementById('my-card-img');
             if (cardImg) {
                 cardImg.src = `./img/${state.myRole.split('-')[0]}.png`;
@@ -39,18 +37,52 @@ const UI = {
             }
         }
 
-        // 2. 渲染中央目標預覽 (白圓)
+        // --- 中央目標預覽與查驗結果標籤 ---
         const previewEl = document.getElementById('target-preview-circle');
         const previewImg = document.getElementById('target-preview-img');
-        if (selectedTargets.length > 0) {
-            if(previewEl) previewEl.classList.remove('hidden');
-            if(previewImg) previewImg.src = `./img/seat_${selectedTargets[0]}.png`;
-        } else {
-            if(previewEl) previewEl.classList.add('hidden');
-            if(previewImg) previewImg.src = '';
+        let previewLabel = document.getElementById('target-preview-label');
+        
+        // 動態建立中央下方標籤
+        if (previewEl && !previewLabel) {
+            previewLabel = document.createElement('div');
+            previewLabel.id = 'target-preview-label';
+            previewLabel.style.cssText = "position: absolute; bottom: -15px; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; color: white; white-space: nowrap; z-index: 20;";
+            previewEl.style.overflow = 'visible'; 
+            if (previewImg) previewImg.style.borderRadius = '50%'; // 避免溢出裁切失效
+            previewEl.appendChild(previewLabel);
         }
 
-        // 3. 渲染左右玩家列表 (黃區)
+        let showCenterSeat = null;
+        let showCenterAlignment = null;
+
+        // 優先顯示當前選取的目標，若無選取目標，則顯示當晚預言家的最新查驗結果
+        if (selectedTargets.length > 0) {
+            showCenterSeat = selectedTargets[0];
+            const tData = state.players.find(p => p.seatNumber === showCenterSeat);
+            if (tData && tData.knownAlignment) showCenterAlignment = tData.knownAlignment;
+        } else if (state.latestCheckResult) {
+            showCenterSeat = state.latestCheckResult.seat;
+            showCenterAlignment = state.latestCheckResult.alignment;
+        }
+
+        if (showCenterSeat) {
+            if (previewEl) previewEl.classList.remove('hidden');
+            if (previewImg) previewImg.src = `./img/seat_${showCenterSeat}.png`;
+
+            if (previewLabel) {
+                if (showCenterAlignment) {
+                    previewLabel.textContent = showCenterAlignment;
+                    previewLabel.style.background = showCenterAlignment === '狼人' ? 'var(--accent-red)' : 'var(--accent-blue)';
+                    previewLabel.classList.remove('hidden');
+                } else {
+                    previewLabel.classList.add('hidden');
+                }
+            }
+        } else {
+            if (previewEl) previewEl.classList.add('hidden');
+        }
+
+        // --- 左右玩家列表區 ---
         const leftSeats = document.getElementById('left-seats');
         const rightSeats = document.getElementById('right-seats');
         if (!leftSeats || !rightSeats) return;
@@ -72,28 +104,40 @@ const UI = {
                 seat.style.pointerEvents = 'none';
             }
 
-            let wolfTagsHtml = '';
+            let tagsHtml = '';
+            
+            // 狼人隊友空刀標籤
             if (p.wolfTags && p.wolfTags.length > 0) {
                 p.wolfTags.forEach((tag, idx) => {
-                    wolfTagsHtml += `<div class="wolf-tag" style="top: ${-5 - (idx*15)}px; right: -5px;">${tag}</div>`;
+                    tagsHtml += `<div class="wolf-tag" style="top: ${-5 - (idx*15)}px; right: -5px;">${tag}</div>`;
                 });
                 if (!isSelected) seat.classList.add('wolf-selected');
             }
 
+            // 預言家永久查驗陣營標籤 (放置於左下角)
+            if (p.knownAlignment) {
+                const bgColor = p.knownAlignment === '狼人' ? 'var(--accent-red)' : 'var(--accent-blue)';
+                tagsHtml += `<div style="position: absolute; bottom: 15px; left: -15px; background: ${bgColor}; color: white; font-size: 10px; padding: 2px 4px; border-radius: 4px; font-weight: bold; z-index: 15; box-shadow: 0 0 5px rgba(0,0,0,0.5);">${p.knownAlignment}</div>`;
+            }
+
             seat.innerHTML = `
-                <div class="role-label ${p.roleInfo ? '' : 'hidden'}">${p.roleInfo || ''}</div>
+                <div class="role-label ${p.roleInfo ? '' : 'hidden'}" style="top:-15px;">${p.roleInfo || ''}</div>
                 <div class="seat-img-wrapper">
                     <img src="./img/seat_${p.seatNumber}.png" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none';">
                 </div>
-                ${wolfTagsHtml}
+                ${tagsHtml}
                 <div class="player-name">${p.name || '等待加入'}</div>
             `;
 
-            if (i % 2 === 0) leftSeats.appendChild(seat);
-            else rightSeats.appendChild(seat);
+            // [修改] 1~6 號靠左，7~12 號靠右
+            if (p.seatNumber <= 6) {
+                leftSeats.appendChild(seat);
+            } else {
+                rightSeats.appendChild(seat);
+            }
         });
 
-        // 4. 渲染底部操作與訊息區 (綠區)
+        // --- 底部操作與訊息區 ---
         const actionPanel = document.getElementById('player-action-panel');
         const statusMsg = document.getElementById('player-status-message');
 

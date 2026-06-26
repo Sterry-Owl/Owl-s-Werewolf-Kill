@@ -1,5 +1,5 @@
 // ==========================================
-// v3.6.2 核心主機引擎 (Smart Server / Strategy Pattern) - 修正版
+// v3.7 核心主機引擎 (Smart Server / Strategy Pattern)
 // ==========================================
 
 let hostPeer = null;
@@ -118,7 +118,14 @@ const RolePlugins = {
             if (act.actionId === 'confirm' && target) {
                 const tPlayer = playersData.find(p => p.seatNumber === target);
                 const isWolf = isWolfRole(tPlayer.role);
-                act.player.tempPrivateMessage = `系統提示：${target}號玩家為【${isWolf ? "狼人" : "好人"}】陣營。`;
+                const alignment = isWolf ? "狼人" : "好人";
+                
+                // [新增] 寫入預言家專屬紀錄與當晚最新查驗結果
+                act.player.seerRecords = act.player.seerRecords || {};
+                act.player.seerRecords[target] = alignment;
+                act.player.latestCheckResult = { seat: target, alignment: alignment };
+                
+                act.player.tempPrivateMessage = `系統提示：${target}號玩家為【${alignment}】陣營。`;
                 return `【查驗: ${target}號】`;
             }
             return "【跳過行動】";
@@ -164,7 +171,7 @@ function setupHostConnectionListeners(conn) {
 function handlePlayerJoin(peerId, playerName) {
     if (gameState.phase !== GAME_PHASE.LOBBY) return; 
     const seatNumber = playersData.length + 1;
-    playersData.push({ seatNumber, peerId, name: playerName, role: null, isDead: false });
+    playersData.push({ seatNumber, peerId, name: playerName, role: null, isDead: false, seerRecords: {}, latestCheckResult: null });
     if (connections[peerId]) connections[peerId].send({ type: PACKET_TYPE.JOIN_SUCCESS, payload: { seatNumber } });
     gameState.systemLog = `玩家 ${playerName} (${seatNumber}號) 已加入。`;
     syncStateToAll();
@@ -218,17 +225,23 @@ function buildStateForPlayer(player) {
     const mappedPlayers = playersData.map(p => {
         let visibleRole = null;
         let wolfTags = [];
+        let knownAlignment = null;
         
         if (p.seatNumber === player.seatNumber) visibleRole = p.role;
         if (isWolfRole(player.role) && isWolfRole(p.role)) visibleRole = p.role;
         if (p.role === '白痴' && p.idiotRevealed) visibleRole = p.role;
+
+        // [新增] 下發預言家已知陣營資訊
+        if (player.role === '預言家' && player.seerRecords && player.seerRecords[p.seatNumber]) {
+            knownAlignment = player.seerRecords[p.seatNumber];
+        }
 
         if (gameState.phase === GAME_PHASE.NIGHT_ACTION && gameState.nightSequence[gameState.currentNightStepIndex]?.roleName === "狼人" && isWolfRole(player.role)) {
             Object.values(wolfPreviews).forEach(preview => {
                 if (preview.target === p.seatNumber && preview.seat !== player.seatNumber) wolfTags.push(`${preview.seat}號`);
             });
         }
-        return { seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, roleInfo: visibleRole, wolfTags: wolfTags };
+        return { seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, roleInfo: visibleRole, wolfTags: wolfTags, knownAlignment: knownAlignment };
     });
 
     let actionPanel = { show: false, type: 'none', prompt: '', selectableSeats: [], buttons: [], submitPacketType: PACKET_TYPE.ACTION_SUBMIT };
@@ -302,7 +315,8 @@ function buildStateForPlayer(player) {
         myRole: player.role,
         message: personalMessage,
         players: mappedPlayers,
-        actionPanel: actionPanel
+        actionPanel: actionPanel,
+        latestCheckResult: player.latestCheckResult || null // [新增] 將最新查驗傳遞給前端
     };
 }
 
@@ -326,6 +340,10 @@ function startNightPhase() {
     gameState.nightTags = { killed: [], poisoned: [], witchUsedSaveTonight: false };
     gameState.currentStepActions = [];
     wolfPreviews = {};
+    
+    // [清除] 每晚重新清除最新查驗結果的顯示
+    playersData.forEach(p => p.latestCheckResult = null);
+    
     gameState.nightSequence = buildNightSequence();
     gameState.currentNightStepIndex = -1;
     nextNightStep();
@@ -417,7 +435,6 @@ function handleActionSubmit(peerId, payload) {
             step.resultLog = "【未定義結算模組】";
         }
         
-        // 即時廣播：強制消除最後一人的介面死鎖
         gameState.systemLog = `【${step.roleName}】行動完畢，即將切換...`;
         syncStateToAll();
         
