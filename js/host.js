@@ -1,5 +1,5 @@
 // ==========================================
-// v3.5 核心主機引擎 (Smart Server / State Machine)
+// v3.6 核心主機引擎 (Smart Server / State Machine)
 // ==========================================
 
 let hostPeer = null;
@@ -25,27 +25,31 @@ let gameState = {
     systemLog: "等待遊戲開始..."
 };
 
+let wolfPreviews = {};
+
 function isWolfRole(roleStr) {
     if (!roleStr) return false;
     return roleStr.startsWith('狼人');
 }
 
-function resolvePrompt(roleName, basePrompt) {
-    if (roleName === "女巫-解藥") {
-        if (gameState.witchState.antidoteUsed) return "你的解藥已用過，無法得知刀口。(請跳過)";
-        const victim = gameState.nightTags.killed.length > 0 ? gameState.nightTags.killed[0] : "無";
-        return basePrompt.replace('{victim}', victim);
+// 輔助過濾器：處理特殊角色的提示文案替換
+function resolvePrompt(roleName) {
+    if (roleName === "女巫") {
+        let msg = "";
+        if (gameState.witchState.antidoteUsed) {
+            msg += "你的解藥已用過，無法得知刀口。";
+        } else {
+            const victim = gameState.nightTags.killed.length > 0 ? gameState.nightTags.killed[0] : "無";
+            msg += `昨晚被襲擊的是 ${victim} 號。`;
+        }
+        return msg + " 請選擇要發動的技能：";
     }
-    if (roleName === "女巫-毒藥") {
-        if (gameState.witchState.poisonUsed) return "你的毒藥已用過。(請跳過)";
-        if (gameState.nightTags.witchUsedSaveTonight) return "同一晚不可雙藥。(請跳過)";
-    }
-    return basePrompt;
+    return ROLE_DICTIONARY[roleName]?.prompt || "請行動：";
 }
 
 function getSelectableSeats(roleName) {
-    if (roleName === "女巫-解藥" && gameState.witchState.antidoteUsed) return [];
-    if (roleName === "女巫-毒藥" && (gameState.witchState.poisonUsed || gameState.nightTags.witchUsedSaveTonight)) return [];
+    // 女巫雙藥用盡防呆，避免亂點
+    if (roleName === "女巫" && gameState.witchState.antidoteUsed && gameState.witchState.poisonUsed) return [];
     return playersData.filter(p => !p.isDead).map(p => p.seatNumber);
 }
 
@@ -91,7 +95,7 @@ function handlePlayerJoin(peerId, playerName) {
 
 window.startGame = function(selectedRoles) {
     if (selectedRoles.length !== playersData.length) {
-        alert('角色數量與玩家人數不符！(V3.0標準局需精準匹配)');
+        alert(`角色數量(${selectedRoles.length})與玩家人數(${playersData.length})不符！`);
         return false;
     }
     
@@ -150,7 +154,7 @@ function buildStateForPlayer(player) {
         return { seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, roleInfo: visibleRole, wolfTags: wolfTags };
     });
 
-    let actionPanel = { show: false, type: 'none', prompt: '', selectableSeats: [], allowPass: false, passTags: [], submitPacketType: PACKET_TYPE.ACTION_SUBMIT, hideConfirm: false };
+    let actionPanel = { show: false, type: 'none', prompt: '', selectableSeats: [], buttons: [], submitPacketType: PACKET_TYPE.ACTION_SUBMIT };
     let personalMessage = getPhaseMessageForPlayer();
 
     if (gameState.phase === GAME_PHASE.NIGHT_ACTION) {
@@ -159,25 +163,45 @@ function buildStateForPlayer(player) {
         const hasActed = gameState.currentStepActions.some(act => act.player.seatNumber === player.seatNumber);
         
         if (isMyTurn && !player.isDead) {
-            // [新增 UX] 如果該玩家已經送出行動，畫面保留但轉為等待狀態
             if (hasActed) {
+                // 已行動等待機制
                 actionPanel.show = true;
-                actionPanel.prompt = (currentStep.roleName === "狼人") ? "你已經完成選擇，等待隊友決定目標..." : "行動已送出，等待其他玩家...";
+                actionPanel.prompt = (currentStep.roleName === "狼人") ? "等待隊友決定目標..." : "行動已送出，等待系統結算...";
                 actionPanel.selectableSeats = [];
-                actionPanel.allowPass = false;
-                actionPanel.hideConfirm = true; // 隱藏按鈕防呆
+                actionPanel.buttons = []; // 藏起按鈕
             } else {
                 actionPanel.show = true;
                 actionPanel.type = currentStep.roleDef.actionType;
-                actionPanel.prompt = resolvePrompt(currentStep.roleName, currentStep.roleDef.prompt);
+                actionPanel.prompt = resolvePrompt(currentStep.roleName);
                 actionPanel.selectableSeats = getSelectableSeats(currentStep.roleName);
-                actionPanel.allowPass = true;
                 actionPanel.submitPacketType = PACKET_TYPE.ACTION_SUBMIT;
 
-                if (currentStep.roleName === "狼人" && isWolfRole(player.role)) {
+                // [核心變更] 動態生成按鈕陣列
+                if (currentStep.roleName === "女巫") {
+                    if (!gameState.witchState.antidoteUsed) {
+                        actionPanel.buttons.push({ id: 'save', text: '使用解藥', requiresTarget: false });
+                    }
+                    if (!gameState.witchState.poisonUsed && !gameState.nightTags.witchUsedSaveTonight) {
+                        actionPanel.buttons.push({ id: 'poison', text: '使用毒藥', requiresTarget: true });
+                    }
+                    actionPanel.buttons.push({ id: 'pass', text: '跳過', requiresTarget: false });
+                } else if (currentStep.roleName === "狼人") {
+                    actionPanel.buttons = [
+                        { id: 'confirm', text: '確認襲擊', requiresTarget: true },
+                        { id: 'pass', text: '空刀', requiresTarget: false }
+                    ];
+                    // 綁定空刀標籤
+                    let passTags = [];
                     Object.values(wolfPreviews).forEach(preview => {
-                        if (preview.target === 'pass' && preview.seat !== player.seatNumber) actionPanel.passTags.push(`${preview.seat}號`);
+                        if (preview.target === 'pass' && preview.seat !== player.seatNumber) passTags.push(`${preview.seat}號`);
                     });
+                    actionPanel.passTags = passTags; 
+                } else {
+                    // 標準單點角色
+                    actionPanel.buttons = [
+                        { id: 'confirm', text: '確認', requiresTarget: true },
+                        { id: 'pass', text: '跳過', requiresTarget: false }
+                    ];
                 }
             }
         }
@@ -185,31 +209,43 @@ function buildStateForPlayer(player) {
     else if (gameState.phase === GAME_PHASE.DAY_VOTING) {
         const hasVoted = gameState.votes[player.seatNumber] !== undefined;
         if (!player.isDead) {
-            // [新增 UX] 如果該玩家已經完成投票，畫面保留但轉為等待狀態
             if (hasVoted) {
                 actionPanel.show = true;
                 actionPanel.prompt = "你已經投票完成，等待其他玩家投票...";
                 actionPanel.selectableSeats = [];
-                actionPanel.allowPass = false;
-                actionPanel.hideConfirm = true;
+                actionPanel.buttons = [];
             } else {
                 actionPanel.show = true;
                 actionPanel.type = 'single_select'; 
                 actionPanel.prompt = '請選擇放逐投票的目標：';
                 actionPanel.selectableSeats = playersData.filter(p => !p.isDead).map(p => p.seatNumber);
-                actionPanel.allowPass = true; 
                 actionPanel.submitPacketType = PACKET_TYPE.VOTE_SUBMIT;
+                actionPanel.buttons = [
+                    { id: 'vote', text: '投票', requiresTarget: true },
+                    { id: 'pass', text: '棄票', requiresTarget: false }
+                ];
             }
         }
     }
     else if (gameState.phase === GAME_PHASE.HUNTER_ACTION) {
+        const hasActed = gameState.currentStepActions.some(act => act.player.seatNumber === player.seatNumber);
         if (player.role === '獵人') {
-            actionPanel.show = true;
-            actionPanel.type = 'single_select';
-            actionPanel.prompt = '你已死亡，請選擇要開槍帶走的目標 (或點選跳過)：';
-            actionPanel.selectableSeats = playersData.filter(p => !p.isDead).map(p => p.seatNumber);
-            actionPanel.allowPass = true;
-            actionPanel.submitPacketType = PACKET_TYPE.ACTION_SUBMIT;
+            if (hasActed) {
+                actionPanel.show = true;
+                actionPanel.prompt = "開槍決定已送出，等待系統結算...";
+                actionPanel.selectableSeats = [];
+                actionPanel.buttons = [];
+            } else {
+                actionPanel.show = true;
+                actionPanel.type = 'single_select';
+                actionPanel.prompt = '你已死亡，請選擇要開槍帶走的目標：';
+                actionPanel.selectableSeats = playersData.filter(p => !p.isDead).map(p => p.seatNumber);
+                actionPanel.submitPacketType = PACKET_TYPE.ACTION_SUBMIT;
+                actionPanel.buttons = [
+                    { id: 'shoot', text: '開槍', requiresTarget: true },
+                    { id: 'pass', text: '不開槍', requiresTarget: false }
+                ];
+            }
         }
     }
 
@@ -305,8 +341,8 @@ function handleActionSubmit(peerId, payload) {
     if (!actingPlayer) return;
 
     if (gameState.phase === GAME_PHASE.HUNTER_ACTION && actingPlayer.role === '獵人') {
-        const target = payload.targets && payload.targets.length > 0 ? payload.targets[0] : 'pass';
-        if (target !== 'pass') {
+        const target = payload.targets && payload.targets.length > 0 ? payload.targets[0] : null;
+        if (payload.actionId === 'shoot' && target) {
             const tPlayer = playersData.find(p => p.seatNumber === target);
             if (tPlayer) tPlayer.isDead = true;
             gameState.systemLog = `獵人開槍帶走了 ${target} 號玩家。`;
@@ -326,7 +362,7 @@ function handleActionSubmit(peerId, payload) {
     }
 
     if (gameState.phase !== GAME_PHASE.NIGHT_ACTION) return;
-    gameState.currentStepActions.push({ player: actingPlayer, targets: payload.targets || [], specialValue: payload.specialValue || null });
+    gameState.currentStepActions.push({ player: actingPlayer, targets: payload.targets || [], actionId: payload.actionId });
     gameState.expectedActionCount--;
 
     if (gameState.expectedActionCount <= 0) {
@@ -342,17 +378,15 @@ function resolveNightStep() {
     let resultText = "【未行動】";
 
     if (step.roleName === "狼人") {
-        // [修改邏輯] 狼刀隨機抽取機制，過濾空刀除非全空
         let validTargets = [];
         gameState.currentStepActions.forEach(act => {
-            if (act.targets && act.targets.length > 0) {
+            if (act.actionId !== 'pass' && act.targets && act.targets.length > 0) {
                 validTargets.push(act.targets[0]);
             }
         });
 
         let finalTarget = 'pass';
         if (validTargets.length > 0) {
-            // 從所有被指定的目標中隨機選出一人
             const randomIndex = Math.floor(Math.random() * validTargets.length);
             finalTarget = validTargets[randomIndex];
         }
@@ -366,26 +400,33 @@ function resolveNightStep() {
     } 
     else {
         const act = gameState.currentStepActions[0];
-        const target = act.targets.length > 0 ? act.targets[0] : null;
+        const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
 
         switch (step.roleName) {
-            case "女巫-解藥":
-                if (target && !gameState.witchState.antidoteUsed) {
-                    gameState.nightTags.killed = gameState.nightTags.killed.filter(id => id !== target);
-                    gameState.nightTags.witchUsedSaveTonight = true;
-                    gameState.witchState.antidoteUsed = true;
-                    resultText = `【解救: ${target}號】`;
-                } else resultText = "【跳過】";
-                break;
-            case "女巫-毒藥":
-                if (target && !gameState.witchState.poisonUsed && !gameState.nightTags.witchUsedSaveTonight) {
-                    gameState.nightTags.poisoned.push(target);
-                    gameState.witchState.poisonUsed = true;
-                    resultText = `【毒殺: ${target}號】`;
-                } else resultText = "【跳過/無效】";
+            case "女巫":
+                if (act.actionId === 'save' && !gameState.witchState.antidoteUsed) {
+                    if (gameState.nightTags.killed.length > 0) {
+                        gameState.nightTags.killed = []; 
+                        gameState.nightTags.witchUsedSaveTonight = true;
+                        gameState.witchState.antidoteUsed = true;
+                        resultText = `【解救】`;
+                    } else {
+                        resultText = `【無刀可救】`;
+                    }
+                } else if (act.actionId === 'poison' && !gameState.witchState.poisonUsed && !gameState.nightTags.witchUsedSaveTonight) {
+                    if (target) {
+                        gameState.nightTags.poisoned.push(target);
+                        gameState.witchState.poisonUsed = true;
+                        resultText = `【毒殺: ${target}號】`;
+                    } else {
+                        resultText = "【空毒】";
+                    }
+                } else {
+                    resultText = "【跳過】";
+                }
                 break;
             case "預言家":
-                if (target) {
+                if (act.actionId === 'confirm' && target) {
                     resultText = `【查驗: ${target}號】`;
                     const tPlayer = playersData.find(p => p.seatNumber === target);
                     const isWolf = isWolfRole(tPlayer.role);
@@ -431,7 +472,7 @@ function handleVoteSubmit(peerId, payload) {
     const voter = playersData.find(p => p.peerId === peerId);
     if (!voter || voter.isDead) return;
 
-    const target = payload.targets && payload.targets.length > 0 ? payload.targets[0] : 'pass';
+    const target = (payload.actionId === 'vote' && payload.targets && payload.targets.length > 0) ? payload.targets[0] : 'pass';
     gameState.votes[voter.seatNumber] = target;
 
     const aliveCount = playersData.filter(p => !p.isDead).length;

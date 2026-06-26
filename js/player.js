@@ -1,12 +1,11 @@
 // ==========================================
-// v3.0 玩家終端層 (Dumb Client)
+// v3.6 玩家終端層 (Dumb Client)
 // ==========================================
 
 let playerPeer = null;
 let hostConnection = null;
 let localState = null;
 let selectedTargets = [];
-let specialValue = null;
 let currentPrompt = ""; 
 
 window.initPlayer = function(roomId, playerName) {
@@ -30,11 +29,12 @@ function handleHostData(data) {
         
         if (!localState || localState.phase !== newState.phase || currentPrompt !== newPrompt) {
             selectedTargets = [];
-            specialValue = null;
             currentPrompt = newPrompt;
         }
+        
         localState = newState;
-        UI.renderPlayerView(localState, handleSeatSelect, selectedTargets);
+        // 將 handleActionSubmit 作為 callback 傳給 UI
+        UI.renderPlayerView(localState, handleSeatSelect, handleActionSubmit, selectedTargets);
     } 
     else if (data.type === PACKET_TYPE.DECK_UPDATE) {
         UI.renderDeck(data.payload.roleCounts);
@@ -43,39 +43,30 @@ function handleHostData(data) {
 
 function handleSeatSelect(seatNum) {
     if (!localState || !localState.actionPanel || !localState.actionPanel.show) return;
-    if (localState.actionPanel.type === 'single_select' || localState.actionPanel.type === 'consensus') {
-        selectedTargets = [seatNum];
-        UI.renderPlayerView(localState, handleSeatSelect, selectedTargets);
-        
-        if (localState.actionPanel.type === 'consensus') {
-            hostConnection.send({ type: PACKET_TYPE.WOLF_PREVIEW, payload: { target: seatNum } });
-        }
+    
+    selectedTargets = [seatNum];
+    UI.renderPlayerView(localState, handleSeatSelect, handleActionSubmit, selectedTargets);
+    
+    // 如果是狼人，即時傳送黃色預覽給隊友
+    if (localState.actionPanel.type === 'consensus') {
+        hostConnection.send({ type: PACKET_TYPE.WOLF_PREVIEW, payload: { target: seatNum } });
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('btn-confirm-action')?.addEventListener('click', () => {
-        if (!hostConnection || !localState || !localState.actionPanel) return;
-        
-        // 嚴格依賴主機指示的封包類型，不介入遊戲邏輯判斷
-        hostConnection.send({ 
-            type: localState.actionPanel.submitPacketType, 
-            payload: { targets: selectedTargets, specialValue: specialValue } 
-        });
-        UI.blockActionPanel(); 
-    });
+// 接收動態按鈕的回傳 ID
+function handleActionSubmit(actionId) {
+    if (!hostConnection || !localState || !localState.actionPanel) return;
 
-    document.getElementById('btn-pass-action')?.addEventListener('click', () => {
-        if (!hostConnection || !localState || !localState.actionPanel) return;
-        
-        if (localState.actionPanel.type === 'consensus') {
-            hostConnection.send({ type: PACKET_TYPE.WOLF_PREVIEW, payload: { target: 'pass' } });
-        }
-        
-        hostConnection.send({ 
-            type: localState.actionPanel.submitPacketType, 
-            payload: { targets: [], specialValue: 'pass' } 
-        });
-        UI.blockActionPanel();
+    // 如果按下的是空刀/跳過，且是狼人階段，廣播空刀預覽
+    if (actionId === 'pass' && localState.actionPanel.type === 'consensus') {
+        hostConnection.send({ type: PACKET_TYPE.WOLF_PREVIEW, payload: { target: 'pass' } });
+    }
+
+    // 嚴格依賴主機指示的封包類型
+    hostConnection.send({ 
+        type: localState.actionPanel.submitPacketType, 
+        payload: { targets: selectedTargets, actionId: actionId } 
     });
-});
+    
+    UI.blockActionPanel();
+}
