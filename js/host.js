@@ -32,9 +32,6 @@ function isWolfRole(roleStr) {
     return roleStr.startsWith('狼人');
 }
 
-// ==========================================
-// 角色外掛註冊表 (Role Plugins) - 徹底模組化結算邏輯
-// ==========================================
 const RolePlugins = {
     "狼人": {
         getPrompt: () => ROLE_DICTIONARY["狼人"].prompt,
@@ -120,7 +117,6 @@ const RolePlugins = {
                 const isWolf = isWolfRole(tPlayer.role);
                 const alignment = isWolf ? "狼人" : "好人";
                 
-                // [新增] 寫入預言家專屬紀錄與當晚最新查驗結果
                 act.player.seerRecords = act.player.seerRecords || {};
                 act.player.seerRecords[target] = alignment;
                 act.player.latestCheckResult = { seat: target, alignment: alignment };
@@ -132,10 +128,6 @@ const RolePlugins = {
         }
     }
 };
-
-// ==========================================
-// 全域狀態分發與生命週期控制
-// ==========================================
 
 window.syncDeckToPlayers = function(deck) {
     let roleCounts = {};
@@ -231,7 +223,6 @@ function buildStateForPlayer(player) {
         if (isWolfRole(player.role) && isWolfRole(p.role)) visibleRole = p.role;
         if (p.role === '白痴' && p.idiotRevealed) visibleRole = p.role;
 
-        // [新增] 下發預言家已知陣營資訊
         if (player.role === '預言家' && player.seerRecords && player.seerRecords[p.seatNumber]) {
             knownAlignment = player.seerRecords[p.seatNumber];
         }
@@ -301,6 +292,11 @@ function buildStateForPlayer(player) {
                     { id: 'pass', text: '不開槍', requiresTarget: false }
                 ];
             }
+        } else {
+            // [修復] 其他玩家在獵人發動技能時，只會看到通用結算訊息，隱蔽獵人資訊
+            actionPanel.show = true;
+            actionPanel.prompt = "系統結算中，請等待...";
+            actionPanel.buttons = [];
         }
     }
 
@@ -316,7 +312,7 @@ function buildStateForPlayer(player) {
         message: personalMessage,
         players: mappedPlayers,
         actionPanel: actionPanel,
-        latestCheckResult: player.latestCheckResult || null // [新增] 將最新查驗傳遞給前端
+        latestCheckResult: player.latestCheckResult || null
     };
 }
 
@@ -328,7 +324,7 @@ function getPhaseMessageForPlayer() {
         case GAME_PHASE.DAY_DISCUSSION: return "白天發言階段。";
         case GAME_PHASE.DAY_VOTING: return "正在進行放逐投票...";
         case GAME_PHASE.VOTE_SETTLEMENT: return "投票結算中，請等待...";
-        case GAME_PHASE.HUNTER_ACTION: return "等待獵人發動技能..."; 
+        case GAME_PHASE.HUNTER_ACTION: return "系統結算中，請等待..."; // [修復] 隱藏獵人出局資訊
         default: return "等待中...";
     }
 }
@@ -341,7 +337,6 @@ function startNightPhase() {
     gameState.currentStepActions = [];
     wolfPreviews = {};
     
-    // [清除] 每晚重新清除最新查驗結果的顯示
     playersData.forEach(p => p.latestCheckResult = null);
     
     gameState.nightSequence = buildNightSequence();
@@ -408,10 +403,10 @@ function handleActionSubmit(peerId, payload) {
             const tPlayer = playersData.find(p => p.seatNumber === target);
             if (tPlayer) tPlayer.isDead = true;
             gameState.systemLog = `獵人開槍帶走了 ${target} 號玩家。`;
-            broadcastTempMessage(`獵人開槍帶走了 ${target} 號玩家。`);
+            broadcastTempMessage(`【突發事件】一聲槍響，${target} 號玩家被帶走。`);
         } else {
-            gameState.systemLog = `獵人選擇不開槍。`;
-            broadcastTempMessage(`獵人選擇不開槍。`);
+            gameState.systemLog = `獵人選擇不開槍/無技能。`;
+            // 若不開槍，不會向任何人廣播，達到完全隱密
         }
         
         gameState.phase = gameState.hunterOriginPhase;
@@ -460,6 +455,7 @@ function processDawn() {
         }
     });
 
+    // [修復] 絕對不提及獵人死亡
     let msg = deadThisNight.length > 0 ? `昨晚，${deadThisNight.join(', ')} 號玩家死亡。` : `昨晚是平安夜。`;
     gameState.systemLog = msg;
     broadcastTempMessage(msg);
@@ -518,6 +514,8 @@ function resolveVoting() {
         } else {
             tPlayer.isDead = true;
             if (tPlayer.role === '獵人') hunterDied = true;
+            
+            // [修復] 放逐只廣播誰出局，絕對不提獵人
             gameState.systemLog = `${finalTarget} 號被放逐出局。`;
             broadcastTempMessage(`${finalTarget} 號被放逐出局。`);
         }

@@ -1,5 +1,5 @@
 // ==========================================
-// v3.6 系統靜態常數與設定檔 (Static Config)
+// v3.7 系統靜態常數與設定檔 (Static Config)
 // ==========================================
 
 const PEER_CONFIG = { 
@@ -35,14 +35,15 @@ const PACKET_TYPE = {
     WOLF_PREVIEW: 'WOLF_PREVIEW'    
 };
 
-// [新增] 預設版型清單 (Board Templates)
+// 預設版型清單 (Board Templates)
 const BOARD_TEMPLATES = [
-    { id: "standard_6", name: "6人暗牌局", playerCount: 6, deck: ["預言家", "獵人", "狼人", "狼人", "平民", "平民"] },
-    { id: "standard_9", name: "9人標準局", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
-    { id: "standard_12", name: "12人標準局", playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }
+    { id: "standard_6", name: "6人 標準局 (含獵人)", playerCount: 6, deck: ["預言家", "獵人", "狼人", "狼人", "平民", "平民"] },
+    { id: "test_witch_6", name: "6人 女巫測試", playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "平民", "平民"] },
+    { id: "standard_9", name: "9人 標準局", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
+    { id: "standard_12", name: "12人 標準局", playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }
 ];
 
-// 夜間角色喚醒與行動字典 (v3.6 結構優化)
+// 夜間角色喚醒與行動字典
 const ROLE_DICTIONARY = {
     "平民": { wakeOrder: 0, actionType: "none", prompt: "" },
     "獵人": { wakeOrder: 0, actionType: "none", prompt: "" },

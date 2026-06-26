@@ -1,5 +1,5 @@
 // ==========================================
-// v3.6.6 視圖渲染引擎 (Pure View)
+// v3.6.7 視圖渲染引擎 (Pure View)
 // ==========================================
 
 const UI = {
@@ -20,23 +20,19 @@ const UI = {
         });
     },
 
-    // ----------------------------------------------------
-    // 玩家端 4:5 結構視圖渲染 (Player View)
-    // ----------------------------------------------------
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = []) {
-        // 1. 渲染頂部個人資訊
         document.getElementById('player-seat-number').textContent = state.mySeat || '-';
         if (state.myRole) {
             document.getElementById('player-role-name').textContent = state.myRole;
             
             const cardImg = document.getElementById('my-card-img');
             if (cardImg) {
+                // 確保讀取 GitHub 資料夾內的圖片
                 cardImg.src = `./img/${state.myRole.split('-')[0]}.png`;
                 cardImg.classList.remove('hidden');
             }
         }
 
-        // 2. 渲染中央目標預覽與查驗結果標籤
         const previewEl = document.getElementById('target-preview-circle');
         const previewImg = document.getElementById('target-preview-img');
         let previewLabel = document.getElementById('target-preview-label');
@@ -70,7 +66,6 @@ const UI = {
             if (previewEl) previewEl.classList.add('hidden');
         }
 
-        // 3. 渲染左右玩家列表
         const leftSeats = document.getElementById('left-seats');
         const rightSeats = document.getElementById('right-seats');
         if (!leftSeats || !rightSeats) return;
@@ -106,16 +101,17 @@ const UI = {
                 tagsHtml += `<div style="position: absolute; bottom: 12px; left: -10px; background: ${bgColor}; color: white; font-size: 10px; padding: 2px 4px; border-radius: 4px; font-weight: bold; z-index: 15; box-shadow: 0 0 5px rgba(0,0,0,0.5);">${p.knownAlignment}</div>`;
             }
 
+            // [修復] 加入 onerror 事件，若找不到圖片，則顯示完美置中的純文字號碼
             seat.innerHTML = `
                 <div class="role-label ${p.roleInfo ? '' : 'hidden'}">${p.roleInfo || ''}</div>
                 <div class="seat-img-wrapper">
-                    <img src="./img/seat_${p.seatNumber}.png" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none';">
+                    <img src="./img/seat_${p.seatNumber}.png" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-size:18px; font-weight:bold; color:#333;">${p.seatNumber}</div>
                 </div>
                 ${tagsHtml}
                 <div class="player-name">${p.name || '等待加入'}</div>
             `;
 
-            // 1~6 左側，7~12 右側
             if (p.seatNumber <= 6) {
                 leftSeats.appendChild(seat);
             } else {
@@ -123,7 +119,6 @@ const UI = {
             }
         });
 
-        // 4. 渲染中間操作區
         const actionPanel = document.getElementById('player-action-panel');
         const statusMsg = document.getElementById('player-status-message');
 
