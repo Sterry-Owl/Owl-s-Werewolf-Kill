@@ -37,7 +37,7 @@ const PACKET_TYPE = {
 
 // [新增] 預設版型清單 (Board Templates)
 const BOARD_TEMPLATES = [
-    { id: "standard_6", name: "6人暗牌局", playerCount: 6, deck: ["預言家", "守衛", "狼人", "狼人", "平民", "平民"] },
+    { id: "standard_6", name: "6人暗牌局", playerCount: 6, deck: ["預言家", "獵人", "狼人", "狼人", "平民", "平民"] },
     { id: "standard_9", name: "9人標準局", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "standard_12", name: "12人標準局", playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }
 ];
