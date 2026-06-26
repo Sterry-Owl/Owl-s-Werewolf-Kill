@@ -1,5 +1,5 @@
 // ==========================================
-// v3.6.2 核心主機引擎 (Smart Server / Strategy Pattern)
+// v3.6.2 核心主機引擎 (Smart Server / Strategy Pattern) - 修正版
 // ==========================================
 
 let hostPeer = null;
@@ -33,7 +33,7 @@ function isWolfRole(roleStr) {
 }
 
 // ==========================================
-// 角色外掛註冊表：核心引擎不包含任何特定角色名稱的 if-else
+// 角色外掛註冊表 (Role Plugins) - 徹底模組化結算邏輯
 // ==========================================
 const RolePlugins = {
     "狼人": {
@@ -390,7 +390,7 @@ function handleActionSubmit(peerId, payload) {
             const tPlayer = playersData.find(p => p.seatNumber === target);
             if (tPlayer) tPlayer.isDead = true;
             gameState.systemLog = `獵人開槍帶走了 ${target} 號玩家。`;
-            broadcastTempMessage(`獵人開槍帶走了 ${target} 號玩家。`;);
+            broadcastTempMessage(`獵人開槍帶走了 ${target} 號玩家。`);
         } else {
             gameState.systemLog = `獵人選擇不開槍。`;
             broadcastTempMessage(`獵人選擇不開槍。`);
@@ -417,7 +417,7 @@ function handleActionSubmit(peerId, payload) {
             step.resultLog = "【未定義結算模組】";
         }
         
-        // [關鍵修正] 倒數推進前，立刻執行一次全域狀態廣播，消除最後一個行動者的介面死鎖
+        // 即時廣播：強制消除最後一人的介面死鎖
         gameState.systemLog = `【${step.roleName}】行動完畢，即將切換...`;
         syncStateToAll();
         
@@ -560,7 +560,10 @@ function handleHostCommand(cmd) {
         const step = gameState.nightSequence[gameState.currentNightStepIndex];
         const plugin = RolePlugins[step.roleName];
         step.resultLog = plugin ? plugin.resolve(gameState.currentStepActions) : "【強制跳過】";
-        nextNightStep();
+        
+        gameState.systemLog = `【強制跳過】，即將切換...`;
+        syncStateToAll();
+        setTimeout(nextNightStep, 1000);
     } else if (cmd === 'START_VOTE') {
         gameState.phase = GAME_PHASE.DAY_VOTING;
         gameState.votes = {};
