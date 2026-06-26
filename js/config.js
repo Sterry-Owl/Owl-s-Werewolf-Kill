@@ -37,9 +37,9 @@ const PACKET_TYPE = {
 
 // [新增] 預設版型清單 (Board Templates)
 const BOARD_TEMPLATES = [
-    { id: "standard_6", name: "6人 標準局 (2狼 1預 1女 1獵 1民)", playerCount: 6, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "平民"] },
-    { id: "standard_9", name: "9人 標準局 (3狼 1預 1女 1獵 3民)", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
-    { id: "standard_12", name: "12人 預女獵白 (4狼 1預 1女 1獵 1白 4民)", playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }
+    { id: "standard_6", name: "6人暗牌局", playerCount: 6, deck: ["預言家", "守衛", "狼人", "狼人", "平民", "平民"] },
+    { id: "standard_9", name: "9人標準局", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
+    { id: "standard_12", name: "12人標準局", playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }
 ];
 
 // 夜間角色喚醒與行動字典 (v3.6 結構優化)
@@ -48,7 +48,6 @@ const ROLE_DICTIONARY = {
     "獵人": { wakeOrder: 0, actionType: "none", prompt: "" },
     "白痴": { wakeOrder: 0, actionType: "none", prompt: "" },
     "狼人": { wakeOrder: 11, actionType: "consensus", prompt: "選擇今晚的襲擊目標 (或選擇跳過以空刀)" },
-    // [修改] 將女巫合併為單一喚醒階段
     "女巫": { wakeOrder: 15, actionType: "dynamic_buttons", prompt: "女巫請行動" },
     "預言家": { wakeOrder: 17, actionType: "single_select", prompt: "選擇今晚的查驗目標" }
 };
