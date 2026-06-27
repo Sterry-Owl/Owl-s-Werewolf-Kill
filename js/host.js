@@ -1,5 +1,5 @@
 // ==========================================
-// v3.7.0 核心主機引擎 (Smart Server / Strategy Pattern)
+// v3.7.2 核心主機引擎 (Smart Server / Strategy Pattern)
 // ==========================================
 
 let hostPeer = null;
@@ -10,14 +10,18 @@ let currentRoomId = null;
 let gameState = {
     phase: GAME_PHASE.LOBBY,
     boardName: "",
-    rules: {},               // [新增] 存放遊戲規則
+    rules: {},               
     nightCount: 0,
     nightSequence: [],       
     currentNightStepIndex: -1, 
     expectedActionCount: 0,  
     currentStepActions: [],  
-    nightTimeout: null,      // [新增] 伺服器計時器
-    nightDeadline: null,     // [新增] 傳給前端的死線時間戳
+    nightTimeout: null,      
+    nightDeadline: null,     
+
+    // [新增] 投票專用計時器變數
+    voteTimeout: null,
+    voteDeadline: null,
     
     nightTags: { killed: [], poisoned: [], witchUsedSaveTonight: false },
     witchState: { antidoteUsed: false, poisonUsed: false, savedSeat: null }, 
@@ -26,10 +30,10 @@ let gameState = {
     currentVoteResultString: "", 
     lastWordsTargets: [],        
     nextPhaseAfterLastWords: null, 
-    nextPhaseAfterVoteDisplay: null, // [新增] 控制投票結果後的流向 (PK 用)
+    nextPhaseAfterVoteDisplay: null, 
     
-    isPK: false,             // [新增] PK 狀態旗標
-    pkTargets: [],           // [新增] 參與 PK 的玩家座號
+    isPK: false,             
+    pkTargets: [],           
 
     pendingHunter: false,        
     hunterOriginPhase: null, 
@@ -93,7 +97,6 @@ const RolePlugins = {
             let btns = [];
             const victim = gameState.nightTags.killed.length > 0 ? gameState.nightTags.killed[0] : null;
             
-            // [核心新增] 智慧判斷女巫自救規則
             let canSave = !gameState.witchState.antidoteUsed;
             if (canSave && victim === mySeat) {
                 const rule = gameState.rules.witchSave;
@@ -114,7 +117,7 @@ const RolePlugins = {
         getPassTags: () => [],
         resolve: (actions) => {
             const act = actions[0];
-            if (!act) return "【跳過行動】"; // Timeout default
+            if (!act) return "【跳過行動】"; 
             
             const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
             if (act.actionId === 'save' && !gameState.witchState.antidoteUsed) {
@@ -247,7 +250,6 @@ function checkAndTriggerWin() {
     let winner = null;
     let reason = "";
 
-    // [核心修改] 根據設定判斷屠城或屠邊
     if (gameState.rules.winCondition === 'kill_all') {
         if (godCount + villagerCount === 0) {
             winner = "狼人";
@@ -268,6 +270,7 @@ function checkAndTriggerWin() {
     if (winner) {
         gameState.phase = GAME_PHASE.GAME_OVER;
         if(gameState.nightTimeout) clearTimeout(gameState.nightTimeout);
+        if(gameState.voteTimeout) clearTimeout(gameState.voteTimeout);
         gameState.systemLog = `遊戲結束，${winner}陣營勝利！\n(${reason})`;
         broadcastTempMessage(`遊戲結束，${winner}陣營勝利！\n(${reason})`);
         syncStateToAll();
@@ -349,7 +352,7 @@ function buildStateForPlayer(player, isDayPhase) {
         
         if (myRoleInPhase && !player.isDead) {
             actionPanel.show = true;
-            actionPanel.deadline = gameState.nightDeadline; // 傳送倒數死線
+            actionPanel.deadline = gameState.nightDeadline; 
             
             const plugin = RolePlugins[myRoleInPhase.roleName];
             actionPanel.type = myRoleInPhase.roleDef.actionType;
@@ -367,14 +370,13 @@ function buildStateForPlayer(player, isDayPhase) {
                     actionPanel.prompt = (myRoleInPhase.roleName === "狼人") ? "等待隊友決定目標..." : "行動已送出，等待系統結算...";
                 }
                 actionPanel.buttons = []; 
-                actionPanel.deadline = null; // 隱藏計時器
+                actionPanel.deadline = null; 
             }
         }
     } 
     else if (gameState.phase === GAME_PHASE.DAY_VOTING || gameState.phase === GAME_PHASE.PK_VOTING) {
         const hasVoted = gameState.votes[player.seatNumber] !== undefined;
         const isPK = gameState.phase === GAME_PHASE.PK_VOTING;
-        // [新增] PK 階段，參與 PK 的目標不可投票
         const canVote = isPK ? !gameState.pkTargets.includes(player.seatNumber) : true;
 
         if (!player.isDead) {
@@ -388,6 +390,8 @@ function buildStateForPlayer(player, isDayPhase) {
             } else {
                 actionPanel.type = 'single_select'; 
                 actionPanel.prompt = isPK ? '請選擇 PK 放逐投票的目標：' : '請選擇放逐投票的目標：';
+                // [核心新增] 將前端死線傳入，復用完美的倒數機制
+                actionPanel.deadline = gameState.voteDeadline;
                 actionPanel.selectableSeats = isPK ? gameState.pkTargets : playersData.filter(p => !p.isDead).map(p => p.seatNumber);
                 actionPanel.submitPacketType = PACKET_TYPE.VOTE_SUBMIT;
                 actionPanel.buttons = [
@@ -490,6 +494,7 @@ function handleWolfExplode(peerId) {
     player.isDead = true;
     player.isRevealed = true; 
     if(gameState.nightTimeout) clearTimeout(gameState.nightTimeout);
+    if(gameState.voteTimeout) clearTimeout(gameState.voteTimeout);
     
     gameState.systemLog = `【突發事件】${player.seatNumber} 號玩家選擇自爆！`;
     broadcastTempMessage(`【突發事件】${player.seatNumber} 號玩家選擇自爆\n發言階段立即結束！`);
@@ -517,7 +522,6 @@ function startNightPhase() {
     nextNightStep();
 }
 
-// [核心重構] 並發時間軸分類器
 function buildNightSequence() {
     const alivePlayers = playersData.filter(p => !p.isDead);
     let phases = { 'first_half': [], 'midnight': [], 'second_half': [] };
@@ -545,7 +549,6 @@ function buildNightSequence() {
 function nextNightStep() {
     gameState.currentNightStepIndex++;
     if (gameState.currentNightStepIndex >= gameState.nightSequence.length) {
-        // [核心新增] 自動白天：不需按按鈕，流程走完自動結算
         processDawn();
         return;
     }
@@ -560,7 +563,6 @@ function nextNightStep() {
     wolfPreviews = {};
     gameState.systemLog = `正在等待【${currentPhase.phaseName}】行動...`;
     
-    // [核心新增] 啟動伺服器 30 秒自動結算
     if(gameState.nightTimeout) clearTimeout(gameState.nightTimeout);
     gameState.nightDeadline = Date.now() + 30000;
     gameState.nightTimeout = setTimeout(handleNightTimeout, 30000);
@@ -572,7 +574,6 @@ function handleNightTimeout() {
     if (gameState.phase !== GAME_PHASE.NIGHT_ACTION) return;
     const currentPhase = gameState.nightSequence[gameState.currentNightStepIndex];
     
-    // 找出尚未提交動作的玩家，強制代為提交 pass
     currentPhase.roles.forEach(roleObj => {
         roleObj.activePlayers.forEach(p => {
             const hasActed = gameState.currentStepActions.some(act => act.player.seatNumber === p.seatNumber);
@@ -582,6 +583,21 @@ function handleNightTimeout() {
         });
     });
     resolveCurrentNightStep();
+}
+
+// [核心新增] 投票逾時強制作為棄票處理
+function handleVoteTimeout() {
+    if (gameState.phase !== GAME_PHASE.DAY_VOTING && gameState.phase !== GAME_PHASE.PK_VOTING) return;
+    const isPK = gameState.phase === GAME_PHASE.PK_VOTING;
+
+    playersData.forEach(p => {
+        if (p.isDead) return;
+        if (isPK && gameState.pkTargets.includes(p.seatNumber)) return;
+        if (gameState.votes[p.seatNumber] === undefined) {
+            gameState.votes[p.seatNumber] = 'pass';
+        }
+    });
+    resolveVoting();
 }
 
 function resolveCurrentNightStep() {
@@ -599,7 +615,7 @@ function resolveCurrentNightStep() {
     
     gameState.systemLog = phaseLog;
     syncStateToAll();
-    setTimeout(nextNightStep, 3000); // 留 3 秒給狼人看結果
+    setTimeout(nextNightStep, 3000); 
 }
 
 function handleWolfPreview(peerId, targetSeat) {
@@ -655,7 +671,7 @@ function processDawn() {
         if (p.isDead) return;
         const seat = p.seatNumber;
         
-        // 將刀與毒分開判定
+        // [獵人規則修正] 刀毒分離判定
         const isKilled = gameState.nightTags.killed.includes(seat);
         const isPoisoned = gameState.nightTags.poisoned.includes(seat);
         
@@ -663,7 +679,7 @@ function processDawn() {
             p.isDead = true;
             deadThisNight.push(seat);
             
-            // [核心修正] 只有「沒吃毒」的獵人死亡時，才能觸發開槍
+            // 只有「未吃毒」的獵人可以開槍
             if (p.role === '獵人' && !isPoisoned) {
                 hunterDied = true;
                 p.isRevealed = true; 
@@ -682,7 +698,6 @@ function processDawn() {
     gameState.systemLog = msg;
     broadcastTempMessage(msg);
 
-    // 充置 PK 狀態
     gameState.isPK = false;
 
     if (hunterDied) {
@@ -703,13 +718,11 @@ function handleVoteSubmit(peerId, payload) {
     const voter = playersData.find(p => p.peerId === peerId);
     if (!voter || voter.isDead || gameState.votes[voter.seatNumber] !== undefined) return;
     
-    // 防呆：如果是 PK 投票，且投票者是 PK 目標，拒絕
     if (gameState.phase === GAME_PHASE.PK_VOTING && gameState.pkTargets.includes(voter.seatNumber)) return;
 
     const target = (payload.actionId === 'vote' && payload.targets && payload.targets.length > 0) ? payload.targets[0] : 'pass';
     gameState.votes[voter.seatNumber] = target;
 
-    // 計算預期票數
     const isPK = gameState.phase === GAME_PHASE.PK_VOTING;
     const aliveCount = playersData.filter(p => {
         if (p.isDead) return false;
@@ -725,6 +738,8 @@ function handleVoteSubmit(peerId, payload) {
 }
 
 function resolveVoting() {
+    if(gameState.voteTimeout) clearTimeout(gameState.voteTimeout);
+
     let voteCounts = {};
     let voteGroups = {}; 
     let validVotesCount = 0;
@@ -760,7 +775,6 @@ function resolveVoting() {
         resultLines.push(`。${voterNames} → ${targetName}`);
     }
 
-    // [核心新增] PK 判定邏輯
     if (isTie && validVotesCount > 0 && gameState.rules.tieResolution === 'pk' && !gameState.isPK) {
         gameState.isPK = true;
         gameState.pkTargets = [];
@@ -778,7 +792,6 @@ function resolveVoting() {
         return; 
     }
 
-    // 常規結算 (非 PK 或 PK 後仍平票)
     gameState.isPK = false;
     let header = isTie ? "投票結果出爐，平票或全數棄票，無人出局" : `投票結果出爐，${finalTarget} 號玩家出局`;
     let idiotSaved = false;
@@ -828,7 +841,7 @@ function buildNightFlowForHost() {
 
 function getDayBtnText() {
     if (gameState.phase === GAME_PHASE.DAY_DISCUSSION) return "發起放逐投票";
-    if (gameState.phase === GAME_PHASE.PK_SPEECH) return "發起 PK 投票"; // [新增]
+    if (gameState.phase === GAME_PHASE.PK_SPEECH) return "發起 PK 投票"; 
     if (gameState.phase === GAME_PHASE.VOTE_RESULT_DISPLAY) return "結束展示，進入下一步";
     if (gameState.phase === GAME_PHASE.LAST_WORDS) return "結束遺言，進入下一階段";
     if (gameState.phase === GAME_PHASE.DAWN_SETTLEMENT) return "進入白天並發布死訊";
@@ -843,7 +856,7 @@ function getDayBtnDisabled() {
 
 function getDayBtnCommand() {
     if (gameState.phase === GAME_PHASE.DAY_DISCUSSION) return "START_VOTE";
-    if (gameState.phase === GAME_PHASE.PK_SPEECH) return "START_PK_VOTE"; // [新增]
+    if (gameState.phase === GAME_PHASE.PK_SPEECH) return "START_PK_VOTE"; 
     if (gameState.phase === GAME_PHASE.VOTE_RESULT_DISPLAY) return "END_VOTE_DISPLAY";
     if (gameState.phase === GAME_PHASE.LAST_WORDS) return "END_LAST_WORDS";
     if (gameState.phase === GAME_PHASE.DAWN_SETTLEMENT) return "PROCESS_DAWN"; 
@@ -853,22 +866,27 @@ function getDayBtnCommand() {
 function handleHostCommand(cmd) {
     if (cmd === 'FORCE_NEXT') {
         if(gameState.nightTimeout) clearTimeout(gameState.nightTimeout);
-        handleNightTimeout(); // 呼叫超時自動填入機制
+        handleNightTimeout(); 
     } 
     else if (cmd === 'START_VOTE') {
         gameState.phase = GAME_PHASE.DAY_VOTING;
         gameState.votes = {};
         gameState.systemLog = "正在進行放逐投票...";
+        // [核心新增] 啟動投票計時器
+        gameState.voteDeadline = Date.now() + 30000;
+        gameState.voteTimeout = setTimeout(handleVoteTimeout, 30000);
         syncStateToAll();
     } 
     else if (cmd === 'START_PK_VOTE') {
         gameState.phase = GAME_PHASE.PK_VOTING;
         gameState.votes = {};
         gameState.systemLog = "正在進行 PK 投票...";
+        // [核心新增] 啟動投票計時器
+        gameState.voteDeadline = Date.now() + 30000;
+        gameState.voteTimeout = setTimeout(handleVoteTimeout, 30000);
         syncStateToAll();
     }
     else if (cmd === 'END_VOTE_DISPLAY') {
-        // [新增] 判斷是否需要進入 PK
         if (gameState.nextPhaseAfterVoteDisplay) {
             gameState.phase = gameState.nextPhaseAfterVoteDisplay;
             gameState.nextPhaseAfterVoteDisplay = null;
