@@ -74,7 +74,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 
 /* [修正 1] 解放寬度至 240px，讓按鈕不會擠到折行被卡牌擋住 */
 .action-panel {
-    width: 90%; max-width: 240px; min-height: 180px; 
+    width: 90%; max-width: 300px; min-height: 180px; 
     background: #5b705f; 
     border-radius: 16px; padding: 15px 10px;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
