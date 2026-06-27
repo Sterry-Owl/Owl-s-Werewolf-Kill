@@ -5,8 +5,16 @@
 const PEER_CONFIG = { 
     config: { 
         'iceServers': [
+            // 原本的 Google STUN 伺服器 (負責一般 Wi-Fi 牽線)
             { url: 'stun:stun.l.google.com:19302' }, 
-            { url: 'stun:stun1.l.google.com:19302' }
+            { url: 'stun:stun1.l.google.com:19302' },
+            
+            // [新增] 您的專屬 TURN 伺服器 (負責手機熱點與嚴格網路的穿透)
+            {
+                urls: "turn:owlswerewolf.metered.live:80",
+                username: "a89975f53fd97193003482df",
+                credential: "ShgDnEoNfkoSF2fh"
+            }
         ] 
     } 
 };
@@ -40,10 +48,9 @@ const PACKET_TYPE = {
 
 // 預設版型清單 (Board Templates)
 const BOARD_TEMPLATES = [
-    { id: "standard_6", name: "6人 標準局（含獵人）", playerCount: 6, deck: ["預言家", "獵人", "狼人", "狼人", "平民", "平民"] },
-    { id: "test_witch_6", name: "6人 標準局（含女巫）", playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "平民", "平民"] },
+    { id: "standard_6", name: "6人 標準局 (含獵人)", playerCount: 6, deck: ["預言家", "獵人", "狼人", "狼人", "平民", "平民"] },
+    { id: "test_witch_6", name: "6人 女巫測試", playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "平民", "平民"] },
     { id: "standard_9", name: "9人 標準局", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
-    { id: "standard_10", name: "10人 標準局", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "standard_12", name: "12人 標準局", playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }
 ];
 
