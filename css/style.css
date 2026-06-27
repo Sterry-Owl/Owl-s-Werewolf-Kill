@@ -63,18 +63,19 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 .seat-column::-webkit-scrollbar { display: none; }
 
-/* [修正 2] 將內邊距縮小，讓座位更貼緊螢幕邊緣 */
 #left-seats { align-items: flex-start; padding-left: 4px; }
 #right-seats { align-items: flex-end; padding-right: 4px; }
 
+/* [核心修正] 將 z-index 提升至 20，確保操作區域絕對蓋在卡牌 (15) 的上方 */
 .center-column { 
     flex: 1; display: flex; flex-direction: column; justify-content: space-between; 
-    align-items: center; padding: 5px 0 15px 0; min-width: 0; z-index: 10; pointer-events: none;
+    align-items: center; padding: 5px 0 15px 0; min-width: 0; 
+    z-index: 20; 
+    pointer-events: none;
 }
 
-/* [修正 1] 解放寬度至 240px，讓按鈕不會擠到折行被卡牌擋住 */
 .action-panel {
-    width: 90%; max-width: 300px; min-height: 180px; 
+    width: 90%; max-width: 240px; min-height: 180px; 
     background: #5b705f; 
     border-radius: 16px; padding: 15px 10px;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
@@ -83,7 +84,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 
 .action-timer {
-    font-size: 12px; font-weight: bold; color: #fff; margin-bottom: -5px;
+    font-size: 20px; font-weight: bold; color: #fff; margin-bottom: -5px;
     background: rgba(0,0,0,0.4); padding: 4px 12px; border-radius: 12px;
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
 }
@@ -98,7 +99,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     font-weight: bold; font-size: 11px; color: white; white-space: nowrap; z-index: 20; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
 }
 
-.action-prompt { font-weight: bold; color: white; text-align: center; font-size: 12px; line-height: 1.5; width: 100%; white-space: pre-wrap; }
+.action-prompt { font-weight: bold; color: white; text-align: center; font-size: 14px; line-height: 1.5; width: 100%; white-space: pre-wrap; }
 .action-buttons-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; width: 100%; }
 .action-buttons-row button { flex: 1; min-width: 60px; padding: 12px 5px; font-size: 13px; border: 1px solid rgba(0,0,0,0.3); }
 
@@ -152,7 +153,6 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     color: #111; padding: 3px 8px; border-radius: 6px; 
     font-size: 10px; font-weight: bold; z-index: 15; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.4); 
 }
-/* [修正 3] 將距離從 10px 縮小至 4px，讓標籤更貼近頭像 */
 .side-tag.align-right { left: 100%; margin-left: 4px; }
 .side-tag.align-left { right: 100%; margin-right: 4px; }
 
