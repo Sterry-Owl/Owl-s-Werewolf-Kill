@@ -55,7 +55,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 /* [核心重構] 加大容器，讓滾動條(overflow-y)與內部側標籤和平共處 */
 .seat-column { 
     display: flex; flex-direction: column; 
-    padding-top: 35px; padding-bottom: 35vh; gap: 25px; 
+    padding-top: 24px; padding-bottom: 35vh; gap: 24px; 
     width: 110px; /* 足夠容納頭像與向外生長的標籤 */
     box-sizing: border-box;
     flex-shrink: 0; z-index: 5;
