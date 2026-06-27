@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天黑請閉眼 v3.7</title>
-    <!-- 引入我們寫好的 CSS -->
+    <title>天黑請閉眼 v3.8</title>
     <link rel="stylesheet" href="css/style.css">
-    <!-- 引入 PeerJS 網路連線模組 -->
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
@@ -38,13 +36,11 @@
             <h2>主控台 (房間：<span id="display-room-id" style="color: var(--accent-red);"></span>)</h2>
             <div id="host-status-log" class="system-log">等待遊戲開始...</div>
             
-            <!-- 遊戲設定面板 -->
             <div id="host-setup-panel" class="section">
                 <h3>選擇遊戲版型</h3>
                 <select id="select-board-template"></select>
                 <p id="template-deck-preview" style="font-size: 14px; color: #aaa;"></p>
                 
-                <!-- [新增] 遊戲規則客製化區塊 -->
                 <h3 style="margin-top:20px; border-bottom: 1px solid #444; padding-bottom: 10px;">遊戲規則設定</h3>
                 <div style="margin-bottom: 10px;">
                     <label>女巫自救：</label>
@@ -63,7 +59,7 @@
                     </select>
                 </div>
                 
-                <div style="margin-bottom: 20px;">
+                <div style="margin-bottom: 10px;">
                     <label>放逐平票處置：</label>
                     <select id="rule-tie-resolution">
                         <option value="pk">PK 發言與投票</option>
@@ -71,10 +67,18 @@
                     </select>
                 </div>
 
+                <!-- [新增] 警長機制設定 -->
+                <div style="margin-bottom: 20px;">
+                    <label>警長機制：</label>
+                    <select id="rule-sheriff">
+                        <option value="enabled">開啟警長 (首日競選)</option>
+                        <option value="disabled">無警長</option>
+                    </select>
+                </div>
+
                 <button id="btn-start-game" class="btn-success" style="width:100%; padding: 15px; font-size: 16px;">確認配置並發牌</button>
             </div>
 
-            <!-- 主控台流程控制面板 -->
             <div id="host-control-panel" class="hidden">
                 <div id="host-night-panel" class="section hidden">
                     <h3>夜間行動進度</h3>
@@ -105,10 +109,8 @@
                 </div>
                 
                 <div class="app-body">
-                    <!-- 左列座位 -->
                     <div id="left-seats" class="seat-column"></div>
                     
-                    <!-- 中央操作區 -->
                     <div class="center-column">
                         <div id="dynamic-action-panel" class="action-panel">
                             <div id="target-preview-circle" class="target-preview hidden">
@@ -120,25 +122,23 @@
                         </div>
                     </div>
                     
-                    <!-- 右列座位 -->
                     <div id="right-seats" class="seat-column"></div>
                     
-                    <!-- 底部卡牌與歷史紀錄面板 -->
                     <div class="card-panel">
                         <img id="my-card-img" class="my-card hidden" src="">
                         <div id="vote-history-panel" class="vote-history-panel hidden"></div>
                     </div>
                 </div>
                 
-                <!-- 浮動按鈕 (自爆與歷史紀錄，背景圖片由 CSS 控制) -->
+                <!-- 浮動按鈕 -->
                 <button id="btn-self-explode" class="floating-btn red hidden"></button>
+                <button id="btn-bailout" class="floating-btn blue hidden"></button> <!-- [新增] 藍色退水按鈕 -->
                 <button id="btn-vote-history" class="floating-btn yellow hidden"></button>
 
             </div>
         </div>
     </div>
 
-    <!-- 載入我們模組化分離的 JS 邏輯 -->
     <script src="js/config.js"></script>
     <script src="js/host.js"></script>
     <script src="js/ui.js"></script>
