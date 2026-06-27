@@ -54,18 +54,24 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 
 .seat-column { 
     display: flex; flex-direction: column; justify-content: flex-start;
-    padding-top: 10px; padding-bottom: 140px;
-    gap: 12px; width: 60px; flex-shrink: 0; z-index: 5;
+    padding-top: 10px; 
+    padding-bottom: 35vh; /* [修改] 配合放大的底部牌卡，預留更寬敞的底部空間 */
+    gap: 24px; /* [修改] 完美 24px 間距，避免 topTag 蓋到暱稱 */
+    width: 60px; flex-shrink: 0; z-index: 5;
+    overflow-y: auto; /* 若人數較多仍可輕微滑動 */
 }
+.seat-column::-webkit-scrollbar { display: none; }
 
 .center-column { 
     flex: 1; display: flex; flex-direction: column; justify-content: space-between; 
     align-items: center; padding: 5px 0 15px 0; min-width: 0; z-index: 10; pointer-events: none;
 }
 
-/* 綠色操作區 (現已兼任所有系統訊息面板) */
+/* 綠色操作區 */
 .action-panel {
-    width: 85%; max-width: 210px; min-height: 200px; background: #2d5a2d; 
+    width: 85%; 
+    max-width: 170px; /* [修改] 縮小操作區寬度，讓出左右標籤空間 */
+    min-height: 200px; background: #2d5a2d; 
     border-radius: 16px; padding: 20px 10px;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;
     border: 2px solid #3d7a3d; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
@@ -95,10 +101,17 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     display: flex; flex-direction: column; align-items: center; width: 80%;
     pointer-events: auto; z-index: 15;
 }
-.my-card { width: 80px; height: 115px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #111; }
+
+/* [修改] 牌卡高度設定為畫面 33% 左右，並自動決定寬度 */
+.my-card { 
+    height: 33vh; max-height: 250px; min-height: 150px; width: auto; 
+    object-fit: contain; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.7); border: 2px solid #111; 
+}
 
 .vote-history-panel {
-    width: 100%; height: 115px; background: rgba(0,0,0,0.85); border-radius: 8px;
+    width: 100%; 
+    height: 33vh; max-height: 250px; min-height: 150px; /* 同步牌卡大小 */
+    background: rgba(0,0,0,0.85); border-radius: 8px;
     border: 2px solid var(--wolf-yellow); padding: 10px; overflow-y: auto;
     color: white; font-size: 12px; line-height: 1.6; box-sizing: border-box; text-align: left;
 }
@@ -114,15 +127,14 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .floating-btn.yellow { background: var(--wolf-yellow); color: #000; right: 15px; }
 
 /* ==================================================== */
-/* 座位與標籤重構 (對齊示意圖) */
+/* 座位與標籤重構 */
 /* ==================================================== */
 .player-seat { display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; width: 100%; }
 .seat-img-wrapper { 
     width: 42px; height: 42px; border-radius: 50%; background: #ddd; 
-    border: 2px solid #555; position: relative; transition: 0.2s; flex-shrink: 0; overflow: visible; /* 允許標籤溢出 */
+    border: 2px solid #555; position: relative; transition: 0.2s; flex-shrink: 0; overflow: visible; 
 }
 
-/* [新增] 頂部藍綠色標籤 */
 .top-tag { 
     position: absolute; top: -16px; left: 50%; transform: translateX(-50%); 
     background: #a8e8e2; color: #111; padding: 2px 6px; border-radius: 8px; 
@@ -130,13 +142,17 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     box-shadow: 0 2px 4px rgba(0,0,0,0.5); 
 }
 
-/* [新增] 右側淺黃色標籤 */
-.right-tag { 
-    position: absolute; top: 50%; left: 100%; transform: translateY(-50%); margin-left: 6px;
+/* [修改] 智慧側邊標籤基礎樣式 */
+.side-tag { 
+    position: absolute; top: 50%; transform: translateY(-50%);
     background: #fdf5c9; color: #111; padding: 2px 6px; border-radius: 8px; 
     font-size: 10px; font-weight: bold; z-index: 15; white-space: nowrap; 
     box-shadow: 0 2px 4px rgba(0,0,0,0.5); 
 }
+/* [修改] 左側玩家的標籤在右邊 */
+.side-tag.align-right { left: 100%; margin-left: 6px; }
+/* [修改] 右側玩家的標籤在左邊 */
+.side-tag.align-left { right: 100%; margin-right: 6px; }
 
 .player-seat:hover:not(.locked):not(.dead) .seat-img-wrapper { border-color: var(--accent-blue); }
 .player-seat.selected .seat-img-wrapper { border-color: var(--accent-green) !important; box-shadow: 0 0 10px var(--accent-green) !important; }
