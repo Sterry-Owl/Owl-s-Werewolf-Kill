@@ -49,33 +49,35 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 
 .app-body { 
     flex: 1; display: flex; flex-direction: row; padding: 10px; gap: 8px; 
-    background: #2b3a42; /* [修改] 暗的藍灰色 */
+    background: #2b3a42; 
     overflow: hidden; position: relative;
 }
 
 .seat-column { 
     display: flex; flex-direction: column; 
     padding-top: 35px; padding-bottom: 35vh; gap: 25px; 
-    width: 125px; /* [修改] 再度加寬，絕對杜絕標籤被切斷 */
+    width: 125px; 
     box-sizing: border-box;
     flex-shrink: 0; z-index: 5;
     overflow-y: auto; overflow-x: hidden; 
 }
 .seat-column::-webkit-scrollbar { display: none; }
 
-#left-seats { align-items: flex-start; padding-left: 15px; }
-#right-seats { align-items: flex-end; padding-right: 15px; }
+/* [修正 2] 將內邊距縮小，讓座位更貼緊螢幕邊緣 */
+#left-seats { align-items: flex-start; padding-left: 4px; }
+#right-seats { align-items: flex-end; padding-right: 4px; }
 
 .center-column { 
     flex: 1; display: flex; flex-direction: column; justify-content: space-between; 
     align-items: center; padding: 5px 0 15px 0; min-width: 0; z-index: 10; pointer-events: none;
 }
 
+/* [修正 1] 解放寬度至 240px，讓按鈕不會擠到折行被卡牌擋住 */
 .action-panel {
-    width: 85%; max-width: 170px; min-height: 200px; 
-    background: #5b705f; /* [修改] 飽和度低的綠色 */
-    border-radius: 16px; padding: 20px 10px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;
+    width: 90%; max-width: 240px; min-height: 180px; 
+    background: #5b705f; 
+    border-radius: 16px; padding: 15px 10px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
     border: 2px solid #4a5c4d; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
     pointer-events: auto; transition: 0.3s;
 }
@@ -100,15 +102,13 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .action-buttons-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; width: 100%; }
 .action-buttons-row button { flex: 1; min-width: 60px; padding: 12px 5px; font-size: 13px; border: 1px solid rgba(0,0,0,0.3); }
 
-/* [核心修正] 解除隱形盾牌，讓下方座位恢復可點擊狀態 */
 .card-panel {
     position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
     display: flex; flex-direction: column; align-items: center; width: 80%;
-    pointer-events: none; /* 讓點擊直接穿透容器 */
+    pointer-events: none; 
     z-index: 15;
 }
 
-/* 確保卡牌與歷史紀錄本身依然可以操作 */
 .my-card { 
     height: 33vh; max-height: 250px; min-height: 150px; width: auto; 
     object-fit: contain; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.7); border: 2px solid #111; 
@@ -152,8 +152,9 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     color: #111; padding: 3px 8px; border-radius: 6px; 
     font-size: 10px; font-weight: bold; z-index: 15; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.4); 
 }
-.side-tag.align-right { left: 100%; margin-left: 10px; }
-.side-tag.align-left { right: 100%; margin-right: 10px; }
+/* [修正 3] 將距離從 10px 縮小至 4px，讓標籤更貼近頭像 */
+.side-tag.align-right { left: 100%; margin-left: 4px; }
+.side-tag.align-left { right: 100%; margin-right: 4px; }
 
 .side-tag.tag-silver { background: #bfbfbf; color: #000; }
 .side-tag.tag-gold { background: #ffdb4d; color: #000; }
