@@ -1,5 +1,5 @@
 // ==========================================
-// v3.7.0 系統靜態常數與設定檔 (Static Config)
+// v3.8.0 系統靜態常數與設定檔 (Static Config)
 // ==========================================
 
 const PEER_CONFIG = { 
@@ -11,15 +11,20 @@ const PEER_CONFIG = {
     } 
 };
 
+// 狀態機列舉 (State Machine Enums)
 const GAME_PHASE = {
     LOBBY: 'LOBBY',
     NIGHT_TRANSITION: 'NIGHT_TRANSITION',
     NIGHT_ACTION: 'NIGHT_ACTION',
     DAWN_SETTLEMENT: 'DAWN_SETTLEMENT',
+    SHERIFF_CANDIDACY: 'SHERIFF_CANDIDACY', // [新增] 上警階段 (詢問是否參選)
+    SHERIFF_SPEECH: 'SHERIFF_SPEECH',       // [新增] 競選發言階段 (可退水)
+    SHERIFF_VOTING: 'SHERIFF_VOTING',       // [新增] 警長投票階段
+    SHERIFF_TRANSFER: 'SHERIFF_TRANSFER',   // [新增] 移交或撕毀警徽
     DAY_DISCUSSION: 'DAY_DISCUSSION',
     DAY_VOTING: 'DAY_VOTING',
-    PK_SPEECH: 'PK_SPEECH',         // [新增] 平票 PK 發言
-    PK_VOTING: 'PK_VOTING',         // [新增] 平票 PK 投票
+    PK_SPEECH: 'PK_SPEECH',         
+    PK_VOTING: 'PK_VOTING',         
     VOTE_SETTLEMENT: 'VOTE_SETTLEMENT',
     VOTE_RESULT_DISPLAY: 'VOTE_RESULT_DISPLAY', 
     LAST_WORDS: 'LAST_WORDS',                   
@@ -37,7 +42,8 @@ const PACKET_TYPE = {
     ACTION_SUBMIT: 'ACTION_SUBMIT', 
     VOTE_SUBMIT: 'VOTE_SUBMIT',     
     WOLF_PREVIEW: 'WOLF_PREVIEW',
-    WOLF_EXPLODE: 'WOLF_EXPLODE'    
+    WOLF_EXPLODE: 'WOLF_EXPLODE',
+    SHERIFF_BAILOUT: 'SHERIFF_BAILOUT' // [新增] 退水專用非同步封包
 };
 
 const BOARD_TEMPLATES = [

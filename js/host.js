@@ -1,5 +1,5 @@
 // ==========================================
-// v3.7.2 核心主機引擎 (Smart Server / Strategy Pattern)
+// v3.8.0 核心主機引擎 (Smart Server / Strategy Pattern)
 // ==========================================
 
 let hostPeer = null;
@@ -19,7 +19,6 @@ let gameState = {
     nightTimeout: null,      
     nightDeadline: null,     
 
-    // [新增] 投票專用計時器變數
     voteTimeout: null,
     voteDeadline: null,
     
@@ -28,12 +27,28 @@ let gameState = {
     votes: {},
     voteHistory: [],             
     currentVoteResultString: "", 
+    
+    // [新增] 暗中結算的暫存區 (為了先選警長再發布死訊)
+    deadThisNight: [],
+    hunterDiedThisNight: false,
+
     lastWordsTargets: [],        
     nextPhaseAfterLastWords: null, 
     nextPhaseAfterVoteDisplay: null, 
     
     isPK: false,             
     pkTargets: [],           
+
+    // [新增] 警長系統專屬資料庫
+    sheriff: {
+        enabled: false,
+        seat: null,
+        candidates: [],
+        withdrawn: [],
+        badgeLost: false,
+        electionDay: 1, 
+        electionFinishedToday: false 
+    },
 
     pendingHunter: false,        
     hunterOriginPhase: null, 
@@ -199,6 +214,7 @@ function setupHostConnectionListeners(conn) {
             case PACKET_TYPE.VOTE_SUBMIT: handleVoteSubmit(conn.peer, data.payload); break;
             case PACKET_TYPE.WOLF_PREVIEW: handleWolfPreview(conn.peer, data.payload.target); break;
             case PACKET_TYPE.WOLF_EXPLODE: handleWolfExplode(conn.peer); break;
+            case PACKET_TYPE.SHERIFF_BAILOUT: handleSheriffBailout(conn.peer); break; // [新增]
         }
     });
 }
@@ -232,6 +248,8 @@ window.startGame = function(selectedRoles, boardName, rules) {
     
     gameState.boardName = boardName;
     gameState.rules = rules;
+    gameState.sheriff.enabled = (rules.sheriff === 'enabled'); // [新增] 初始化警長設定
+    
     gameState.systemLog = '發牌完成，準備進入第一天夜晚...';
     gameState.phase = GAME_PHASE.NIGHT_TRANSITION;
     syncStateToAll();
@@ -280,7 +298,7 @@ function checkAndTriggerWin() {
 }
 
 function syncStateToAll() {
-    const isDayPhase = [GAME_PHASE.DAWN_SETTLEMENT, GAME_PHASE.DAY_DISCUSSION, GAME_PHASE.DAY_VOTING, GAME_PHASE.PK_SPEECH, GAME_PHASE.PK_VOTING, GAME_PHASE.VOTE_RESULT_DISPLAY, GAME_PHASE.LAST_WORDS, GAME_PHASE.GAME_OVER].includes(gameState.phase);
+    const isDayPhase = [GAME_PHASE.DAWN_SETTLEMENT, GAME_PHASE.SHERIFF_CANDIDACY, GAME_PHASE.SHERIFF_SPEECH, GAME_PHASE.SHERIFF_VOTING, GAME_PHASE.SHERIFF_TRANSFER, GAME_PHASE.DAY_DISCUSSION, GAME_PHASE.DAY_VOTING, GAME_PHASE.PK_SPEECH, GAME_PHASE.PK_VOTING, GAME_PHASE.VOTE_RESULT_DISPLAY, GAME_PHASE.LAST_WORDS, GAME_PHASE.GAME_OVER].includes(gameState.phase);
 
     const hostState = {
         systemLog: gameState.systemLog,
@@ -321,7 +339,10 @@ function buildStateForPlayer(player, isDayPhase) {
             topTag = "狼人"; 
         }
 
-        if (player.role === '預言家' && player.seerRecords && player.seerRecords[p.seatNumber]) {
+        // [新增] 標籤優先權設定：警長 > 其他
+        if (gameState.sheriff.seat === p.seatNumber) {
+            sideTag = "警長";
+        } else if (player.role === '預言家' && player.seerRecords && player.seerRecords[p.seatNumber]) {
             sideTag = player.seerRecords[p.seatNumber]; 
         } else if (player.role === '女巫' && gameState.witchState.savedSeat === p.seatNumber) {
             sideTag = "銀水"; 
@@ -338,7 +359,9 @@ function buildStateForPlayer(player, isDayPhase) {
 
         return { 
             seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, 
-            topTag: topTag, sideTag: sideTag, wolfPreviewTags: wolfPreviewTags, isWolfSelected: isWolfSelected    
+            topTag: topTag, sideTag: sideTag, wolfPreviewTags: wolfPreviewTags, isWolfSelected: isWolfSelected,
+            isCandidate: gameState.sheriff.candidates.includes(p.seatNumber), // [新增] 綠色競選圓圈
+            hasWithdrawn: gameState.sheriff.withdrawn.includes(p.seatNumber)  // [新增] 灰色退水圓圈
         };
     });
 
@@ -374,6 +397,64 @@ function buildStateForPlayer(player, isDayPhase) {
             }
         }
     } 
+    // [新增] 上警意願階段
+    else if (gameState.phase === GAME_PHASE.SHERIFF_CANDIDACY) {
+        const hasActed = gameState.currentStepActions.some(act => act.player.seatNumber === player.seatNumber);
+        if (!player.isDead) {
+            actionPanel.show = true;
+            if (hasActed) {
+                actionPanel.prompt = "已登記，等待其他玩家決定...";
+                actionPanel.buttons = [];
+            } else {
+                actionPanel.prompt = "是否要參與【警長競選】？";
+                actionPanel.submitPacketType = PACKET_TYPE.ACTION_SUBMIT;
+                actionPanel.buttons = [
+                    { id: 'run', text: '競選', requiresTarget: false },
+                    { id: 'pass', text: '不競選', requiresTarget: false }
+                ];
+            }
+        }
+    }
+    // [新增] 警長投票階段
+    else if (gameState.phase === GAME_PHASE.SHERIFF_VOTING) {
+        const hasVoted = gameState.votes[player.seatNumber] !== undefined;
+        const isEligibleToVote = !gameState.sheriff.candidates.includes(player.seatNumber) && !gameState.sheriff.withdrawn.includes(player.seatNumber);
+
+        if (!player.isDead) {
+            actionPanel.show = true;
+            if (!isEligibleToVote) {
+                actionPanel.prompt = "你是警上玩家（或已退水），無法參與警長投票。";
+                actionPanel.buttons = [];
+            } else if (hasVoted) {
+                actionPanel.prompt = "投票完成，等待其他玩家...";
+                actionPanel.buttons = [];
+            } else {
+                actionPanel.type = 'single_select';
+                actionPanel.prompt = '請選擇你要投票的警長候選人：';
+                actionPanel.deadline = gameState.voteDeadline;
+                actionPanel.selectableSeats = gameState.sheriff.candidates;
+                actionPanel.submitPacketType = PACKET_TYPE.VOTE_SUBMIT;
+                actionPanel.buttons = [
+                    { id: 'vote', text: '投票', requiresTarget: true },
+                    { id: 'pass', text: '棄票', requiresTarget: false }
+                ];
+            }
+        }
+    }
+    // [新增] 移交警徽階段
+    else if (gameState.phase === GAME_PHASE.SHERIFF_TRANSFER) {
+        if (player.seatNumber === gameState.sheriff.seat) { // 只有死掉的警長能操作
+            actionPanel.show = true;
+            actionPanel.type = 'single_select';
+            actionPanel.prompt = '你已死亡。請選擇要移交警徽的玩家，或撕毀警徽：';
+            actionPanel.selectableSeats = playersData.filter(p => !p.isDead).map(p => p.seatNumber);
+            actionPanel.submitPacketType = PACKET_TYPE.ACTION_SUBMIT;
+            actionPanel.buttons = [
+                { id: 'transfer', text: '移交警徽', requiresTarget: true },
+                { id: 'pass', text: '撕毀警徽', requiresTarget: false }
+            ];
+        }
+    }
     else if (gameState.phase === GAME_PHASE.DAY_VOTING || gameState.phase === GAME_PHASE.PK_VOTING) {
         const hasVoted = gameState.votes[player.seatNumber] !== undefined;
         const isPK = gameState.phase === GAME_PHASE.PK_VOTING;
@@ -390,7 +471,7 @@ function buildStateForPlayer(player, isDayPhase) {
             } else {
                 actionPanel.type = 'single_select'; 
                 actionPanel.prompt = isPK ? '請選擇 PK 放逐投票的目標：' : '請選擇放逐投票的目標：';
-                // [核心新增] 將前端死線傳入，復用完美的倒數機制
+                if (gameState.sheriff.seat === player.seatNumber) actionPanel.prompt += '\n(你是警長，擁有 1.5 票)';
                 actionPanel.deadline = gameState.voteDeadline;
                 actionPanel.selectableSeats = isPK ? gameState.pkTargets : playersData.filter(p => !p.isDead).map(p => p.seatNumber);
                 actionPanel.submitPacketType = PACKET_TYPE.VOTE_SUBMIT;
@@ -462,7 +543,8 @@ function buildStateForPlayer(player, isDayPhase) {
         actionPanel: actionPanel,
         latestCheckResult: player.latestCheckResult || null,
         voteHistory: gameState.voteHistory,
-        allowSelfExplode: !player.isDead && isDayPhase && RolePlugins[player.role]?.canSelfExplode 
+        allowSelfExplode: !player.isDead && isDayPhase && RolePlugins[player.role]?.canSelfExplode,
+        allowBailout: !player.isDead && gameState.phase === GAME_PHASE.SHERIFF_SPEECH && gameState.sheriff.candidates.includes(player.seatNumber) // [新增] 退水按鈕判定
     };
 }
 
@@ -471,6 +553,10 @@ function getPhaseMessageForPlayer() {
         case GAME_PHASE.NIGHT_TRANSITION: return "天黑請閉眼...";
         case GAME_PHASE.NIGHT_ACTION: return "夜間行動中，請等待...";
         case GAME_PHASE.DAWN_SETTLEMENT: return "天亮結算中...";
+        case GAME_PHASE.SHERIFF_CANDIDACY: return "正在登記警長競選意願..."; // [新增]
+        case GAME_PHASE.SHERIFF_SPEECH: return "警長競選發言中..."; // [新增]
+        case GAME_PHASE.SHERIFF_VOTING: return "正在進行警長選舉投票..."; // [新增]
+        case GAME_PHASE.SHERIFF_TRANSFER: return "警長倒牌，移交警徽中..."; // [新增]
         case GAME_PHASE.DAY_DISCUSSION: return "白天發言階段。";
         case GAME_PHASE.DAY_VOTING: return "正在進行放逐投票...";
         case GAME_PHASE.PK_SPEECH: return "正在進行 PK 發言...";
@@ -484,11 +570,25 @@ function getPhaseMessageForPlayer() {
     }
 }
 
+// [核心新增] 退水封包處置
+function handleSheriffBailout(peerId) {
+    if (gameState.phase !== GAME_PHASE.SHERIFF_SPEECH) return;
+    const player = playersData.find(p => p.peerId === peerId);
+    if (!player || !gameState.sheriff.candidates.includes(player.seatNumber)) return;
+    
+    // 從參選名單拔除，加入退水名單
+    gameState.sheriff.candidates = gameState.sheriff.candidates.filter(s => s !== player.seatNumber);
+    gameState.sheriff.withdrawn.push(player.seatNumber);
+    
+    gameState.systemLog = `【突發事件】${player.seatNumber} 號玩家選擇退水！`;
+    syncStateToAll();
+}
+
 function handleWolfExplode(peerId) {
     const player = playersData.find(p => p.peerId === peerId);
     if (!player || player.isDead) return;
     
-    const isDayPhase = [GAME_PHASE.DAWN_SETTLEMENT, GAME_PHASE.DAY_DISCUSSION, GAME_PHASE.DAY_VOTING, GAME_PHASE.PK_SPEECH, GAME_PHASE.PK_VOTING, GAME_PHASE.VOTE_RESULT_DISPLAY, GAME_PHASE.LAST_WORDS].includes(gameState.phase);
+    const isDayPhase = [GAME_PHASE.DAWN_SETTLEMENT, GAME_PHASE.SHERIFF_CANDIDACY, GAME_PHASE.SHERIFF_SPEECH, GAME_PHASE.SHERIFF_VOTING, GAME_PHASE.SHERIFF_TRANSFER, GAME_PHASE.DAY_DISCUSSION, GAME_PHASE.DAY_VOTING, GAME_PHASE.PK_SPEECH, GAME_PHASE.PK_VOTING, GAME_PHASE.VOTE_RESULT_DISPLAY, GAME_PHASE.LAST_WORDS].includes(gameState.phase);
     if (!isDayPhase || !RolePlugins[player.role]?.canSelfExplode) return;
 
     player.isDead = true;
@@ -496,9 +596,17 @@ function handleWolfExplode(peerId) {
     if(gameState.nightTimeout) clearTimeout(gameState.nightTimeout);
     if(gameState.voteTimeout) clearTimeout(gameState.voteTimeout);
     
-    gameState.systemLog = `【突發事件】${player.seatNumber} 號玩家選擇自爆！`;
-    broadcastTempMessage(`【突發事件】${player.seatNumber} 號玩家選擇自爆\n發言階段立即結束！`);
-    
+    // [核心新增] 自爆吞警徽防呆
+    if ([GAME_PHASE.SHERIFF_CANDIDACY, GAME_PHASE.SHERIFF_SPEECH, GAME_PHASE.SHERIFF_VOTING].includes(gameState.phase)) {
+        gameState.sheriff.electionDay++;
+        if (gameState.sheriff.electionDay > 2) gameState.sheriff.badgeLost = true;
+        gameState.systemLog = `【突發事件】${player.seatNumber} 號玩家自爆！\n選舉中斷（視同平票）。`;
+        broadcastTempMessage(`【突發事件】${player.seatNumber} 號玩家自爆！\n選舉中斷，直接進入黑夜！`);
+    } else {
+        gameState.systemLog = `【突發事件】${player.seatNumber} 號玩家選擇自爆！`;
+        broadcastTempMessage(`【突發事件】${player.seatNumber} 號玩家選擇自爆\n發言階段立即結束！`);
+    }
+
     if (checkAndTriggerWin()) return;
 
     gameState.phase = GAME_PHASE.NIGHT_TRANSITION;
@@ -585,14 +693,17 @@ function handleNightTimeout() {
     resolveCurrentNightStep();
 }
 
-// [核心新增] 投票逾時強制作為棄票處理
 function handleVoteTimeout() {
-    if (gameState.phase !== GAME_PHASE.DAY_VOTING && gameState.phase !== GAME_PHASE.PK_VOTING) return;
+    if (![GAME_PHASE.DAY_VOTING, GAME_PHASE.PK_VOTING, GAME_PHASE.SHERIFF_VOTING].includes(gameState.phase)) return;
+    
     const isPK = gameState.phase === GAME_PHASE.PK_VOTING;
+    const isSheriff = gameState.phase === GAME_PHASE.SHERIFF_VOTING;
 
     playersData.forEach(p => {
         if (p.isDead) return;
         if (isPK && gameState.pkTargets.includes(p.seatNumber)) return;
+        if (isSheriff && (gameState.sheriff.candidates.includes(p.seatNumber) || gameState.sheriff.withdrawn.includes(p.seatNumber))) return;
+        
         if (gameState.votes[p.seatNumber] === undefined) {
             gameState.votes[p.seatNumber] = 'pass';
         }
@@ -640,6 +751,13 @@ function handleActionSubmit(peerId, payload) {
             gameState.systemLog = `獵人開槍帶走了 ${target} 號玩家。`;
             broadcastTempMessage(`【突發事件】一聲槍響，${target} 號玩家被帶走。`);
             
+            // [新增] 開槍打到警長，觸發移交
+            if (target === gameState.sheriff.seat) {
+                gameState.phase = GAME_PHASE.SHERIFF_TRANSFER;
+                syncStateToAll();
+                return;
+            }
+
             if (checkAndTriggerWin()) return;
         } else {
             gameState.systemLog = `獵人選擇不開槍/無技能。`;
@@ -649,6 +767,56 @@ function handleActionSubmit(peerId, payload) {
         syncStateToAll();
 
         if (gameState.phase === GAME_PHASE.NIGHT_TRANSITION) setTimeout(startNightPhase, 4000);
+        return;
+    }
+
+    // [新增] 移交警徽決策
+    if (gameState.phase === GAME_PHASE.SHERIFF_TRANSFER && actingPlayer.seatNumber === gameState.sheriff.seat) {
+        if (payload.actionId === 'transfer' && payload.targets && payload.targets.length > 0) {
+            gameState.sheriff.seat = payload.targets[0];
+            gameState.systemLog = `【警長傳承】前任警長將警徽交給了 ${gameState.sheriff.seat} 號玩家。`;
+        } else {
+            gameState.sheriff.seat = null;
+            gameState.sheriff.badgeLost = true;
+            gameState.systemLog = `【警徽流失】前任警長選擇撕毀警徽。`;
+        }
+        gameState.phase = gameState.nextPhaseAfterLastWords || GAME_PHASE.DAY_DISCUSSION; // 根據上下文流動
+        
+        // 如果前面有待發動的獵人，現在切回給他發動
+        if (gameState.hunterDiedThisNight && !gameState.pendingHunter) {
+            gameState.pendingHunter = true;
+            gameState.hunterOriginPhase = gameState.phase;
+            gameState.phase = GAME_PHASE.HUNTER_ACTION;
+        }
+
+        syncStateToAll();
+        return;
+    }
+
+    // [新增] 收集上警意願
+    if (gameState.phase === GAME_PHASE.SHERIFF_CANDIDACY) {
+        gameState.currentStepActions.push({ player: actingPlayer, actionId: payload.actionId });
+        gameState.expectedActionCount--;
+        
+        if (payload.actionId === 'run') gameState.sheriff.candidates.push(actingPlayer.seatNumber);
+
+        if (gameState.expectedActionCount <= 0) {
+            const aliveCount = playersData.filter(p => !p.isDead).length;
+            if (gameState.sheriff.candidates.length === 0 || gameState.sheriff.candidates.length === aliveCount) {
+                // 全上或全不上：警徽直接流失
+                gameState.sheriff.badgeLost = true;
+                gameState.sheriff.electionFinishedToday = true;
+                gameState.systemLog = `由於全體上警/無人上警，本局警徽流失。`;
+                announceDawn(); 
+            } else {
+                gameState.sheriff.candidates.sort((a,b) => a-b);
+                gameState.phase = GAME_PHASE.SHERIFF_SPEECH;
+                gameState.systemLog = `上警名單：${gameState.sheriff.candidates.join('、')} 號。\n請競選者開始發言...`;
+                syncStateToAll();
+            }
+        } else {
+            syncStateToAll();
+        }
         return;
     }
 
@@ -663,6 +831,7 @@ function handleActionSubmit(peerId, payload) {
     }
 }
 
+// [核心重構] 天亮拆為「暗中結算」與「發布死訊」兩段
 function processDawn() {
     let deadThisNight = [];
     let hunterDied = false;
@@ -670,16 +839,12 @@ function processDawn() {
     playersData.forEach(p => {
         if (p.isDead) return;
         const seat = p.seatNumber;
-        
-        // [獵人規則修正] 刀毒分離判定
         const isKilled = gameState.nightTags.killed.includes(seat);
         const isPoisoned = gameState.nightTags.poisoned.includes(seat);
         
         if (isKilled || isPoisoned) {
             p.isDead = true;
             deadThisNight.push(seat);
-            
-            // 只有「未吃毒」的獵人可以開槍
             if (p.role === '獵人' && !isPoisoned) {
                 hunterDied = true;
                 p.isRevealed = true; 
@@ -689,6 +854,27 @@ function processDawn() {
     
     if (checkAndTriggerWin()) return;
 
+    gameState.deadThisNight = deadThisNight;
+    gameState.hunterDiedThisNight = hunterDied;
+    gameState.sheriff.electionFinishedToday = false; 
+
+    // [新增] 攔截流程：如果開啟警長，且目前無警長，進入選舉階段
+    if (gameState.rules.sheriff === 'enabled' && !gameState.sheriff.seat && !gameState.sheriff.badgeLost && gameState.sheriff.electionDay <= 2) {
+        gameState.phase = GAME_PHASE.SHERIFF_CANDIDACY;
+        gameState.sheriff.candidates = [];
+        gameState.sheriff.withdrawn = [];
+        gameState.currentStepActions = []; 
+        gameState.expectedActionCount = playersData.filter(p => !p.isDead).length;
+        gameState.systemLog = "正在等待玩家決定是否上警...";
+        syncStateToAll();
+    } else {
+        announceDawn();
+    }
+}
+
+function announceDawn() {
+    const deadThisNight = gameState.deadThisNight;
+    
     gameState.lastWordsTargets = [];
     if (gameState.nightCount === 1 && deadThisNight.length > 0) {
         gameState.lastWordsTargets = [...deadThisNight];
@@ -700,11 +886,20 @@ function processDawn() {
 
     gameState.isPK = false;
 
-    if (hunterDied) {
+    // [新增] 判斷是否有警長死在昨晚
+    const sheriffDied = gameState.sheriff.seat && deadThisNight.includes(gameState.sheriff.seat);
+    
+    if (sheriffDied) {
+        gameState.phase = GAME_PHASE.SHERIFF_TRANSFER;
+        if (gameState.lastWordsTargets.length > 0) gameState.nextPhaseAfterLastWords = GAME_PHASE.DAY_DISCUSSION;
+        else gameState.nextPhaseAfterLastWords = GAME_PHASE.DAY_DISCUSSION;
+    } 
+    else if (gameState.hunterDiedThisNight) {
         gameState.phase = GAME_PHASE.HUNTER_ACTION;
         gameState.hunterOriginPhase = (gameState.lastWordsTargets.length > 0) ? GAME_PHASE.LAST_WORDS : GAME_PHASE.DAY_DISCUSSION;
         gameState.nextPhaseAfterLastWords = GAME_PHASE.DAY_DISCUSSION;
-    } else if (gameState.lastWordsTargets.length > 0) {
+    } 
+    else if (gameState.lastWordsTargets.length > 0) {
         gameState.phase = GAME_PHASE.LAST_WORDS;
         gameState.nextPhaseAfterLastWords = GAME_PHASE.DAY_DISCUSSION;
     } else {
@@ -714,19 +909,24 @@ function processDawn() {
 }
 
 function handleVoteSubmit(peerId, payload) {
-    if (gameState.phase !== GAME_PHASE.DAY_VOTING && gameState.phase !== GAME_PHASE.PK_VOTING) return;
+    if (![GAME_PHASE.DAY_VOTING, GAME_PHASE.PK_VOTING, GAME_PHASE.SHERIFF_VOTING].includes(gameState.phase)) return;
+    
     const voter = playersData.find(p => p.peerId === peerId);
     if (!voter || voter.isDead || gameState.votes[voter.seatNumber] !== undefined) return;
     
-    if (gameState.phase === GAME_PHASE.PK_VOTING && gameState.pkTargets.includes(voter.seatNumber)) return;
+    const isPK = gameState.phase === GAME_PHASE.PK_VOTING;
+    const isSheriff = gameState.phase === GAME_PHASE.SHERIFF_VOTING;
+    
+    if (isPK && gameState.pkTargets.includes(voter.seatNumber)) return;
+    if (isSheriff && (gameState.sheriff.candidates.includes(voter.seatNumber) || gameState.sheriff.withdrawn.includes(voter.seatNumber))) return;
 
     const target = (payload.actionId === 'vote' && payload.targets && payload.targets.length > 0) ? payload.targets[0] : 'pass';
     gameState.votes[voter.seatNumber] = target;
 
-    const isPK = gameState.phase === GAME_PHASE.PK_VOTING;
     const aliveCount = playersData.filter(p => {
         if (p.isDead) return false;
         if (isPK && gameState.pkTargets.includes(p.seatNumber)) return false;
+        if (isSheriff && (gameState.sheriff.candidates.includes(p.seatNumber) || gameState.sheriff.withdrawn.includes(p.seatNumber))) return false;
         return true;
     }).length;
 
@@ -744,12 +944,19 @@ function resolveVoting() {
     let voteGroups = {}; 
     let validVotesCount = 0;
 
-    Object.entries(gameState.votes).forEach(([voter, t]) => {
+    const isSheriff = gameState.phase === GAME_PHASE.SHERIFF_VOTING;
+
+    Object.entries(gameState.votes).forEach(([voterSeatStr, t]) => {
+        const voterSeat = parseInt(voterSeatStr);
         if (!voteGroups[t]) voteGroups[t] = [];
-        voteGroups[t].push(voter);
+        
+        // [新增] 1.5 票計入歷史紀錄
+        const isVoterSheriff = (voterSeat === gameState.sheriff.seat && !isSheriff);
+        voteGroups[t].push(isVoterSheriff ? `${voterSeat}(1.5票)*` : `${voterSeat}`);
         
         if (t !== 'pass') {
-            voteCounts[t] = (voteCounts[t] || 0) + 1;
+            const voteWeight = isVoterSheriff ? 1.5 : 1; // [核心新增] 警長 1.5 票計算引擎
+            voteCounts[t] = (voteCounts[t] || 0) + voteWeight;
             validVotesCount++;
         }
     });
@@ -763,16 +970,31 @@ function resolveVoting() {
         else if (count === maxVotes) { isTie = true; }
     }
 
-    if (validVotesCount === 0) {
-        isTie = true;
-        finalTarget = null;
-    }
+    if (validVotesCount === 0) { isTie = true; finalTarget = null; }
 
     let resultLines = [];
     for (const [target, voters] of Object.entries(voteGroups)) {
         const targetName = target === 'pass' ? '棄票' : `${target}號`;
         const voterNames = voters.map(v => `${v}號`).join('、');
         resultLines.push(`。${voterNames} → ${targetName}`);
+    }
+
+    // [新增] 警長投票結算分支
+    if (isSheriff) {
+        gameState.sheriff.electionFinishedToday = true;
+        if (isTie) {
+            gameState.sheriff.electionDay++;
+            if (gameState.sheriff.electionDay > 2) gameState.sheriff.badgeLost = true;
+            gameState.currentVoteResultString = `【警長平票】\n${resultLines.join('\n')}\n\n本日無警長產生。`;
+        } else {
+            gameState.sheriff.seat = finalTarget;
+            gameState.currentVoteResultString = `【警長誕生】\n${resultLines.join('\n')}\n\n恭喜 ${finalTarget} 號當選警長。`;
+        }
+        gameState.voteHistory.push(`【第 ${gameState.nightCount} 天】(警長選舉)\n${gameState.currentVoteResultString}`);
+        gameState.phase = GAME_PHASE.VOTE_RESULT_DISPLAY;
+        gameState.nextPhaseAfterVoteDisplay = 'DAWN_RESUME'; // 用特殊標籤指示回歸死訊發布
+        syncStateToAll();
+        return;
     }
 
     if (isTie && validVotesCount > 0 && gameState.rules.tieResolution === 'pk' && !gameState.isPK) {
@@ -812,6 +1034,10 @@ function resolveVoting() {
                 gameState.pendingHunter = true;
                 tPlayer.isRevealed = true; 
             }
+            // [新增] 白天被票死的如果也是警長
+            if (tPlayer.seatNumber === gameState.sheriff.seat) {
+                gameState.pendingSheriffTransfer = true;
+            }
             gameState.lastWordsTargets = [finalTarget]; 
         }
     }
@@ -826,9 +1052,7 @@ function resolveVoting() {
     syncStateToAll();
 }
 
-function broadcastTempMessage(msg) {
-    playersData.forEach(p => p.tempPrivateMessage = msg);
-}
+function broadcastTempMessage(msg) { playersData.forEach(p => p.tempPrivateMessage = msg); }
 
 function buildNightFlowForHost() {
     return gameState.nightSequence.map((step, idx) => {
@@ -840,21 +1064,25 @@ function buildNightFlowForHost() {
 }
 
 function getDayBtnText() {
+    if (gameState.phase === GAME_PHASE.SHERIFF_CANDIDACY) return "等待玩家決定上警...";
+    if (gameState.phase === GAME_PHASE.SHERIFF_SPEECH) return "發起警長投票";
     if (gameState.phase === GAME_PHASE.DAY_DISCUSSION) return "發起放逐投票";
     if (gameState.phase === GAME_PHASE.PK_SPEECH) return "發起 PK 投票"; 
     if (gameState.phase === GAME_PHASE.VOTE_RESULT_DISPLAY) return "結束展示，進入下一步";
     if (gameState.phase === GAME_PHASE.LAST_WORDS) return "結束遺言，進入下一階段";
-    if (gameState.phase === GAME_PHASE.DAWN_SETTLEMENT) return "進入白天並發布死訊";
+    if (gameState.phase === GAME_PHASE.DAWN_SETTLEMENT) return "進入白天結算";
+    if (gameState.phase === GAME_PHASE.SHERIFF_TRANSFER) return "等待警長移交警徽...";
     if (gameState.phase === GAME_PHASE.HUNTER_ACTION) return "等待獵人開槍...";
     if (gameState.phase === GAME_PHASE.GAME_OVER) return "遊戲已結束"; 
-    return "投票進行中...";
+    return "投票/行動進行中...";
 }
 
 function getDayBtnDisabled() {
-    return [GAME_PHASE.DAY_VOTING, GAME_PHASE.PK_VOTING, GAME_PHASE.HUNTER_ACTION, GAME_PHASE.VOTE_SETTLEMENT, GAME_PHASE.GAME_OVER].includes(gameState.phase);
+    return [GAME_PHASE.SHERIFF_CANDIDACY, GAME_PHASE.SHERIFF_VOTING, GAME_PHASE.SHERIFF_TRANSFER, GAME_PHASE.DAY_VOTING, GAME_PHASE.PK_VOTING, GAME_PHASE.HUNTER_ACTION, GAME_PHASE.VOTE_SETTLEMENT, GAME_PHASE.GAME_OVER].includes(gameState.phase);
 }
 
 function getDayBtnCommand() {
+    if (gameState.phase === GAME_PHASE.SHERIFF_SPEECH) return "START_SHERIFF_VOTE";
     if (gameState.phase === GAME_PHASE.DAY_DISCUSSION) return "START_VOTE";
     if (gameState.phase === GAME_PHASE.PK_SPEECH) return "START_PK_VOTE"; 
     if (gameState.phase === GAME_PHASE.VOTE_RESULT_DISPLAY) return "END_VOTE_DISPLAY";
@@ -868,11 +1096,18 @@ function handleHostCommand(cmd) {
         if(gameState.nightTimeout) clearTimeout(gameState.nightTimeout);
         handleNightTimeout(); 
     } 
+    else if (cmd === 'START_SHERIFF_VOTE') {
+        gameState.phase = GAME_PHASE.SHERIFF_VOTING;
+        gameState.votes = {};
+        gameState.systemLog = "正在進行警長投票...";
+        gameState.voteDeadline = Date.now() + 30000;
+        gameState.voteTimeout = setTimeout(handleVoteTimeout, 30000);
+        syncStateToAll();
+    }
     else if (cmd === 'START_VOTE') {
         gameState.phase = GAME_PHASE.DAY_VOTING;
         gameState.votes = {};
         gameState.systemLog = "正在進行放逐投票...";
-        // [核心新增] 啟動投票計時器
         gameState.voteDeadline = Date.now() + 30000;
         gameState.voteTimeout = setTimeout(handleVoteTimeout, 30000);
         syncStateToAll();
@@ -881,12 +1116,17 @@ function handleHostCommand(cmd) {
         gameState.phase = GAME_PHASE.PK_VOTING;
         gameState.votes = {};
         gameState.systemLog = "正在進行 PK 投票...";
-        // [核心新增] 啟動投票計時器
         gameState.voteDeadline = Date.now() + 30000;
         gameState.voteTimeout = setTimeout(handleVoteTimeout, 30000);
         syncStateToAll();
     }
     else if (cmd === 'END_VOTE_DISPLAY') {
+        if (gameState.nextPhaseAfterVoteDisplay === 'DAWN_RESUME') { // [新增] 回歸死訊廣播
+            gameState.nextPhaseAfterVoteDisplay = null;
+            announceDawn();
+            return;
+        }
+
         if (gameState.nextPhaseAfterVoteDisplay) {
             gameState.phase = gameState.nextPhaseAfterVoteDisplay;
             gameState.nextPhaseAfterVoteDisplay = null;
@@ -894,15 +1134,22 @@ function handleHostCommand(cmd) {
                  gameState.systemLog = `請 ${gameState.pkTargets.join('、')} 號進行 PK 發言。`;
             }
         }
+        else if (gameState.pendingSheriffTransfer) { // [新增] 白天放逐警長移交
+            gameState.pendingSheriffTransfer = false;
+            gameState.phase = GAME_PHASE.SHERIFF_TRANSFER;
+            gameState.nextPhaseAfterLastWords = GAME_PHASE.NIGHT_TRANSITION;
+        }
         else if (gameState.pendingHunter) {
             gameState.pendingHunter = false;
             gameState.phase = GAME_PHASE.HUNTER_ACTION;
             gameState.hunterOriginPhase = gameState.lastWordsTargets.length > 0 ? GAME_PHASE.LAST_WORDS : GAME_PHASE.NIGHT_TRANSITION;
             gameState.nextPhaseAfterLastWords = GAME_PHASE.NIGHT_TRANSITION;
-        } else if (gameState.lastWordsTargets.length > 0) {
+        } 
+        else if (gameState.lastWordsTargets.length > 0) {
             gameState.phase = GAME_PHASE.LAST_WORDS;
             gameState.nextPhaseAfterLastWords = GAME_PHASE.NIGHT_TRANSITION;
-        } else {
+        } 
+        else {
             gameState.phase = GAME_PHASE.NIGHT_TRANSITION;
             setTimeout(startNightPhase, 3000);
         }

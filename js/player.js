@@ -1,115 +1,107 @@
 // ==========================================
-// v3.6.9 玩家終端層 (Dumb Client)
+// v3.8.0 玩家端網路與狀態管理 (Player Client)
 // ==========================================
 
 let playerPeer = null;
 let hostConnection = null;
-let localState = null;
-let selectedTargets = [];
-let currentPrompt = ""; 
-let showVoteHistory = false; // [新增] 控制歷史紀錄面板顯示
+let mySeatNumber = null;
+let currentActionTarget = [];
+let localState = {}; 
 
 window.initPlayer = function(roomId, playerName) {
-    UI.updateStatusMessage('正在初始化網路連線 (1/3)...');
-
-    try {
-        playerPeer = new Peer(PEER_CONFIG);
-    } catch (err) {
-        UI.updateStatusMessage('網路模組載入失敗，請重新整理網頁。');
-        return;
-    }
-
+    playerPeer = new Peer(PEER_CONFIG);
     playerPeer.on('open', (id) => {
-        UI.updateStatusMessage(`連線伺服器成功，尋找房間 ${roomId} (2/3)...`);
-        
-        hostConnection = playerPeer.connect(roomId, { reliable: true }); 
-        
+        hostConnection = playerPeer.connect(roomId);
         hostConnection.on('open', () => {
-            UI.updateStatusMessage('成功加入房間，等待遊戲開始 (3/3)...');
             hostConnection.send({ type: PACKET_TYPE.JOIN_ROOM, payload: { name: playerName } });
-            
-            // [新增] 綁定浮動按鈕事件
-            document.getElementById('btn-vote-history')?.addEventListener('click', toggleVoteHistory);
-            document.getElementById('btn-self-explode')?.addEventListener('click', submitSelfExplode);
         });
-
-        hostConnection.on('data', handleHostData);
-
-        hostConnection.on('close', () => {
-            UI.updateStatusMessage('⚠️ 與主控台的連線已中斷。');
-        });
+        setupPlayerConnectionListeners(hostConnection);
     });
-
-    playerPeer.on('error', (err) => { 
-        let errorMsg = '連線失敗，請確認狀態。';
-        if (err.type === 'peer-unavailable') {
-            errorMsg = `⚠️ 找不到房間 ${roomId}，請確認主機是否已開啟。`;
-        } else if (err.type === 'network') {
-            errorMsg = '⚠️ 網路連線異常，請檢查您的網路狀態。';
-        }
-        UI.updateStatusMessage(errorMsg); 
-    });
+    playerPeer.on('error', () => { alert('無法連線至房間，請確認代碼是否正確。'); });
 };
 
-// [新增] 切換歷史紀錄面板 (純前端視圖控制)
-function toggleVoteHistory() {
-    showVoteHistory = !showVoteHistory;
-    if (localState) {
-        UI.renderPlayerView(localState, handleSeatSelect, submitPlayerAction, selectedTargets, showVoteHistory);
-    }
-}
-
-// [新增] 發送自爆封包
-function submitSelfExplode() {
-    if (!hostConnection || !localState || !localState.allowSelfExplode) return;
-    if (confirm("確定要自爆嗎？這將立刻結束發言階段並進入黑夜！")) {
-        hostConnection.send({ type: PACKET_TYPE.WOLF_EXPLODE, payload: {} });
-        UI.updateStatusMessage('自爆指令已送出，等待伺服器同步...');
-    }
-}
-
-function handleHostData(data) {
-    if (data.type === PACKET_TYPE.STATE_SYNC) {
-        const newState = data.payload;
-        const newPrompt = (newState.actionPanel && newState.actionPanel.show) ? newState.actionPanel.prompt : "";
-        
-        if (!localState || localState.phase !== newState.phase || (!newState.actionPanel.show && localState.actionPanel.show)) {
-            selectedTargets = [];
+function setupPlayerConnectionListeners(conn) {
+    conn.on('data', (data) => {
+        switch(data.type) {
+            case PACKET_TYPE.JOIN_SUCCESS:
+                mySeatNumber = data.payload.seatNumber;
+                break;
+            case PACKET_TYPE.STATE_SYNC:
+                localState = data.payload;
+                currentActionTarget = [];
+                UI.renderPlayerView(localState, handleSeatSelect, handleActionSubmit, currentActionTarget, false);
+                break;
         }
-        
-        currentPrompt = newPrompt;
-        localState = newState;
-        
-        // [修改] 傳入 showVoteHistory 參數給渲染器
-        UI.renderPlayerView(localState, handleSeatSelect, submitPlayerAction, selectedTargets, showVoteHistory);
-    } 
-    else if (data.type === PACKET_TYPE.DECK_UPDATE) {
-        UI.renderDeck(data.payload.roleCounts);
-    }
-}
-
-function handleSeatSelect(seatNum) {
-    if (!localState || !localState.actionPanel || !localState.actionPanel.show) return;
-    
-    selectedTargets = [seatNum];
-    UI.renderPlayerView(localState, handleSeatSelect, submitPlayerAction, selectedTargets, showVoteHistory);
-    
-    if (localState.actionPanel.type === 'consensus') {
-        hostConnection.send({ type: PACKET_TYPE.WOLF_PREVIEW, payload: { target: seatNum } });
-    }
-}
-
-function submitPlayerAction(actionId) {
-    if (!hostConnection || !localState || !localState.actionPanel) return;
-
-    if (actionId === 'pass' && localState.actionPanel.type === 'consensus') {
-        hostConnection.send({ type: PACKET_TYPE.WOLF_PREVIEW, payload: { target: 'pass' } });
-    }
-
-    hostConnection.send({ 
-        type: localState.actionPanel.submitPacketType, 
-        payload: { targets: selectedTargets, actionId: actionId } 
     });
+}
+
+function handleSeatSelect(seatNumber) {
+    if (!localState.actionPanel || !localState.actionPanel.show) return;
+    
+    if (localState.actionPanel.type === 'single_select') {
+        currentActionTarget = [seatNumber];
+    } else if (localState.actionPanel.type === 'consensus') {
+        currentActionTarget = [seatNumber];
+        hostConnection.send({ type: PACKET_TYPE.WOLF_PREVIEW, payload: { target: seatNumber } });
+    } else {
+        currentActionTarget = [seatNumber];
+    }
+    UI.renderPlayerView(localState, handleSeatSelect, handleActionSubmit, currentActionTarget, false);
+}
+
+function handleActionSubmit(actionId) {
+    if (!localState.actionPanel || !localState.actionPanel.show) return;
+    
+    const packetType = localState.actionPanel.submitPacketType || PACKET_TYPE.ACTION_SUBMIT;
+    const isPassAction = (actionId === 'pass' || actionId === 'save');
+    const finalTargets = isPassAction ? [] : currentActionTarget;
+    
+    hostConnection.send({ 
+        type: packetType, 
+        payload: { actionId: actionId, targets: finalTargets } 
+    });
+    
+    if (packetType === PACKET_TYPE.ACTION_SUBMIT && localState.phase === GAME_PHASE.NIGHT_ACTION && isWolfRole(localState.myRole) && actionId === 'pass') {
+         hostConnection.send({ type: PACKET_TYPE.WOLF_PREVIEW, payload: { target: 'pass' } });
+    }
     
     UI.blockActionPanel();
 }
+
+function isWolfRole(roleStr) {
+    if(!roleStr) return false;
+    return roleStr.includes("狼");
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // 綁定自爆按鈕
+    const btnExplode = document.getElementById('btn-self-explode');
+    if (btnExplode) {
+        btnExplode.addEventListener('click', () => {
+            if (confirm("確定要自爆嗎？這將立即中斷白天發言並進入黑夜！")) {
+                if (hostConnection) hostConnection.send({ type: PACKET_TYPE.WOLF_EXPLODE });
+                btnExplode.classList.add('hidden');
+            }
+        });
+    }
+
+    // 綁定票型紀錄切換按鈕
+    const btnHistory = document.getElementById('btn-vote-history');
+    let isHistoryShowing = false;
+    if (btnHistory) {
+        btnHistory.addEventListener('click', () => {
+            isHistoryShowing = !isHistoryShowing;
+            UI.renderPlayerView(localState, handleSeatSelect, handleActionSubmit, currentActionTarget, isHistoryShowing);
+        });
+    }
+
+    // [新增] 綁定退水按鈕
+    const btnBailout = document.getElementById('btn-bailout');
+    if (btnBailout) {
+        btnBailout.addEventListener('click', () => {
+            if (confirm("確定要退出警長競選嗎？退水後將喪失競選資格及本次投票權。")) {
+                if (hostConnection) hostConnection.send({ type: PACKET_TYPE.SHERIFF_BAILOUT });
+            }
+        });
+    }
+});

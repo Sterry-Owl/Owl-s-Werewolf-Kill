@@ -1,9 +1,9 @@
 // ==========================================
-// v3.7.0 視圖渲染引擎 (Pure View)
+// v3.8.0 視圖渲染引擎 (Pure View)
 // ==========================================
 
 const UI = {
-    countdownInterval: null, // [新增] 用於前端本地倒數計時器
+    countdownInterval: null, 
 
     updateStatusMessage: function(msg) {
         const el = document.getElementById('action-prompt');
@@ -18,7 +18,7 @@ const UI = {
             promptEl.innerHTML = '行動已送出，等待系統結算...';
         }
         
-        clearInterval(UI.countdownInterval); // 提交後清除計時器
+        clearInterval(UI.countdownInterval); 
 
         document.querySelectorAll('.player-seat').forEach(s => {
             s.style.pointerEvents = 'none';
@@ -31,7 +31,6 @@ const UI = {
             document.getElementById('player-role-name').textContent = state.myRole;
         }
 
-        // [新增] 動態在頂部資訊列中間插入版型名稱
         let headerEl = document.querySelector('.app-header');
         if (headerEl) {
             let boardNameEl = document.getElementById('dynamic-board-name');
@@ -47,12 +46,19 @@ const UI = {
             boardNameEl.textContent = state.boardName || '';
         }
 
-        // [修改] 拔除原本寫死的文字，讓 CSS 的背景圖片能夠完美呈現
         const btnExplode = document.getElementById('btn-self-explode');
         if (btnExplode) {
             btnExplode.textContent = ''; 
             if (state.allowSelfExplode) btnExplode.classList.remove('hidden');
             else btnExplode.classList.add('hidden');
+        }
+
+        // [新增] 退水按鈕動態顯示
+        const btnBailout = document.getElementById('btn-bailout');
+        if (btnBailout) {
+            btnBailout.textContent = ''; 
+            if (state.allowBailout) btnBailout.classList.remove('hidden');
+            else btnBailout.classList.add('hidden');
         }
 
         const btnHistory = document.getElementById('btn-vote-history');
@@ -62,16 +68,19 @@ const UI = {
             else btnHistory.classList.add('hidden');
         }
 
+        const cardPanel = document.querySelector('.card-panel');
         const cardImg = document.getElementById('my-card-img');
         const historyPanel = document.getElementById('vote-history-panel');
 
         if (showVoteHistory) {
+            if (cardPanel) cardPanel.style.zIndex = '25'; 
             if (cardImg) cardImg.classList.add('hidden');
             if (historyPanel) {
                 historyPanel.classList.remove('hidden');
                 historyPanel.innerHTML = state.voteHistory.map(h => `<div style="margin-bottom:8px; border-bottom:1px solid #444; padding-bottom:5px; white-space:pre-wrap;">${h}</div>`).join('');
             }
         } else {
+            if (cardPanel) cardPanel.style.zIndex = '15'; 
             if (historyPanel) historyPanel.classList.add('hidden');
             if (cardImg && state.myRole) {
                 cardImg.src = `./img/${state.myRole.split('-')[0]}.png`;
@@ -108,14 +117,20 @@ const UI = {
                     previewLabel.textContent = showCenterAlignment;
                     if (showCenterAlignment === '狼人' || showCenterAlignment === '刀口') {
                         previewLabel.style.background = 'var(--accent-red)';
+                        previewLabel.style.color = '#fff';
                     } else if (showCenterAlignment === '銀水') {
                         previewLabel.style.background = '#bfbfbf';
                         previewLabel.style.color = '#000';
                     } else if (showCenterAlignment === '好人') {
                         previewLabel.style.background = '#ffdb4d';
                         previewLabel.style.color = '#000';
+                    } else if (showCenterAlignment === '警長') {
+                        // [新增] 警長的預覽顏色
+                        previewLabel.style.background = 'var(--sheriff-gold)';
+                        previewLabel.style.color = '#000';
                     } else {
                         previewLabel.style.background = 'var(--accent-blue)';
+                        previewLabel.style.color = '#fff';
                     }
                     previewLabel.classList.remove('hidden');
                 } else {
@@ -151,18 +166,24 @@ const UI = {
 
             let tagsHtml = '';
             
+            // [新增] 繪製警長競選狀態圓圈 (參選/退水)
+            if (p.isCandidate) {
+                tagsHtml += `<div class="candidate-dot"></div>`;
+            } else if (p.hasWithdrawn) {
+                tagsHtml += `<div class="candidate-dot withdrawn"></div>`;
+            }
+
             if (p.topTag) {
                 tagsHtml += `<div class="top-tag">${p.topTag}</div>`;
             }
             
             if (p.sideTag) {
                 const alignClass = p.seatNumber <= 6 ? 'align-right' : 'align-left';
-                
-                // [新增] 側標籤動態換色邏輯
                 let colorClass = 'tag-default';
                 if (p.sideTag === '銀水') colorClass = 'tag-silver';
                 else if (p.sideTag === '好人') colorClass = 'tag-gold';
                 else if (p.sideTag === '狼人') colorClass = 'tag-red';
+                else if (p.sideTag === '警長') colorClass = 'tag-sheriff'; // [新增] 警長專屬顏色
 
                 tagsHtml += `<div class="side-tag ${alignClass} ${colorClass}">${p.sideTag}</div>`;
             }
@@ -192,18 +213,15 @@ const UI = {
         const promptEl = document.getElementById('action-prompt');
         const btnContainer = document.getElementById('dynamic-buttons-container');
         
-        clearInterval(UI.countdownInterval); // 每次重新渲染先清除舊的計時器
+        clearInterval(UI.countdownInterval); 
 
         if (state.actionPanel.show) {
-            
-            // [新增] 本地平滑倒數計時器渲染
             if (state.actionPanel.deadline) {
                 if(promptEl) {
                     promptEl.innerHTML = `<div id="action-timer-display" class="action-timer">--</div><div style="margin-top:8px; white-space:pre-wrap;">${state.actionPanel.prompt}</div>`;
                 }
                 const timerDisplay = document.getElementById('action-timer-display');
                 
-                // 每 0.2 秒更新一次畫面，確保時間絕對精準且不吃效能
                 UI.countdownInterval = setInterval(() => {
                     const now = Date.now();
                     const remain = Math.max(0, Math.ceil((state.actionPanel.deadline - now) / 1000));

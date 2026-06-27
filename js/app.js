@@ -1,5 +1,5 @@
 // ==========================================
-// v3.7.0 應用程式入口與事件綁定 (App Bootstrapper)
+// v3.8.0 應用程式入口與事件綁定 (App Bootstrapper)
 // ==========================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -51,11 +51,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!tpl) return alert('請選擇版型');
 
-        // [核心新增] 收集主控台的規則設定
+        // [新增] 收集主控台的規則設定，包含警長機制
         const gameRules = {
             witchSave: document.getElementById('rule-witch-save')?.value || 'first_night',
             winCondition: document.getElementById('rule-win-condition')?.value || 'kill_side',
-            tieResolution: document.getElementById('rule-tie-resolution')?.value || 'pk'
+            tieResolution: document.getElementById('rule-tie-resolution')?.value || 'pk',
+            sheriff: document.getElementById('rule-sheriff')?.value || 'enabled' 
         };
 
         if (typeof window.startGame === 'function') {
