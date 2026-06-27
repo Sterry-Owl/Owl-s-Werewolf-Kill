@@ -52,22 +52,20 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     background: #2a2515; overflow: hidden; position: relative;
 }
 
-/* [終極重構] 擴大容器寬度至 100px 創造內部空間，完全不用 JS 算左右 */
+/* [核心重構] 加大容器，讓滾動條(overflow-y)與內部側標籤和平共處 */
 .seat-column { 
     display: flex; flex-direction: column; 
-    padding-top: 35px; /* 徹底解決 top-tag 頂部被吃掉的問題 */
-    padding-bottom: 35vh; 
-    gap: 25px; 
-    width: 100px; 
+    padding-top: 35px; padding-bottom: 35vh; gap: 25px; 
+    width: 110px; /* 足夠容納頭像與向外生長的標籤 */
     box-sizing: border-box;
     flex-shrink: 0; z-index: 5;
     overflow-y: auto; overflow-x: hidden; 
 }
 .seat-column::-webkit-scrollbar { display: none; }
 
-/* 靠原生 Flex 實現座位錨點，自動為側標籤留出內部空間 */
-#left-seats { align-items: flex-start; padding-left: 15px; }
-#right-seats { align-items: flex-end; padding-right: 15px; }
+/* [核心重構] 利用 Flex 原生特性，強制左右靠牆對齊 */
+#left-seats { align-items: flex-start; padding-left: 10px; }
+#right-seats { align-items: flex-end; padding-right: 10px; }
 
 .center-column { 
     flex: 1; display: flex; flex-direction: column; justify-content: space-between; 
@@ -126,7 +124,9 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 /* ==================================================== */
 /* 座位與標籤重構 */
 /* ==================================================== */
-.player-seat { display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; width: 100%; }
+
+/* [核心重構] 拔除 width: 100%，讓座位依照頭像大小收縮，騰出周圍空間給標籤 */
+.player-seat { display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; width: auto; }
 .seat-img-wrapper { 
     width: 42px; height: 42px; border-radius: 50%; background: #ddd; 
     border: 2px solid #555; position: relative; transition: 0.2s; flex-shrink: 0; overflow: visible; 
@@ -143,9 +143,8 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     background: #fdf5c9; color: #111; padding: 3px 8px; border-radius: 6px; 
     font-size: 10px; font-weight: bold; z-index: 15; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.4); 
 }
-
-#left-seats .side-tag { left: 100%; margin-left: 10px; }
-#right-seats .side-tag { right: 100%; margin-right: 10px; }
+.side-tag.align-right { left: 100%; margin-left: 10px; }
+.side-tag.align-left { right: 100%; margin-right: 10px; }
 
 .player-seat.selected .seat-img-wrapper { border-color: var(--accent-green) !important; }
 .player-seat.wolf-selected .seat-img-wrapper { box-shadow: 0 0 12px 4px rgba(255, 183, 3, 0.8) !important; border-color: var(--wolf-yellow); }
@@ -159,4 +158,4 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .player-seat.dead { opacity: 0.4; filter: grayscale(100%); cursor: not-allowed; }
 .player-seat.dead::after { content: '✖'; position: absolute; font-size: 32px; color: var(--accent-red); z-index: 10; top: -5px; left: 50%; transform: translateX(-50%); }
 
-.player-name { margin-top: 4px; font-size: 11px; color: var(--text-muted); white-space: nowrap; text-align: center; overflow: hidden; text-overflow: ellipsis; width: 100%; max-width: 60px; }
+.player-name { margin-top: 4px; font-size: 11px; color: var(--text-muted); white-space: nowrap; text-align: center; overflow: hidden; text-overflow: ellipsis; width: 60px; }
