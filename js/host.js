@@ -654,12 +654,17 @@ function processDawn() {
     playersData.forEach(p => {
         if (p.isDead) return;
         const seat = p.seatNumber;
-        let isDying = gameState.nightTags.killed.includes(seat) || gameState.nightTags.poisoned.includes(seat);
         
-        if (isDying) {
+        // 將刀與毒分開判定
+        const isKilled = gameState.nightTags.killed.includes(seat);
+        const isPoisoned = gameState.nightTags.poisoned.includes(seat);
+        
+        if (isKilled || isPoisoned) {
             p.isDead = true;
             deadThisNight.push(seat);
-            if (p.role === '獵人') {
+            
+            // [核心修正] 只有「沒吃毒」的獵人死亡時，才能觸發開槍
+            if (p.role === '獵人' && !isPoisoned) {
                 hunterDied = true;
                 p.isRevealed = true; 
             }
