@@ -1,5 +1,5 @@
 // ==========================================
-// v3.6.14 視圖渲染引擎 (Pure View)
+// v3.6.15 視圖渲染引擎 (Pure View)
 // ==========================================
 
 const UI = {
@@ -118,10 +118,17 @@ const UI = {
                 seat.style.pointerEvents = 'none';
             }
 
-            // [終極重構] 拔除 align-class 的 JS 髒補丁，回歸乾淨輸出
             let tagsHtml = '';
-            if (p.topTag) tagsHtml += `<div class="top-tag">${p.topTag}</div>`;
-            if (p.sideTag) tagsHtml += `<div class="side-tag">${p.sideTag}</div>`;
+            
+            if (p.topTag) {
+                tagsHtml += `<div class="top-tag">${p.topTag}</div>`;
+            }
+            
+            if (p.sideTag) {
+                // [終極淨化] 邏輯寫死，不再動態計算：1~6 號永遠向右長標籤，7~12 號向左長
+                const alignClass = p.seatNumber <= 6 ? 'align-right' : 'align-left';
+                tagsHtml += `<div class="side-tag ${alignClass}">${p.sideTag}</div>`;
+            }
 
             if (p.wolfPreviewTags && p.wolfPreviewTags.length > 0) {
                 p.wolfPreviewTags.forEach((tag, idx) => {
@@ -138,7 +145,8 @@ const UI = {
                 <div class="player-name">${p.name || '等待加入'}</div>
             `;
 
-            if (p.seatNumber <= Math.ceil(state.players.length / 2)) {
+            // [終極淨化] 座位列物理固定：1~6 號塞進左容器，7~12 號塞進右容器
+            if (p.seatNumber <= 6) {
                 leftSeats.appendChild(seat);
             } else {
                 rightSeats.appendChild(seat);
