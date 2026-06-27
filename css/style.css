@@ -1,5 +1,5 @@
 :root {
-    --bg-dark: #8ba6ac; /* [修改] APP 介面底色 */
+    --bg-dark: #121212; 
     --container-bg: #1e1e1e;
     --border-color: #444;
     --accent-blue: #3a86ff;
@@ -49,13 +49,14 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 
 .app-body { 
     flex: 1; display: flex; flex-direction: row; padding: 10px; gap: 8px; 
-    background: #2a2515; overflow: hidden; position: relative;
+    background: #2b3a42; /* [修改] 暗的藍灰色 */
+    overflow: hidden; position: relative;
 }
 
 .seat-column { 
     display: flex; flex-direction: column; 
     padding-top: 35px; padding-bottom: 35vh; gap: 25px; 
-    width: 100px; 
+    width: 125px; /* [修改] 再度加寬，絕對杜絕標籤被切斷 */
     box-sizing: border-box;
     flex-shrink: 0; z-index: 5;
     overflow-y: auto; overflow-x: hidden; 
@@ -72,14 +73,13 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 
 .action-panel {
     width: 85%; max-width: 170px; min-height: 200px; 
-    background: #ac8b9d; /* [修改] 操作區底色 */
+    background: #5b705f; /* [修改] 飽和度低的綠色 */
     border-radius: 16px; padding: 20px 10px;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;
-    border: 2px solid #8d6b7e; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    border: 2px solid #4a5c4d; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
     pointer-events: auto; transition: 0.3s;
 }
 
-/* [新增] 夜間計時器 UI */
 .action-timer {
     font-size: 20px; font-weight: bold; color: #fff; margin-bottom: -5px;
     background: rgba(0,0,0,0.4); padding: 4px 12px; border-radius: 12px;
@@ -100,24 +100,28 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .action-buttons-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; width: 100%; }
 .action-buttons-row button { flex: 1; min-width: 60px; padding: 12px 5px; font-size: 13px; border: 1px solid rgba(0,0,0,0.3); }
 
+/* [核心修正] 解除隱形盾牌，讓下方座位恢復可點擊狀態 */
 .card-panel {
     position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
     display: flex; flex-direction: column; align-items: center; width: 80%;
-    pointer-events: auto; z-index: 15;
+    pointer-events: none; /* 讓點擊直接穿透容器 */
+    z-index: 15;
 }
 
+/* 確保卡牌與歷史紀錄本身依然可以操作 */
 .my-card { 
     height: 33vh; max-height: 250px; min-height: 150px; width: auto; 
     object-fit: contain; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.7); border: 2px solid #111; 
+    pointer-events: auto;
 }
 
 .vote-history-panel {
     width: 100%; height: 33vh; max-height: 250px; min-height: 150px;
     background: rgba(0,0,0,0.85); border-radius: 8px; border: 2px solid var(--wolf-yellow); 
     padding: 10px; overflow-y: auto; color: white; font-size: 12px; line-height: 1.6; box-sizing: border-box; text-align: left;
+    pointer-events: auto;
 }
 
-/* [核心修改] 浮動按鈕改為純圖片模式，拔除背景與邊框 */
 .floating-btn {
     position: absolute; bottom: 20px; width: 55px; height: 55px;
     cursor: pointer; z-index: 30; pointer-events: auto; transition: 0.2s;
@@ -151,7 +155,6 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .side-tag.align-right { left: 100%; margin-left: 10px; }
 .side-tag.align-left { right: 100%; margin-right: 10px; }
 
-/* [新增] 側標籤動態換色 */
 .side-tag.tag-silver { background: #bfbfbf; color: #000; }
 .side-tag.tag-gold { background: #ffdb4d; color: #000; }
 .side-tag.tag-red { background: #f15b5b; color: #fff; }
@@ -169,4 +172,4 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .player-seat.dead { opacity: 0.4; filter: grayscale(100%); cursor: not-allowed; }
 .player-seat.dead::after { content: '✖'; position: absolute; font-size: 32px; color: var(--accent-red); z-index: 10; top: -5px; left: 50%; transform: translateX(-50%); }
 
-.player-name { margin-top: 4px; font-size: 11px; color: var(--text-muted); white-space: nowrap; text-align: center; overflow: hidden; text-overflow: ellipsis; width: 60px; }
+.player-name { margin-top: 4px; font-size: 11px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); white-space: nowrap; text-align: center; overflow: hidden; text-overflow: ellipsis; width: 60px; }
