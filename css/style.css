@@ -6,6 +6,7 @@
     --accent-red: #ef233c;
     --accent-green: #38b000;
     --wolf-yellow: #ffb703;
+    --sheriff-gold: #ff9900; /* [新增] 警徽專用金橘色 */
 }
 
 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 15px; background: var(--bg-dark); color: #e0e0e0; margin: 0; }
@@ -66,12 +67,9 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 #left-seats { align-items: flex-start; padding-left: 4px; }
 #right-seats { align-items: flex-end; padding-right: 4px; }
 
-/* [核心修正] 將 z-index 提升至 20，確保操作區域絕對蓋在卡牌 (15) 的上方 */
 .center-column { 
     flex: 1; display: flex; flex-direction: column; justify-content: space-between; 
-    align-items: center; padding: 5px 0 15px 0; min-width: 0; 
-    z-index: 20; 
-    pointer-events: none;
+    align-items: center; padding: 5px 0 15px 0; min-width: 0; z-index: 20; pointer-events: none;
 }
 
 .action-panel {
@@ -106,8 +104,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .card-panel {
     position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
     display: flex; flex-direction: column; align-items: center; width: 80%;
-    pointer-events: none; 
-    z-index: 15;
+    pointer-events: none; z-index: 15;
 }
 
 .my-card { 
@@ -123,6 +120,9 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     pointer-events: auto;
 }
 
+/* ==================================================== */
+/* 浮動按鈕區 (新增藍色退水按鈕) */
+/* ==================================================== */
 .floating-btn {
     position: absolute; bottom: 20px; width: 55px; height: 55px;
     cursor: pointer; z-index: 30; pointer-events: auto; transition: 0.2s;
@@ -132,6 +132,8 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .floating-btn:active { transform: scale(0.9); }
 .floating-btn.red { left: 15px; background-image: url('../img/btn-explode.png'); }
 .floating-btn.yellow { right: 15px; background-image: url('../img/btn-history.png'); }
+/* [新增] 退水按鈕 (藍色)，放在票型紀錄上方 */
+.floating-btn.blue { right: 15px; bottom: 85px; background-image: url('../img/btn-bailout.png'); }
 
 /* ==================================================== */
 /* 座位與標籤重構 */
@@ -141,6 +143,15 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     width: 42px; height: 42px; border-radius: 50%; background: #ddd; 
     border: 2px solid #555; position: relative; transition: 0.2s; flex-shrink: 0; overflow: visible; 
 }
+
+/* [新增] 競選警長的小綠圓圈 */
+.candidate-dot {
+    position: absolute; bottom: -2px; right: -2px;
+    width: 14px; height: 14px; background: var(--accent-green);
+    border-radius: 50%; border: 2px solid #2b3a42; z-index: 18;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+.candidate-dot.withdrawn { background: #666; /* 退水後變為灰色 */ }
 
 .top-tag { 
     position: absolute; top: -16px; left: 50%; transform: translateX(-50%); 
@@ -160,6 +171,8 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .side-tag.tag-gold { background: #ffdb4d; color: #000; }
 .side-tag.tag-red { background: #f15b5b; color: #fff; }
 .side-tag.tag-default { background: #fdf5c9; color: #111; }
+/* [新增] 警長標籤，擁有尊爵不凡的橘金色 */
+.side-tag.tag-sheriff { background: var(--sheriff-gold); color: #000; font-size: 11px; padding: 4px 10px; border: 1px solid #fff; box-shadow: 0 0 8px var(--sheriff-gold); }
 
 .player-seat.selected .seat-img-wrapper { border-color: var(--accent-green) !important; }
 .player-seat.wolf-selected .seat-img-wrapper { box-shadow: 0 0 12px 4px rgba(255, 183, 3, 0.8) !important; border-color: var(--wolf-yellow); }
