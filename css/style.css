@@ -1,5 +1,5 @@
 :root {
-    --bg-dark: #121212;
+    --bg-dark: #8ba6ac; /* [修改] APP 介面底色 */
     --container-bg: #1e1e1e;
     --border-color: #444;
     --accent-blue: #3a86ff;
@@ -42,7 +42,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 
 .app-header { 
-    background: #4a1c1c; padding: 12px 20px; display: flex; justify-content: space-between; 
+    background: #4a1c1c; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;
     font-weight: bold; color: #ffcccc; font-size: 16px; border-bottom: 2px solid #2a0b0b; 
     flex-shrink: 0; z-index: 10;
 }
@@ -52,20 +52,18 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     background: #2a2515; overflow: hidden; position: relative;
 }
 
-/* [核心重構] 加大容器，讓滾動條(overflow-y)與內部側標籤和平共處 */
 .seat-column { 
     display: flex; flex-direction: column; 
-    padding-top: 24px; padding-bottom: 35vh; gap: 24px; 
-    width: 110px; /* 足夠容納頭像與向外生長的標籤 */
+    padding-top: 35px; padding-bottom: 35vh; gap: 25px; 
+    width: 100px; 
     box-sizing: border-box;
     flex-shrink: 0; z-index: 5;
     overflow-y: auto; overflow-x: hidden; 
 }
 .seat-column::-webkit-scrollbar { display: none; }
 
-/* [核心重構] 利用 Flex 原生特性，強制左右靠牆對齊 */
-#left-seats { align-items: flex-start; padding-left: 10px; }
-#right-seats { align-items: flex-end; padding-right: 10px; }
+#left-seats { align-items: flex-start; padding-left: 15px; }
+#right-seats { align-items: flex-end; padding-right: 15px; }
 
 .center-column { 
     flex: 1; display: flex; flex-direction: column; justify-content: space-between; 
@@ -73,11 +71,19 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 
 .action-panel {
-    width: 85%; max-width: 170px; min-height: 200px; background: #2d5a2d; 
+    width: 85%; max-width: 170px; min-height: 200px; 
+    background: #ac8b9d; /* [修改] 操作區底色 */
     border-radius: 16px; padding: 20px 10px;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;
-    border: 2px solid #3d7a3d; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    border: 2px solid #8d6b7e; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
     pointer-events: auto; transition: 0.3s;
+}
+
+/* [新增] 夜間計時器 UI */
+.action-timer {
+    font-size: 20px; font-weight: bold; color: #fff; margin-bottom: -5px;
+    background: rgba(0,0,0,0.4); padding: 4px 12px; border-radius: 12px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
 }
 
 .target-preview { 
@@ -92,7 +98,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 
 .action-prompt { font-weight: bold; color: white; text-align: center; font-size: 14px; line-height: 1.5; width: 100%; white-space: pre-wrap; }
 .action-buttons-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; width: 100%; }
-.action-buttons-row button { flex: 1; min-width: 60px; padding: 12px 5px; font-size: 13px; }
+.action-buttons-row button { flex: 1; min-width: 60px; padding: 12px 5px; font-size: 13px; border: 1px solid rgba(0,0,0,0.3); }
 
 .card-panel {
     position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
@@ -111,21 +117,20 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     padding: 10px; overflow-y: auto; color: white; font-size: 12px; line-height: 1.6; box-sizing: border-box; text-align: left;
 }
 
+/* [核心修改] 浮動按鈕改為純圖片模式，拔除背景與邊框 */
 .floating-btn {
-    position: absolute; bottom: 20px; width: 45px; height: 45px; border-radius: 50%;
-    display: flex; justify-content: center; align-items: center; font-weight: bold; 
-    font-size: 14px; color: white; cursor: pointer; z-index: 30; 
-    box-shadow: 0 4px 10px rgba(0,0,0,0.6); border: 2px solid #fff; pointer-events: auto; transition: 0.2s;
+    position: absolute; bottom: 20px; width: 55px; height: 55px;
+    cursor: pointer; z-index: 30; pointer-events: auto; transition: 0.2s;
+    background-color: transparent; border: none; box-shadow: none; color: transparent;
+    background-size: contain; background-repeat: no-repeat; background-position: center;
 }
 .floating-btn:active { transform: scale(0.9); }
-.floating-btn.red { background: var(--accent-red); left: 15px; }
-.floating-btn.yellow { background: var(--wolf-yellow); color: #000; right: 15px; }
+.floating-btn.red { left: 15px; background-image: url('../img/btn-explode.png'); }
+.floating-btn.yellow { right: 15px; background-image: url('../img/btn-history.png'); }
 
 /* ==================================================== */
 /* 座位與標籤重構 */
 /* ==================================================== */
-
-/* [核心重構] 拔除 width: 100%，讓座位依照頭像大小收縮，騰出周圍空間給標籤 */
 .player-seat { display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; width: auto; }
 .seat-img-wrapper { 
     width: 42px; height: 42px; border-radius: 50%; background: #ddd; 
@@ -140,11 +145,17 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 
 .side-tag { 
     position: absolute; top: 50%; transform: translateY(-50%);
-    background: #fdf5c9; color: #111; padding: 3px 8px; border-radius: 6px; 
+    color: #111; padding: 3px 8px; border-radius: 6px; 
     font-size: 10px; font-weight: bold; z-index: 15; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.4); 
 }
 .side-tag.align-right { left: 100%; margin-left: 10px; }
 .side-tag.align-left { right: 100%; margin-right: 10px; }
+
+/* [新增] 側標籤動態換色 */
+.side-tag.tag-silver { background: #bfbfbf; color: #000; }
+.side-tag.tag-gold { background: #ffdb4d; color: #000; }
+.side-tag.tag-red { background: #f15b5b; color: #fff; }
+.side-tag.tag-default { background: #fdf5c9; color: #111; }
 
 .player-seat.selected .seat-img-wrapper { border-color: var(--accent-green) !important; }
 .player-seat.wolf-selected .seat-img-wrapper { box-shadow: 0 0 12px 4px rgba(255, 183, 3, 0.8) !important; border-color: var(--wolf-yellow); }
