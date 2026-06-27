@@ -1,5 +1,5 @@
 // ==========================================
-// v3.6.11 核心主機引擎 (Smart Server / Strategy Pattern)
+// v3.6.12 核心主機引擎 (Smart Server / Strategy Pattern)
 // ==========================================
 
 let hostPeer = null;
@@ -32,7 +32,6 @@ let wolfPreviews = {};
 
 function isWolfRole(roleStr) {
     if (!roleStr) return false;
-    // 透過字典檔陣營判斷，取代字串比對
     return ROLE_DICTIONARY[roleStr]?.faction === 'wolf';
 }
 
@@ -48,7 +47,6 @@ const RolePlugins = {
             { id: 'confirm', text: '確認襲擊', requiresTarget: true },
             { id: 'pass', text: '空刀', requiresTarget: false }
         ],
-        // 原本用於 Pass 的標籤邏輯，因為視圖重構，這裡改傳純座號陣列供後續擴充
         getPassTags: (mySeat) => { return []; }, 
         resolve: (actions) => {
             let validTargets = [];
@@ -179,7 +177,7 @@ function handlePlayerJoin(peerId, playerName) {
     const seatNumber = playersData.length + 1;
     playersData.push({ 
         seatNumber, peerId, name: playerName, role: null, 
-        isDead: false, isRevealed: false, // [新增] 明牌標記 (自爆/翻牌用)
+        isDead: false, isRevealed: false, 
         seerRecords: {}, latestCheckResult: null 
     });
     if (connections[peerId]) connections[peerId].send({ type: PACKET_TYPE.JOIN_SUCCESS, payload: { seatNumber } });
@@ -208,7 +206,6 @@ window.startGame = function(selectedRoles) {
     return true; 
 };
 
-// [新增] 核心勝負仲裁引擎 (屠邊邏輯 + 狼人優先)
 function checkAndTriggerWin() {
     if (gameState.phase === GAME_PHASE.GAME_OVER) return true;
 
@@ -220,12 +217,10 @@ function checkAndTriggerWin() {
     let winner = null;
     let reason = "";
 
-    // 狼人條件優先：神職死光 或 平民死光
     if (godCount === 0 || villagerCount === 0) {
         winner = "狼人";
         reason = godCount === 0 ? "神職全數出局" : "平民全數出局";
     } 
-    // 好人條件：狼人死光
     else if (wolfCount === 0) {
         winner = "好人";
         reason = "狼人全數出局";
@@ -269,9 +264,8 @@ function syncStateToAll() {
 function buildStateForPlayer(player, isDayPhase) {
     const mappedPlayers = playersData.map(p => {
         let topTag = null;
-        let rightTag = null;
+        let sideTag = null; // [修改] 正式更名為 sideTag
         
-        // 1. 頂部標籤指派邏輯 (上帝視角/明牌/自己/狼人隊友)
         if (gameState.phase === GAME_PHASE.GAME_OVER) {
             topTag = p.role;
         } else if (p.seatNumber === player.seatNumber) {
@@ -282,19 +276,18 @@ function buildStateForPlayer(player, isDayPhase) {
             topTag = "狼人"; 
         }
 
-        // 2. 右側標籤指派邏輯 (技能資訊)
         if (player.role === '預言家' && player.seerRecords && player.seerRecords[p.seatNumber]) {
-            rightTag = player.seerRecords[p.seatNumber];
+            sideTag = player.seerRecords[p.seatNumber]; // [修改] 賦值給 sideTag
         } else if (player.role === '女巫' && gameState.witchState.savedSeat === p.seatNumber) {
-            rightTag = "銀水";
+            sideTag = "銀水"; // [修改] 賦值給 sideTag
         }
 
         return { 
             seatNumber: p.seatNumber, 
             name: p.name, 
             isDead: p.isDead, 
-            topTag: topTag,     // [改動] 資料驅動
-            rightTag: rightTag  // [改動] 資料驅動
+            topTag: topTag,     
+            sideTag: sideTag  // [修改] 下發 sideTag 屬性
         };
     });
 
@@ -433,12 +426,11 @@ function handleWolfExplode(peerId) {
     if (!isDayPhase || !RolePlugins[player.role]?.canSelfExplode) return;
 
     player.isDead = true;
-    player.isRevealed = true; // [改動] 自爆者翻牌標記
+    player.isRevealed = true; 
     
     gameState.systemLog = `【突發事件】${player.seatNumber} 號玩家選擇自爆！`;
     broadcastTempMessage(`【突發事件】${player.seatNumber} 號玩家選擇自爆\n發言階段立即結束！`);
     
-    // [仲裁] 檢查是否達標
     if (checkAndTriggerWin()) return;
 
     gameState.phase = GAME_PHASE.NIGHT_TRANSITION;
@@ -522,7 +514,6 @@ function handleActionSubmit(peerId, payload) {
             gameState.systemLog = `獵人開槍帶走了 ${target} 號玩家。`;
             broadcastTempMessage(`【突發事件】一聲槍響，${target} 號玩家被帶走。`);
             
-            // [仲裁] 獵人開槍可能屠城/屠邊
             if (checkAndTriggerWin()) return;
         } else {
             gameState.systemLog = `獵人選擇不開槍/無技能。`;
@@ -569,12 +560,11 @@ function processDawn() {
             deadThisNight.push(seat);
             if (p.role === '獵人') {
                 hunterDied = true;
-                p.isRevealed = true; // [改動] 獵人死因公布身分 (準備開槍)
+                p.isRevealed = true; 
             }
         }
     });
     
-    // [仲裁] 晚上死人，可能屠邊
     if (checkAndTriggerWin()) return;
 
     gameState.lastWordsTargets = [];
@@ -651,20 +641,19 @@ function resolveVoting() {
         const tPlayer = playersData.find(p => p.seatNumber === finalTarget);
         if (tPlayer.role === '白痴' && !tPlayer.idiotRevealed) {
             tPlayer.idiotRevealed = true;
-            tPlayer.isRevealed = true; // [改動] 白痴翻牌
+            tPlayer.isRevealed = true; 
             idiotSaved = true;
             header = `投票結果出爐，${finalTarget} 號最高票\n觸發【白痴】免除出局`;
         } else {
             tPlayer.isDead = true;
             if (tPlayer.role === '獵人') {
                 gameState.pendingHunter = true;
-                tPlayer.isRevealed = true; // [改動] 獵人開槍翻牌
+                tPlayer.isRevealed = true; 
             }
             gameState.lastWordsTargets = [finalTarget]; 
         }
     }
     
-    // [仲裁] 放逐死人，可能屠邊
     if (!idiotSaved && checkAndTriggerWin()) return;
 
     gameState.currentVoteResultString = `${header}\n${resultLines.join('\n')}`;
@@ -694,7 +683,7 @@ function getDayBtnText() {
     if (gameState.phase === GAME_PHASE.LAST_WORDS) return "結束遺言，進入下一階段";
     if (gameState.phase === GAME_PHASE.DAWN_SETTLEMENT) return "進入白天並發布死訊";
     if (gameState.phase === GAME_PHASE.HUNTER_ACTION) return "等待獵人開槍...";
-    if (gameState.phase === GAME_PHASE.GAME_OVER) return "遊戲已結束"; // [新增]
+    if (gameState.phase === GAME_PHASE.GAME_OVER) return "遊戲已結束"; 
     return "投票進行中...";
 }
 

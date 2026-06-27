@@ -1,5 +1,5 @@
 // ==========================================
-// v3.6.11 視圖渲染引擎 (Pure View)
+// v3.6.12 視圖渲染引擎 (Pure View)
 // ==========================================
 
 const UI = {
@@ -23,13 +23,11 @@ const UI = {
     // 玩家端 4:5 結構視圖渲染 (Player View)
     // ----------------------------------------------------
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = [], showVoteHistory = false) {
-        // 1. 頂部個人資訊
         document.getElementById('player-seat-number').textContent = state.mySeat || '-';
         if (state.myRole) {
             document.getElementById('player-role-name').textContent = state.myRole;
         }
 
-        // 2. 浮動按鈕控制
         const btnExplode = document.getElementById('btn-self-explode');
         if (btnExplode) {
             if (state.allowSelfExplode) btnExplode.classList.remove('hidden');
@@ -42,7 +40,6 @@ const UI = {
             else btnHistory.classList.add('hidden');
         }
 
-        // 3. 歷史紀錄 vs 身分卡牌切換
         const cardImg = document.getElementById('my-card-img');
         const historyPanel = document.getElementById('vote-history-panel');
 
@@ -61,7 +58,6 @@ const UI = {
             }
         }
 
-        // 4. 目標預覽圓圈
         const previewEl = document.getElementById('target-preview-circle');
         const previewImg = document.getElementById('target-preview-img');
         let previewLabel = document.getElementById('target-preview-label');
@@ -72,8 +68,7 @@ const UI = {
         if (selectedTargets.length > 0) {
             showCenterSeat = selectedTargets[0];
             const tData = state.players.find(p => p.seatNumber === showCenterSeat);
-            // 改為讀取 rightTag 作為目標狀態
-            if (tData && tData.rightTag) showCenterAlignment = tData.rightTag;
+            if (tData && tData.sideTag) showCenterAlignment = tData.sideTag; // [改動] 對接 sideTag
         } else if (state.actionPanel && state.actionPanel.preSelectedTarget) {
             showCenterSeat = state.actionPanel.preSelectedTarget;
             showCenterAlignment = "刀口";
@@ -103,7 +98,6 @@ const UI = {
             if (previewEl) previewEl.classList.add('hidden');
         }
 
-        // 5. 左右玩家列表
         const leftSeats = document.getElementById('left-seats');
         const rightSeats = document.getElementById('right-seats');
         if (!leftSeats || !rightSeats) return;
@@ -127,12 +121,15 @@ const UI = {
 
             let tagsHtml = '';
             
-            // [重構] 完全資料驅動的標籤渲染，摒棄舊有邏輯
             if (p.topTag) {
                 tagsHtml += `<div class="top-tag">${p.topTag}</div>`;
             }
-            if (p.rightTag) {
-                tagsHtml += `<div class="right-tag">${p.rightTag}</div>`;
+            
+            // [新增] 判斷座位隸屬左右側，動態指派 side-tag 方向
+            if (p.sideTag) {
+                const isLeftColumn = p.seatNumber <= Math.ceil(state.players.length / 2);
+                const alignClass = isLeftColumn ? 'align-right' : 'align-left';
+                tagsHtml += `<div class="side-tag ${alignClass}">${p.sideTag}</div>`;
             }
 
             seat.innerHTML = `
@@ -151,7 +148,6 @@ const UI = {
             }
         });
 
-        // 6. 綠色操作區/系統訊息面板整合
         const promptEl = document.getElementById('action-prompt');
         const btnContainer = document.getElementById('dynamic-buttons-container');
         
@@ -184,7 +180,6 @@ const UI = {
         }
     },
 
-    // 主機端渲染維持不變
     renderHostView: function(state, onHostAction) {
         document.getElementById('host-status-log').innerHTML = state.systemLog || '等待中...';
         
@@ -248,9 +243,10 @@ const UI = {
             seat.className = 'player-seat';
             if (p.isDead) seat.classList.add('dead');
             
+            // [修改] 補上 overflow: hidden 強制裁切主控台頭像邊緣
             seat.innerHTML = `
                 <div class="role-label" style="background:var(--accent-blue)">${p.role || '未分配'}</div>
-                <div class="seat-img-wrapper" style="width: 56px; height: 56px; border-radius: 50%; border: 3px solid #555; background: #222; position: relative;">
+                <div class="seat-img-wrapper" style="width: 56px; height: 56px; border-radius: 50%; border: 3px solid #555; background: #222; position: relative; overflow: hidden;">
                     <img src="./img/seat_${p.seatNumber}.png" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none';">
                 </div>
                 <div class="player-name">${p.name || '等待加入'}</div>
