@@ -1,5 +1,5 @@
 // ==========================================
-// v3.6.12 核心主機引擎 (Smart Server / Strategy Pattern)
+// v3.6.13 核心主機引擎 (Smart Server / Strategy Pattern)
 // ==========================================
 
 let hostPeer = null;
@@ -47,7 +47,14 @@ const RolePlugins = {
             { id: 'confirm', text: '確認襲擊', requiresTarget: true },
             { id: 'pass', text: '空刀', requiresTarget: false }
         ],
-        getPassTags: (mySeat) => { return []; }, 
+        // [核心修正] 重啟空刀預覽的收集邏輯
+        getPassTags: (mySeat) => {
+            let tags = [];
+            Object.values(wolfPreviews).forEach(preview => {
+                if (preview.target === 'pass' && preview.seat !== mySeat) tags.push(`${preview.seat}號`);
+            });
+            return tags;
+        },
         resolve: (actions) => {
             let validTargets = [];
             actions.forEach(act => {
@@ -264,7 +271,9 @@ function syncStateToAll() {
 function buildStateForPlayer(player, isDayPhase) {
     const mappedPlayers = playersData.map(p => {
         let topTag = null;
-        let sideTag = null; // [修改] 正式更名為 sideTag
+        let sideTag = null;
+        let wolfPreviewTags = [];
+        let isWolfSelected = false;
         
         if (gameState.phase === GAME_PHASE.GAME_OVER) {
             topTag = p.role;
@@ -277,9 +286,18 @@ function buildStateForPlayer(player, isDayPhase) {
         }
 
         if (player.role === '預言家' && player.seerRecords && player.seerRecords[p.seatNumber]) {
-            sideTag = player.seerRecords[p.seatNumber]; // [修改] 賦值給 sideTag
+            sideTag = player.seerRecords[p.seatNumber]; 
         } else if (player.role === '女巫' && gameState.witchState.savedSeat === p.seatNumber) {
-            sideTag = "銀水"; // [修改] 賦值給 sideTag
+            sideTag = "銀水"; 
+        }
+
+        if (gameState.phase === GAME_PHASE.NIGHT_ACTION && gameState.nightSequence[gameState.currentNightStepIndex]?.roleName === "狼人" && isWolfRole(player.role)) {
+            Object.values(wolfPreviews).forEach(preview => {
+                if (preview.target === p.seatNumber && preview.seat !== player.seatNumber) {
+                    wolfPreviewTags.push(`${preview.seat}號`);
+                    isWolfSelected = true;
+                }
+            });
         }
 
         return { 
@@ -287,7 +305,9 @@ function buildStateForPlayer(player, isDayPhase) {
             name: p.name, 
             isDead: p.isDead, 
             topTag: topTag,     
-            sideTag: sideTag  // [修改] 下發 sideTag 屬性
+            sideTag: sideTag,
+            wolfPreviewTags: wolfPreviewTags, 
+            isWolfSelected: isWolfSelected    
         };
     });
 
@@ -307,6 +327,8 @@ function buildStateForPlayer(player, isDayPhase) {
             actionPanel.selectableSeats = plugin ? plugin.getSelectableSeats() : [];
             actionPanel.buttons = plugin ? plugin.getButtons() : [];
             actionPanel.preSelectedTarget = plugin && plugin.getPreSelectedTarget ? plugin.getPreSelectedTarget() : null; 
+            // [核心修正] 呼叫並下發 passTags
+            actionPanel.passTags = plugin && plugin.getPassTags ? plugin.getPassTags(player.seatNumber) : [];
             actionPanel.submitPacketType = PACKET_TYPE.ACTION_SUBMIT;
 
             if (hasActed) {
@@ -622,6 +644,12 @@ function resolveVoting() {
     for (const [t, count] of Object.entries(voteCounts)) {
         if (count > maxVotes) { maxVotes = count; finalTarget = parseInt(t); isTie = false; }
         else if (count === maxVotes) { isTie = true; }
+    }
+
+    // [核心修正] 強制防呆判斷，解決全數棄票時的 null 號出局問題
+    if (maxVotes === 0) {
+        isTie = true;
+        finalTarget = null;
     }
 
     let resultLines = [];

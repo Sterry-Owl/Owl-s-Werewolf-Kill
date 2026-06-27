@@ -1,5 +1,5 @@
 // ==========================================
-// v3.6.12 視圖渲染引擎 (Pure View)
+// v3.6.13 視圖渲染引擎 (Pure View)
 // ==========================================
 
 const UI = {
@@ -19,9 +19,6 @@ const UI = {
         });
     },
 
-    // ----------------------------------------------------
-    // 玩家端 4:5 結構視圖渲染 (Player View)
-    // ----------------------------------------------------
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = [], showVoteHistory = false) {
         document.getElementById('player-seat-number').textContent = state.mySeat || '-';
         if (state.myRole) {
@@ -68,7 +65,7 @@ const UI = {
         if (selectedTargets.length > 0) {
             showCenterSeat = selectedTargets[0];
             const tData = state.players.find(p => p.seatNumber === showCenterSeat);
-            if (tData && tData.sideTag) showCenterAlignment = tData.sideTag; // [改動] 對接 sideTag
+            if (tData && tData.sideTag) showCenterAlignment = tData.sideTag;
         } else if (state.actionPanel && state.actionPanel.preSelectedTarget) {
             showCenterSeat = state.actionPanel.preSelectedTarget;
             showCenterAlignment = "刀口";
@@ -109,6 +106,8 @@ const UI = {
             seat.className = 'player-seat';
             if (p.isDead) seat.classList.add('dead');
             
+            if (p.isWolfSelected) seat.classList.add('wolf-selected');
+            
             const isSelected = selectedTargets.includes(p.seatNumber);
             if (isSelected) seat.classList.add('selected');
 
@@ -125,11 +124,16 @@ const UI = {
                 tagsHtml += `<div class="top-tag">${p.topTag}</div>`;
             }
             
-            // [新增] 判斷座位隸屬左右側，動態指派 side-tag 方向
             if (p.sideTag) {
                 const isLeftColumn = p.seatNumber <= Math.ceil(state.players.length / 2);
                 const alignClass = isLeftColumn ? 'align-right' : 'align-left';
                 tagsHtml += `<div class="side-tag ${alignClass}">${p.sideTag}</div>`;
+            }
+
+            if (p.wolfPreviewTags && p.wolfPreviewTags.length > 0) {
+                p.wolfPreviewTags.forEach((tag, idx) => {
+                    tagsHtml += `<div class="wolf-preview-tag" style="bottom: ${-12 - (idx*16)}px;">${tag}</div>`;
+                });
             }
 
             seat.innerHTML = `
@@ -161,9 +165,22 @@ const UI = {
                         const btn = document.createElement('button');
                         btn.textContent = bInfo.text;
                         
-                        if (bInfo.id === 'pass') btn.className = 'btn-secondary';
-                        else if (bInfo.id === 'poison') btn.style.background = '#800080'; 
-                        else btn.className = 'btn-primary';
+                        // [核心修正] 動態渲染空刀預覽標籤，不綁死狼人邏輯
+                        if (bInfo.id === 'pass') {
+                            btn.className = 'btn-secondary';
+                            if (state.actionPanel.passTags && state.actionPanel.passTags.length > 0) {
+                                btn.style.position = 'relative';
+                                state.actionPanel.passTags.forEach((tag, idx) => {
+                                    btn.innerHTML += `<div class="wolf-preview-tag" style="top: -15px; right: ${-10 + (idx*20)}px;">${tag}</div>`;
+                                });
+                            }
+                        }
+                        else if (bInfo.id === 'poison') {
+                            btn.style.background = '#800080'; 
+                        }
+                        else {
+                            btn.className = 'btn-primary';
+                        }
 
                         if (bInfo.requiresTarget && selectedTargets.length === 0) {
                             btn.disabled = true;
@@ -243,7 +260,6 @@ const UI = {
             seat.className = 'player-seat';
             if (p.isDead) seat.classList.add('dead');
             
-            // [修改] 補上 overflow: hidden 強制裁切主控台頭像邊緣
             seat.innerHTML = `
                 <div class="role-label" style="background:var(--accent-blue)">${p.role || '未分配'}</div>
                 <div class="seat-img-wrapper" style="width: 56px; height: 56px; border-radius: 50%; border: 3px solid #555; background: #222; position: relative; overflow: hidden;">
