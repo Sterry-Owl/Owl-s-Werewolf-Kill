@@ -1,10 +1,9 @@
 // ==========================================
-// v3.6.9 視圖渲染引擎 (Pure View)
+// v3.6.11 視圖渲染引擎 (Pure View)
 // ==========================================
 
 const UI = {
     updateStatusMessage: function(msg) {
-        // [重構] 系統提示一律寫入綠色面板內的 action-prompt
         const el = document.getElementById('action-prompt');
         if (el) el.textContent = msg;
     },
@@ -33,14 +32,12 @@ const UI = {
         // 2. 浮動按鈕控制
         const btnExplode = document.getElementById('btn-self-explode');
         if (btnExplode) {
-            // 只有主機下發允許自爆時才顯示紅圈
             if (state.allowSelfExplode) btnExplode.classList.remove('hidden');
             else btnExplode.classList.add('hidden');
         }
 
         const btnHistory = document.getElementById('btn-vote-history');
         if (btnHistory) {
-            // 只要有歷史紀錄就允許切換黃圈
             if (state.voteHistory && state.voteHistory.length > 0) btnHistory.classList.remove('hidden');
             else btnHistory.classList.add('hidden');
         }
@@ -53,7 +50,6 @@ const UI = {
             if (cardImg) cardImg.classList.add('hidden');
             if (historyPanel) {
                 historyPanel.classList.remove('hidden');
-                // 將歷史陣列渲染為多行區塊
                 historyPanel.innerHTML = state.voteHistory.map(h => `<div style="margin-bottom:8px; border-bottom:1px solid #444; padding-bottom:5px; white-space:pre-wrap;">${h}</div>`).join('');
             }
         } else {
@@ -76,7 +72,8 @@ const UI = {
         if (selectedTargets.length > 0) {
             showCenterSeat = selectedTargets[0];
             const tData = state.players.find(p => p.seatNumber === showCenterSeat);
-            if (tData && tData.knownAlignment) showCenterAlignment = tData.knownAlignment;
+            // 改為讀取 rightTag 作為目標狀態
+            if (tData && tData.rightTag) showCenterAlignment = tData.rightTag;
         } else if (state.actionPanel && state.actionPanel.preSelectedTarget) {
             showCenterSeat = state.actionPanel.preSelectedTarget;
             showCenterAlignment = "刀口";
@@ -130,36 +127,24 @@ const UI = {
 
             let tagsHtml = '';
             
-            if (p.wolfTags && p.wolfTags.length > 0) {
-                p.wolfTags.forEach((tag, idx) => {
-                    tagsHtml += `<div class="wolf-tag" style="top: ${-5 - (idx*15)}px; right: -5px;">${tag}</div>`;
-                });
-                if (!isSelected) seat.classList.add('wolf-selected');
+            // [重構] 完全資料驅動的標籤渲染，摒棄舊有邏輯
+            if (p.topTag) {
+                tagsHtml += `<div class="top-tag">${p.topTag}</div>`;
             }
-
-            // [新增] 自動掛載任何後端傳來的標籤 (例如：銀水)
-            if (p.tags && p.tags.length > 0) {
-                p.tags.forEach((tag, idx) => {
-                    tagsHtml += `<div class="silver-water-tag" style="top: -22px; left: ${-12 + (idx*15)}px;">${tag}</div>`;
-                });
-            }
-
-            if (p.knownAlignment) {
-                const bgColor = p.knownAlignment === '狼人' ? 'var(--accent-red)' : 'var(--accent-blue)';
-                tagsHtml += `<div style="position: absolute; bottom: 12px; left: -10px; background: ${bgColor}; color: white; font-size: 10px; padding: 2px 4px; border-radius: 4px; font-weight: bold; z-index: 15; box-shadow: 0 0 5px rgba(0,0,0,0.5);">${p.knownAlignment}</div>`;
+            if (p.rightTag) {
+                tagsHtml += `<div class="right-tag">${p.rightTag}</div>`;
             }
 
             seat.innerHTML = `
-                <div class="role-label ${p.roleInfo ? '' : 'hidden'}">${p.roleInfo || ''}</div>
                 <div class="seat-img-wrapper">
                     <img src="./img/seat_${p.seatNumber}.png" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-size:18px; font-weight:bold; color:#333;">${p.seatNumber}</div>
+                    ${tagsHtml}
                 </div>
-                ${tagsHtml}
                 <div class="player-name">${p.name || '等待加入'}</div>
             `;
 
-            if (p.seatNumber <= 6) {
+            if (p.seatNumber <= Math.ceil(state.players.length / 2)) {
                 leftSeats.appendChild(seat);
             } else {
                 rightSeats.appendChild(seat);
@@ -188,25 +173,18 @@ const UI = {
                             btn.disabled = true;
                         }
 
-                        if (bInfo.id === 'pass' && state.actionPanel.passTags && state.actionPanel.passTags.length > 0) {
-                            btn.style.position = 'relative';
-                            state.actionPanel.passTags.forEach((tag, idx) => {
-                                btn.innerHTML += `<span class="wolf-tag" style="top: -15px; right: ${-10 + (idx*20)}px;">${tag}</span>`;
-                            });
-                        }
-
                         btn.onclick = () => onActionSubmit(bInfo.id);
                         btnContainer.appendChild(btn);
                     });
                 }
             }
         } else {
-            // [重構] 若非操作階段，直接將 state.message 顯示於綠區
             if(promptEl) promptEl.textContent = state.message || '等待系統指示...';
             if(btnContainer) btnContainer.innerHTML = '';
         }
     },
 
+    // 主機端渲染維持不變
     renderHostView: function(state, onHostAction) {
         document.getElementById('host-status-log').innerHTML = state.systemLog || '等待中...';
         
