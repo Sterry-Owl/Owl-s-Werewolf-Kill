@@ -38,7 +38,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     height: 85vh; min-height: 600px; max-height: 750px; 
     margin: 0 auto; background: #1a1a1a; border-radius: 12px; overflow: hidden; 
     border: 1px solid var(--border-color); box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-    position: relative; /* 提供浮動按鈕絕對定位依據 */
+    position: relative; 
 }
 
 .app-header { 
@@ -82,7 +82,6 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     font-weight: bold; font-size: 11px; color: white; white-space: nowrap; z-index: 20; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
 }
 
-/* [修改] 支援多行文本的提示區域 */
 .action-prompt { 
     font-weight: bold; color: white; text-align: center; font-size: 14px; 
     line-height: 1.5; width: 100%; white-space: pre-wrap; 
@@ -98,14 +97,12 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 .my-card { width: 80px; height: 115px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #111; }
 
-/* [新增] 投票歷史紀錄面板 */
 .vote-history-panel {
     width: 100%; height: 115px; background: rgba(0,0,0,0.85); border-radius: 8px;
     border: 2px solid var(--wolf-yellow); padding: 10px; overflow-y: auto;
     color: white; font-size: 12px; line-height: 1.6; box-sizing: border-box; text-align: left;
 }
 
-/* [新增] 左下/右下 浮動圓形按鈕 */
 .floating-btn {
     position: absolute; bottom: 20px; width: 45px; height: 45px; border-radius: 50%;
     display: flex; justify-content: center; align-items: center; font-weight: bold; 
@@ -116,18 +113,34 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .floating-btn.red { background: var(--accent-red); left: 15px; }
 .floating-btn.yellow { background: var(--wolf-yellow); color: #000; right: 15px; }
 
+/* ==================================================== */
+/* 座位與標籤重構 (對齊示意圖) */
+/* ==================================================== */
 .player-seat { display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; width: 100%; }
 .seat-img-wrapper { 
     width: 42px; height: 42px; border-radius: 50%; background: #ddd; 
-    border: 2px solid #555; position: relative; transition: 0.2s; flex-shrink: 0; overflow: hidden;
+    border: 2px solid #555; position: relative; transition: 0.2s; flex-shrink: 0; overflow: visible; /* 允許標籤溢出 */
 }
+
+/* [新增] 頂部藍綠色標籤 */
+.top-tag { 
+    position: absolute; top: -16px; left: 50%; transform: translateX(-50%); 
+    background: #a8e8e2; color: #111; padding: 2px 6px; border-radius: 8px; 
+    font-size: 10px; font-weight: bold; z-index: 15; white-space: nowrap; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5); 
+}
+
+/* [新增] 右側淺黃色標籤 */
+.right-tag { 
+    position: absolute; top: 50%; left: 100%; transform: translateY(-50%); margin-left: 6px;
+    background: #fdf5c9; color: #111; padding: 2px 6px; border-radius: 8px; 
+    font-size: 10px; font-weight: bold; z-index: 15; white-space: nowrap; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5); 
+}
+
 .player-seat:hover:not(.locked):not(.dead) .seat-img-wrapper { border-color: var(--accent-blue); }
 .player-seat.selected .seat-img-wrapper { border-color: var(--accent-green) !important; box-shadow: 0 0 10px var(--accent-green) !important; }
-.player-seat.wolf-selected .seat-img-wrapper { border-color: var(--wolf-yellow) !important; box-shadow: 0 0 10px rgba(255, 183, 3, 0.8) !important; }
 .player-seat.dead { opacity: 0.4; filter: grayscale(100%); cursor: not-allowed; }
-.player-seat.dead::after { content: '✖'; position: absolute; font-size: 32px; color: var(--accent-red); z-index: 10; top: 0px; }
+.player-seat.dead::after { content: '✖'; position: absolute; font-size: 32px; color: var(--accent-red); z-index: 10; top: -5px; left: 50%; transform: translateX(-50%); }
 
-.role-label { position: absolute; top: -16px; background: var(--accent-blue); color: white; padding: 2px 4px; border-radius: 4px; font-size: 10px; z-index: 5; white-space: nowrap; }
-.wolf-tag { background: var(--wolf-yellow); color: #000; font-size: 10px; padding: 2px 4px; border-radius: 3px; font-weight: bold; position: absolute; z-index: 15; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-.silver-water-tag { background: #eee; color: #333; font-size: 10px; padding: 2px 4px; border-radius: 3px; font-weight: bold; position: absolute; z-index: 15; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
 .player-name { margin-top: 4px; font-size: 11px; color: var(--text-muted); white-space: nowrap; text-align: center; overflow: hidden; text-overflow: ellipsis; width: 100%; max-width: 60px; }
