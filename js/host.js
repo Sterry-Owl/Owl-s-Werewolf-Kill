@@ -1,5 +1,5 @@
 // ==========================================
-// v3.6.13 核心主機引擎 (Smart Server / Strategy Pattern)
+// v3.6.14 核心主機引擎 (Smart Server / Strategy Pattern)
 // ==========================================
 
 let hostPeer = null;
@@ -35,9 +35,6 @@ function isWolfRole(roleStr) {
     return ROLE_DICTIONARY[roleStr]?.faction === 'wolf';
 }
 
-// ==========================================
-// 角色外掛註冊表 (Role Plugins)
-// ==========================================
 const RolePlugins = {
     "狼人": {
         canSelfExplode: true,
@@ -47,10 +44,10 @@ const RolePlugins = {
             { id: 'confirm', text: '確認襲擊', requiresTarget: true },
             { id: 'pass', text: '空刀', requiresTarget: false }
         ],
-        // [核心修正] 重啟空刀預覽的收集邏輯
         getPassTags: (mySeat) => {
             let tags = [];
             Object.values(wolfPreviews).forEach(preview => {
+                // 安全檢查：明確比對 'pass'，防範前端傳遞型別的模糊
                 if (preview.target === 'pass' && preview.seat !== mySeat) tags.push(`${preview.seat}號`);
             });
             return tags;
@@ -142,10 +139,6 @@ const RolePlugins = {
         }
     }
 };
-
-// ==========================================
-// 全域狀態分發與生命週期控制
-// ==========================================
 
 window.syncDeckToPlayers = function(deck) {
     let roleCounts = {};
@@ -327,7 +320,6 @@ function buildStateForPlayer(player, isDayPhase) {
             actionPanel.selectableSeats = plugin ? plugin.getSelectableSeats() : [];
             actionPanel.buttons = plugin ? plugin.getButtons() : [];
             actionPanel.preSelectedTarget = plugin && plugin.getPreSelectedTarget ? plugin.getPreSelectedTarget() : null; 
-            // [核心修正] 呼叫並下發 passTags
             actionPanel.passTags = plugin && plugin.getPassTags ? plugin.getPassTags(player.seatNumber) : [];
             actionPanel.submitPacketType = PACKET_TYPE.ACTION_SUBMIT;
 
@@ -611,30 +603,19 @@ function processDawn() {
     syncStateToAll();
 }
 
-function handleVoteSubmit(peerId, payload) {
-    if (gameState.phase !== GAME_PHASE.DAY_VOTING) return;
-    const voter = playersData.find(p => p.peerId === peerId);
-    if (!voter || voter.isDead || gameState.votes[voter.seatNumber] !== undefined) return;
-
-    const target = (payload.actionId === 'vote' && payload.targets && payload.targets.length > 0) ? payload.targets[0] : 'pass';
-    gameState.votes[voter.seatNumber] = target;
-
-    const aliveCount = playersData.filter(p => !p.isDead).length;
-    const votedCount = Object.keys(gameState.votes).length;
-
-    gameState.systemLog = `投票進度：${votedCount} / ${aliveCount}`;
-
-    if (votedCount >= aliveCount) resolveVoting();
-    else syncStateToAll();
-}
-
 function resolveVoting() {
     let voteCounts = {};
     let voteGroups = {}; 
+    let validVotesCount = 0; // [終極重構] 追蹤有效票數，讓邏輯自洽
+
     Object.entries(gameState.votes).forEach(([voter, t]) => {
-        if (t !== 'pass') voteCounts[t] = (voteCounts[t] || 0) + 1;
         if (!voteGroups[t]) voteGroups[t] = [];
         voteGroups[t].push(voter);
+        
+        if (t !== 'pass') {
+            voteCounts[t] = (voteCounts[t] || 0) + 1;
+            validVotesCount++;
+        }
     });
 
     let maxVotes = 0;
@@ -646,8 +627,8 @@ function resolveVoting() {
         else if (count === maxVotes) { isTie = true; }
     }
 
-    // [核心修正] 強制防呆判斷，解決全數棄票時的 null 號出局問題
-    if (maxVotes === 0) {
+    // [終極重構] 如果根本沒有人投給玩家，那就是平票/棄票
+    if (validVotesCount === 0) {
         isTie = true;
         finalTarget = null;
     }
@@ -690,6 +671,23 @@ function resolveVoting() {
     gameState.systemLog = header.replace('\n', '');
     gameState.phase = GAME_PHASE.VOTE_RESULT_DISPLAY; 
     syncStateToAll();
+}
+
+function handleVoteSubmit(peerId, payload) {
+    if (gameState.phase !== GAME_PHASE.DAY_VOTING) return;
+    const voter = playersData.find(p => p.peerId === peerId);
+    if (!voter || voter.isDead || gameState.votes[voter.seatNumber] !== undefined) return;
+
+    const target = (payload.actionId === 'vote' && payload.targets && payload.targets.length > 0) ? payload.targets[0] : 'pass';
+    gameState.votes[voter.seatNumber] = target;
+
+    const aliveCount = playersData.filter(p => !p.isDead).length;
+    const votedCount = Object.keys(gameState.votes).length;
+
+    gameState.systemLog = `投票進度：${votedCount} / ${aliveCount}`;
+
+    if (votedCount >= aliveCount) resolveVoting();
+    else syncStateToAll();
 }
 
 function broadcastTempMessage(msg) {

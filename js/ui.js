@@ -1,5 +1,5 @@
 // ==========================================
-// v3.6.13 視圖渲染引擎 (Pure View)
+// v3.6.14 視圖渲染引擎 (Pure View)
 // ==========================================
 
 const UI = {
@@ -118,17 +118,10 @@ const UI = {
                 seat.style.pointerEvents = 'none';
             }
 
+            // [終極重構] 拔除 align-class 的 JS 髒補丁，回歸乾淨輸出
             let tagsHtml = '';
-            
-            if (p.topTag) {
-                tagsHtml += `<div class="top-tag">${p.topTag}</div>`;
-            }
-            
-            if (p.sideTag) {
-                const isLeftColumn = p.seatNumber <= Math.ceil(state.players.length / 2);
-                const alignClass = isLeftColumn ? 'align-right' : 'align-left';
-                tagsHtml += `<div class="side-tag ${alignClass}">${p.sideTag}</div>`;
-            }
+            if (p.topTag) tagsHtml += `<div class="top-tag">${p.topTag}</div>`;
+            if (p.sideTag) tagsHtml += `<div class="side-tag">${p.sideTag}</div>`;
 
             if (p.wolfPreviewTags && p.wolfPreviewTags.length > 0) {
                 p.wolfPreviewTags.forEach((tag, idx) => {
@@ -165,7 +158,6 @@ const UI = {
                         const btn = document.createElement('button');
                         btn.textContent = bInfo.text;
                         
-                        // [核心修正] 動態渲染空刀預覽標籤，不綁死狼人邏輯
                         if (bInfo.id === 'pass') {
                             btn.className = 'btn-secondary';
                             if (state.actionPanel.passTags && state.actionPanel.passTags.length > 0) {
