@@ -1,8 +1,10 @@
 // ==========================================
-// v3.6.15 視圖渲染引擎 (Pure View)
+// v3.7.0 視圖渲染引擎 (Pure View)
 // ==========================================
 
 const UI = {
+    countdownInterval: null, // [新增] 用於前端本地倒數計時器
+
     updateStatusMessage: function(msg) {
         const el = document.getElementById('action-prompt');
         if (el) el.textContent = msg;
@@ -12,8 +14,12 @@ const UI = {
         const btnContainer = document.getElementById('dynamic-buttons-container');
         if(btnContainer) btnContainer.innerHTML = '';
         const promptEl = document.getElementById('action-prompt');
-        if(promptEl) promptEl.textContent = '行動已送出，等待系統結算...';
+        if(promptEl) {
+            promptEl.innerHTML = '行動已送出，等待系統結算...';
+        }
         
+        clearInterval(UI.countdownInterval); // 提交後清除計時器
+
         document.querySelectorAll('.player-seat').forEach(s => {
             s.style.pointerEvents = 'none';
         });
@@ -25,14 +31,33 @@ const UI = {
             document.getElementById('player-role-name').textContent = state.myRole;
         }
 
+        // [新增] 動態在頂部資訊列中間插入版型名稱
+        let headerEl = document.querySelector('.app-header');
+        if (headerEl) {
+            let boardNameEl = document.getElementById('dynamic-board-name');
+            if (!boardNameEl) {
+                boardNameEl = document.createElement('div');
+                boardNameEl.id = 'dynamic-board-name';
+                boardNameEl.style.flex = '1';
+                boardNameEl.style.textAlign = 'center';
+                boardNameEl.style.color = '#fff';
+                boardNameEl.style.fontSize = '13px';
+                headerEl.insertBefore(boardNameEl, headerEl.children[1]);
+            }
+            boardNameEl.textContent = state.boardName || '';
+        }
+
+        // [修改] 拔除原本寫死的文字，讓 CSS 的背景圖片能夠完美呈現
         const btnExplode = document.getElementById('btn-self-explode');
         if (btnExplode) {
+            btnExplode.textContent = ''; 
             if (state.allowSelfExplode) btnExplode.classList.remove('hidden');
             else btnExplode.classList.add('hidden');
         }
 
         const btnHistory = document.getElementById('btn-vote-history');
         if (btnHistory) {
+            btnHistory.textContent = ''; 
             if (state.voteHistory && state.voteHistory.length > 0) btnHistory.classList.remove('hidden');
             else btnHistory.classList.add('hidden');
         }
@@ -83,6 +108,12 @@ const UI = {
                     previewLabel.textContent = showCenterAlignment;
                     if (showCenterAlignment === '狼人' || showCenterAlignment === '刀口') {
                         previewLabel.style.background = 'var(--accent-red)';
+                    } else if (showCenterAlignment === '銀水') {
+                        previewLabel.style.background = '#bfbfbf';
+                        previewLabel.style.color = '#000';
+                    } else if (showCenterAlignment === '好人') {
+                        previewLabel.style.background = '#ffdb4d';
+                        previewLabel.style.color = '#000';
                     } else {
                         previewLabel.style.background = 'var(--accent-blue)';
                     }
@@ -125,9 +156,15 @@ const UI = {
             }
             
             if (p.sideTag) {
-                // [終極淨化] 邏輯寫死，不再動態計算：1~6 號永遠向右長標籤，7~12 號向左長
                 const alignClass = p.seatNumber <= 6 ? 'align-right' : 'align-left';
-                tagsHtml += `<div class="side-tag ${alignClass}">${p.sideTag}</div>`;
+                
+                // [新增] 側標籤動態換色邏輯
+                let colorClass = 'tag-default';
+                if (p.sideTag === '銀水') colorClass = 'tag-silver';
+                else if (p.sideTag === '好人') colorClass = 'tag-gold';
+                else if (p.sideTag === '狼人') colorClass = 'tag-red';
+
+                tagsHtml += `<div class="side-tag ${alignClass} ${colorClass}">${p.sideTag}</div>`;
             }
 
             if (p.wolfPreviewTags && p.wolfPreviewTags.length > 0) {
@@ -145,7 +182,6 @@ const UI = {
                 <div class="player-name">${p.name || '等待加入'}</div>
             `;
 
-            // [終極淨化] 座位列物理固定：1~6 號塞進左容器，7~12 號塞進右容器
             if (p.seatNumber <= 6) {
                 leftSeats.appendChild(seat);
             } else {
@@ -156,8 +192,31 @@ const UI = {
         const promptEl = document.getElementById('action-prompt');
         const btnContainer = document.getElementById('dynamic-buttons-container');
         
+        clearInterval(UI.countdownInterval); // 每次重新渲染先清除舊的計時器
+
         if (state.actionPanel.show) {
-            if(promptEl) promptEl.textContent = state.actionPanel.prompt;
+            
+            // [新增] 本地平滑倒數計時器渲染
+            if (state.actionPanel.deadline) {
+                if(promptEl) {
+                    promptEl.innerHTML = `<div id="action-timer-display" class="action-timer">--</div><div style="margin-top:8px; white-space:pre-wrap;">${state.actionPanel.prompt}</div>`;
+                }
+                const timerDisplay = document.getElementById('action-timer-display');
+                
+                // 每 0.2 秒更新一次畫面，確保時間絕對精準且不吃效能
+                UI.countdownInterval = setInterval(() => {
+                    const now = Date.now();
+                    const remain = Math.max(0, Math.ceil((state.actionPanel.deadline - now) / 1000));
+                    if (timerDisplay) {
+                        timerDisplay.textContent = remain + 's';
+                        if (remain <= 5) timerDisplay.style.color = 'var(--accent-red)';
+                    }
+                    if (remain <= 0) clearInterval(UI.countdownInterval);
+                }, 200);
+
+            } else {
+                if(promptEl) promptEl.textContent = state.actionPanel.prompt;
+            }
             
             if (btnContainer) {
                 btnContainer.innerHTML = '';
