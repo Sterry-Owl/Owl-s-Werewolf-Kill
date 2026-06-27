@@ -52,13 +52,15 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     background: #2a2515; overflow: hidden; position: relative;
 }
 
+/* [核心修正] 確保 12 人局也能滑動，且加寬以容納側邊標籤，徹底解決裁切問題 */
 .seat-column { 
-    display: flex; flex-direction: column; justify-content: flex-start;
-    padding-top: 10px; 
-    padding-bottom: 35vh; /* [修改] 配合放大的底部牌卡，預留更寬敞的底部空間 */
-    gap: 24px; /* [修改] 完美 24px 間距，避免 topTag 蓋到暱稱 */
-    width: 60px; flex-shrink: 0; z-index: 5;
-    overflow-y: auto; /* 若人數較多仍可輕微滑動 */
+    display: flex; flex-direction: column; justify-content: flex-start; align-items: center; 
+    padding-top: 25px; 
+    padding-bottom: 35vh; 
+    gap: 24px; 
+    width: 95px; 
+    flex-shrink: 0; z-index: 5;
+    overflow-y: auto; 
 }
 .seat-column::-webkit-scrollbar { display: none; }
 
@@ -67,11 +69,8 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     align-items: center; padding: 5px 0 15px 0; min-width: 0; z-index: 10; pointer-events: none;
 }
 
-/* 綠色操作區 */
 .action-panel {
-    width: 85%; 
-    max-width: 170px; /* [修改] 縮小操作區寬度，讓出左右標籤空間 */
-    min-height: 200px; background: #2d5a2d; 
+    width: 85%; max-width: 170px; min-height: 200px; background: #2d5a2d; 
     border-radius: 16px; padding: 20px 10px;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;
     border: 2px solid #3d7a3d; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
@@ -88,32 +87,25 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     font-weight: bold; font-size: 11px; color: white; white-space: nowrap; z-index: 20; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
 }
 
-.action-prompt { 
-    font-weight: bold; color: white; text-align: center; font-size: 14px; 
-    line-height: 1.5; width: 100%; white-space: pre-wrap; 
-}
+.action-prompt { font-weight: bold; color: white; text-align: center; font-size: 14px; line-height: 1.5; width: 100%; white-space: pre-wrap; }
 .action-buttons-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; width: 100%; }
 .action-buttons-row button { flex: 1; min-width: 60px; padding: 12px 5px; font-size: 13px; }
 
-/* 底部身分與歷史紀錄列 */
 .card-panel {
     position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
     display: flex; flex-direction: column; align-items: center; width: 80%;
     pointer-events: auto; z-index: 15;
 }
 
-/* [修改] 牌卡高度設定為畫面 33% 左右，並自動決定寬度 */
 .my-card { 
     height: 33vh; max-height: 250px; min-height: 150px; width: auto; 
     object-fit: contain; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.7); border: 2px solid #111; 
 }
 
 .vote-history-panel {
-    width: 100%; 
-    height: 33vh; max-height: 250px; min-height: 150px; /* 同步牌卡大小 */
-    background: rgba(0,0,0,0.85); border-radius: 8px;
-    border: 2px solid var(--wolf-yellow); padding: 10px; overflow-y: auto;
-    color: white; font-size: 12px; line-height: 1.6; box-sizing: border-box; text-align: left;
+    width: 100%; height: 33vh; max-height: 250px; min-height: 150px;
+    background: rgba(0,0,0,0.85); border-radius: 8px; border: 2px solid var(--wolf-yellow); 
+    padding: 10px; overflow-y: auto; color: white; font-size: 12px; line-height: 1.6; box-sizing: border-box; text-align: left;
 }
 
 .floating-btn {
@@ -138,21 +130,22 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .top-tag { 
     position: absolute; top: -16px; left: 50%; transform: translateX(-50%); 
     background: #a8e8e2; color: #111; padding: 2px 6px; border-radius: 8px; 
-    font-size: 10px; font-weight: bold; z-index: 15; white-space: nowrap; 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.5); 
+    font-size: 10px; font-weight: bold; z-index: 15; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.5); 
 }
 
-/* [修改] 智慧側邊標籤基礎樣式 */
 .side-tag { 
     position: absolute; top: 50%; transform: translateY(-50%);
     background: #fdf5c9; color: #111; padding: 2px 6px; border-radius: 8px; 
-    font-size: 10px; font-weight: bold; z-index: 15; white-space: nowrap; 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.5); 
+    font-size: 10px; font-weight: bold; z-index: 15; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.5); 
 }
-/* [修改] 左側玩家的標籤在右邊 */
 .side-tag.align-right { left: 100%; margin-left: 6px; }
-/* [修改] 右側玩家的標籤在左邊 */
 .side-tag.align-left { right: 100%; margin-right: 6px; }
+
+.player-seat.wolf-selected .seat-img-wrapper { border-color: var(--wolf-yellow) !important; box-shadow: 0 0 10px rgba(255, 183, 3, 0.8) !important; }
+.wolf-preview-tag {
+    position: absolute; bottom: -12px; left: 50%; transform: translateX(-50%);
+    background: var(--wolf-yellow); color: #000; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; z-index: 15; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
 
 .player-seat:hover:not(.locked):not(.dead) .seat-img-wrapper { border-color: var(--accent-blue); }
 .player-seat.selected .seat-img-wrapper { border-color: var(--accent-green) !important; box-shadow: 0 0 10px var(--accent-green) !important; }
