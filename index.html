@@ -2,93 +2,147 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>天黑請閉眼 v3.6.15</title>
-    <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
-    <link rel="stylesheet" href="./css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>天黑請閉眼 v3.7</title>
+    <!-- 引入我們寫好的 CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <!-- 引入 PeerJS 網路連線模組 -->
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
-
-<div class="container">
-    <h2 style="text-align: center; color: #fff; margin-bottom: 20px;">天黑請閉眼</h2>
-
-    <div id="section-entry" class="section" style="max-width: 400px; margin: auto; text-align: center;">
-        <h3 style="color: var(--accent-blue);">建立 / 加入房間</h3>
-        <button id="btn-create-room" style="width: 100%; margin-bottom: 15px;">主持人 (建立房間)</button>
-        <hr style="border-color: #444; margin: 20px 0;">
-        <input type="text" id="input-room-id" placeholder="房間代碼 (4碼)" style="font-size: 16px; letter-spacing: 2px;">
-        <input type="text" id="input-player-name" placeholder="您的暱稱" style="font-size: 16px;">
-        <button id="btn-join-room" style="width: 100%; background: var(--accent-green);">一般玩家 (加入房間)</button>
-    </div>
-
-    <div id="section-host" class="section hidden">
-        <h3 style="color: var(--accent-blue); display: flex; justify-content: space-between; align-items: center; margin-top: 0;">
-            主控台 <span style="color: #fff; font-size: 16px;">房間：<strong id="display-room-id" style="color: var(--accent-red); font-size: 28px;">...</strong></span>
-        </h3>
+    <div class="container">
         
-        <div id="host-players-grid" class="host-grid" style="margin-bottom: 20px;"></div>
-
-        <div id="host-setup-panel" style="background: #222; padding: 20px; border-radius: 8px;">
-            <h4 style="margin-top: 0; color: var(--text-muted);">選擇遊戲版型</h4>
-            <select id="select-board-template" style="font-size: 16px; margin-bottom: 15px;"></select>
-            <div id="template-deck-preview" style="color: #ccc; font-size: 14px; margin-bottom: 20px; min-height: 40px;"></div>
-            <button id="btn-start-game" style="background: var(--accent-green); width: 100%; font-size: 16px; padding: 12px;">確認配置並發牌</button>
-        </div>
-
-        <div id="host-control-panel" class="hidden">
-            <div id="host-status-log" class="system-log">等待系統狀態更新...</div>
-            <div id="host-night-panel" class="hidden" style="margin-bottom: 15px;">
-                <ul id="night-flow-list" class="flow-list"></ul>
-                <button id="btn-force-next" class="btn-secondary hidden" style="width: 100%; margin-top: 10px;">強制跳過本階段</button>
-            </div>
-            <div id="host-day-panel" class="hidden">
-                <button id="btn-host-action" style="width: 100%; font-size: 16px; padding: 12px;"></button>
-            </div>
-        </div>
-    </div>
-
-    <div id="section-player" class="hidden" style="padding: 0; background: transparent; border: none; margin: 0;">
-        <div class="player-app-container">
+        <!-- ============================================== -->
+        <!-- 區塊一：登入/建立房間介面 (Entry) -->
+        <!-- ============================================== -->
+        <div id="section-entry">
+            <h2>天黑請閉眼 - WebRTC 法官系統</h2>
             
-            <div class="app-header">
-                <span>座位：<span id="player-seat-number" style="color: white;">-</span> 號</span>
-                <span>身分：<span id="player-role-name" style="color: #ffcccc;">-</span></span>
+            <div class="section">
+                <h3>建立遊戲 (我是法官/主機)</h3>
+                <button id="btn-create-room">建立房間</button>
+            </div>
+            
+            <div class="section">
+                <h3>加入遊戲 (我是玩家)</h3>
+                <input type="text" id="input-room-id" placeholder="請輸入房間代碼 (例如: 1234)">
+                <input type="text" id="input-player-name" placeholder="請輸入你的暱稱">
+                <button id="btn-join-room" class="btn-success">加入房間</button>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 區塊二：主機端介面 (Host) -->
+        <!-- ============================================== -->
+        <div id="section-host" class="hidden">
+            <h2>主控台 (房間：<span id="display-room-id" style="color: var(--accent-red);"></span>)</h2>
+            <div id="host-status-log" class="system-log">等待遊戲開始...</div>
+            
+            <!-- 遊戲設定面板 -->
+            <div id="host-setup-panel" class="section">
+                <h3>選擇遊戲版型</h3>
+                <select id="select-board-template"></select>
+                <p id="template-deck-preview" style="font-size: 14px; color: #aaa;"></p>
+                
+                <!-- [新增] 遊戲規則客製化區塊 -->
+                <h3 style="margin-top:20px; border-bottom: 1px solid #444; padding-bottom: 10px;">遊戲規則設定</h3>
+                <div style="margin-bottom: 10px;">
+                    <label>女巫自救：</label>
+                    <select id="rule-witch-save">
+                        <option value="first_night">僅首夜可以自救</option>
+                        <option value="always">每晚皆可自救</option>
+                        <option value="never">全程不可自救</option>
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 10px;">
+                    <label>勝利條件：</label>
+                    <select id="rule-win-condition">
+                        <option value="kill_side">屠邊 (神職全滅 或 平民全滅)</option>
+                        <option value="kill_all">屠城 (好人陣營全滅)</option>
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label>放逐平票處置：</label>
+                    <select id="rule-tie-resolution">
+                        <option value="pk">PK 發言與投票</option>
+                        <option value="peace">直接平安日 (無人出局)</option>
+                    </select>
+                </div>
+
+                <button id="btn-start-game" class="btn-success" style="width:100%; padding: 15px; font-size: 16px;">確認配置並發牌</button>
             </div>
 
-            <div id="btn-self-explode" class="floating-btn red hidden">爆</div>
-            <div id="btn-vote-history" class="floating-btn yellow hidden">票</div>
-
-            <div class="app-body">
-                <div id="left-seats" class="seat-column"></div>
+            <!-- 主控台流程控制面板 -->
+            <div id="host-control-panel" class="hidden">
+                <div id="host-night-panel" class="section hidden">
+                    <h3>夜間行動進度</h3>
+                    <ul id="night-flow-list" class="flow-list"></ul>
+                    <button id="btn-force-next" class="btn-primary" style="margin-top: 10px;">強制跳過本階段</button>
+                </div>
                 
-                <div class="center-column">
-                    <div id="player-action-panel" class="action-panel">
-                        <div id="target-preview-circle" class="target-preview hidden">
-                            <img id="target-preview-img" src="">
-                            <div id="target-preview-label" class="hidden"></div>
-                        </div>
-                        <div id="action-prompt" class="action-prompt">等待遊戲開始...</div>
-                        <div id="dynamic-buttons-container" class="action-buttons-row"></div>
-                    </div>
+                <div id="host-day-panel" class="section hidden">
+                    <h3>白天控制台</h3>
+                    <button id="btn-host-action" style="width:100%; padding: 15px; font-size: 16px;"></button>
+                </div>
+                
+                <h3>玩家狀態總覽</h3>
+                <div id="host-players-grid" class="host-grid"></div>
+            </div>
+        </div>
 
+        <!-- ============================================== -->
+        <!-- 區塊三：玩家端介面 (Player UI) -->
+        <!-- ============================================== -->
+        <div id="section-player" class="hidden">
+            <div class="player-app-container">
+                
+                <div class="app-header">
+                    <div>座位：<span id="player-seat-number"></span> 號</div>
+                    <!-- UI.js 會在這邊動態插入 <div id="dynamic-board-name"> -->
+                    <div>身分：<span id="player-role-name"></span></div>
+                </div>
+                
+                <div class="app-body">
+                    <!-- 左列座位 -->
+                    <div id="left-seats" class="seat-column"></div>
+                    
+                    <!-- 中央操作區 -->
+                    <div class="center-column">
+                        <div id="dynamic-action-panel" class="action-panel">
+                            <div id="target-preview-circle" class="target-preview hidden">
+                                <img id="target-preview-img" src="">
+                                <div id="target-preview-label"></div>
+                            </div>
+                            <div id="action-prompt" class="action-prompt"></div>
+                            <div id="dynamic-buttons-container" class="action-buttons-row"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 右列座位 -->
+                    <div id="right-seats" class="seat-column"></div>
+                    
+                    <!-- 底部卡牌與歷史紀錄面板 -->
                     <div class="card-panel">
-                        <img id="my-card-img" class="my-card hidden" src="" onerror="this.style.display='none'">
+                        <img id="my-card-img" class="my-card hidden" src="">
                         <div id="vote-history-panel" class="vote-history-panel hidden"></div>
                     </div>
                 </div>
+                
+                <!-- 浮動按鈕 (自爆與歷史紀錄，背景圖片由 CSS 控制) -->
+                <button id="btn-self-explode" class="floating-btn red hidden"></button>
+                <button id="btn-vote-history" class="floating-btn yellow hidden"></button>
 
-                <div id="right-seats" class="seat-column"></div>
             </div>
-
         </div>
     </div>
-</div>
 
-<script src="./js/config.js"></script>
-<script src="./js/ui.js"></script>
-<script src="./js/player.js"></script>
-<script src="./js/host.js"></script>
-<script src="./js/app.js"></script> 
-
+    <!-- 載入我們模組化分離的 JS 邏輯 -->
+    <script src="js/config.js"></script>
+    <script src="js/host.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
