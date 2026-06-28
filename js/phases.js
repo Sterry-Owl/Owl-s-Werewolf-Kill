@@ -102,6 +102,7 @@ window.PhaseRegistry = {
         stateMachine.registerPhase('SHERIFF_VOTING', baseVotingLogic);
 
         stateMachine.registerPhase('SHERIFF_TRANSFER', {
+            allowDeadAction: true, // [新增] 宣告此階段允許死者送出動作
             onEnter: (ctx) => { ctx.systemLog = "等待警長移交或撕毀警徽..."; },
             onAction: (ctx, player, actionId, targets) => {
                 if (player.seatNumber !== ctx.sheriff.seat) return;
@@ -120,6 +121,7 @@ window.PhaseRegistry = {
         });
 
         stateMachine.registerPhase('HUNTER_ACTION', {
+            allowDeadAction: true, // [新增] 宣告此階段允許死者送出動作
             onEnter: (ctx) => { ctx.systemLog = "等待獵人開槍..."; },
             onAction: (ctx, player, actionId, targets) => {
                 if (player.role !== '獵人') return;
@@ -127,13 +129,13 @@ window.PhaseRegistry = {
                 const target = targets.length > 0 ? targets[0] : null;
                 if (actionId === 'shoot' && target) {
                     const tPlayer = ctx.getPlayer(target);
-                    // [關鍵修復] 傳入 ctx
                     if (tPlayer) tPlayer.kill('shot', ctx); 
                     ctx.systemLog = `獵人開槍帶走了 ${target} 號玩家。`;
                     Engine.EventBus.emit('BROADCAST_MESSAGE', `【突發事件】一聲槍響，${target} 號玩家被帶走。`);
                 } else {
                     ctx.systemLog = `獵人選擇不開槍/無技能。`;
                 }
+                
                 Engine.EventBus.emit('RESUME_ROUTINE');
             }
         });

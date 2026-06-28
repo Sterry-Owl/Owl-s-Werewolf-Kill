@@ -1,5 +1,5 @@
 // ==========================================
-// v4.0.4 網路通訊橋樑與 UI 同步器 (Network & Bridge)
+// v4.0.6 網路通訊橋樑與 UI 同步器 (Network & Bridge)
 // 檔案位置: js/host.js
 // ==========================================
 
@@ -52,13 +52,25 @@ window.initHost = function(roomId) {
 function handleIncomingPacket(peerId, data) {
     if (data.type === PACKET_TYPE.JOIN_ROOM && engineContext.phase === 'LOBBY') {
         const p = engineContext.addPlayer(peerId, data.payload.name);
-        connections[peerId].send({ type: PACKET_TYPE.JOIN_SUCCESS, payload: { seatNumber: p.seatNumber } });
+        try {
+            connections[peerId].send({ type: PACKET_TYPE.JOIN_SUCCESS, payload: { seatNumber: p.seatNumber } });
+        } catch(e) { console.warn('JOIN_SUCCESS Send Failed'); }
         engineContext.systemLog = `玩家 ${p.name} (${p.seatNumber}號) 已加入。`;
         syncStateToAll();
     }
     else if (data.type === PACKET_TYPE.ACTION_SUBMIT || data.type === PACKET_TYPE.VOTE_SUBMIT) {
         const player = engineContext.getPlayerByPeer(peerId);
-        if (player && !player.isDead) stateMachine.handleAction(player, data.payload.actionId, data.payload.targets);
+        if (player) {
+            // 讀取當前階段的邏輯設定
+            const currentPhaseLogic = stateMachine.currentPhase;
+            
+            // 如果玩家已死，且當前階段沒有開放死者行動權限，則丟棄封包
+            if (player.isDead && (!currentPhaseLogic || !currentPhaseLogic.allowDeadAction)) {
+                return;
+            }
+            
+            stateMachine.handleAction(player, data.payload.actionId, data.payload.targets);
+        }
     }
     else if (data.type === PACKET_TYPE.SHERIFF_BAILOUT && engineContext.phase === 'SHERIFF_SPEECH') {
         const player = engineContext.getPlayerByPeer(peerId);
@@ -70,6 +82,16 @@ function handleIncomingPacket(peerId, data) {
         }
     }
     else if (data.type === PACKET_TYPE.WOLF_EXPLODE) {
+        // [防呆機制] 如果狼人在警長競選期間自爆，強制立刻結算昨晚死者，避免死者逃過一劫
+        if (['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING'].includes(engineContext.phase)) {
+            engineContext.players.forEach(p => {
+                if (!p.isDead && (engineContext.nightTags.killed.includes(p.seatNumber) || engineContext.nightTags.poisoned.includes(p.seatNumber))) {
+                    p.kill(engineContext.nightTags.poisoned.includes(p.seatNumber) ? 'poisoned' : 'killed', engineContext);
+                }
+            });
+            engineContext.nightTags.killed = [];
+            engineContext.nightTags.poisoned = [];
+        }
         Engine.EventBus.emit('WOLF_EXPLODE', { context: engineContext, player: engineContext.getPlayerByPeer(peerId) });
     }
     else if (data.type === PACKET_TYPE.WOLF_PREVIEW) {
@@ -133,24 +155,10 @@ function setupEngineFlowControllers() {
         }
     });
 
-Engine.EventBus.on('PROCESS_DAWN', () => {
-        engineContext.deadThisNight = [];
-        engineContext.hunterDiedThisNight = false;
+    Engine.EventBus.on('PROCESS_DAWN', () => {
         engineContext.sheriff.electionFinishedToday = false; 
-
-        engineContext.players.forEach(p => {
-            if (p.isDead) return;
-            const isKilled = engineContext.nightTags.killed.includes(p.seatNumber);
-            const isPoisoned = engineContext.nightTags.poisoned.includes(p.seatNumber);
-            if (isKilled || isPoisoned) {
-                // [關鍵修復] 將 engineContext 傳入，防止獵人死亡時崩潰
-                p.kill(isPoisoned ? 'poisoned' : 'killed', engineContext);
-                engineContext.deadThisNight.push(p.seatNumber);
-            }
-        });
         
-        Engine.EventBus.emit('CHECK_WIN_CONDITION', engineContext);
-        if (engineContext.phase === 'GAME_OVER') return;
+        // [關鍵修復] 移除這裡的 p.kill() 死亡結算，讓死者活著參與警長競選
 
         if (engineContext.rules.sheriff === 'enabled' && !engineContext.sheriff.seat && !engineContext.sheriff.badgeLost && engineContext.sheriff.electionDay <= 2) {
             stateMachine.transitionTo('SHERIFF_CANDIDACY');
@@ -160,6 +168,26 @@ Engine.EventBus.on('PROCESS_DAWN', () => {
     });
 
     Engine.EventBus.on('DAWN_ANNOUNCE', () => {
+        // [關鍵修復] 將昨晚的死亡結算推遲到這裡執行
+        engineContext.deadThisNight = [];
+        engineContext.hunterDiedThisNight = false;
+
+        engineContext.players.forEach(p => {
+            if (p.isDead) return;
+            const isKilled = engineContext.nightTags.killed.includes(p.seatNumber);
+            const isPoisoned = engineContext.nightTags.poisoned.includes(p.seatNumber);
+            if (isKilled || isPoisoned) {
+                p.kill(isPoisoned ? 'poisoned' : 'killed', engineContext);
+                engineContext.deadThisNight.push(p.seatNumber);
+            }
+        });
+        
+        engineContext.nightTags.killed = [];
+        engineContext.nightTags.poisoned = [];
+
+        Engine.EventBus.emit('CHECK_WIN_CONDITION', engineContext);
+        if (engineContext.phase === 'GAME_OVER') return;
+
         const dead = engineContext.deadThisNight;
         engineContext.lastWordsTargets = (engineContext.nightCount === 1 && dead.length > 0) ? [...dead] : [];
         const msg = dead.length > 0 ? `昨晚，${dead.join(' 號、')} 號玩家死亡。` : `昨晚是平安夜。`;
@@ -167,7 +195,7 @@ Engine.EventBus.on('PROCESS_DAWN', () => {
         Engine.EventBus.emit('BROADCAST_MESSAGE', msg);
         engineContext.isPK = false;
         
-        // 設定死亡連鎖反應結束後的目標為白天討論
+        engineContext.routineOrigin = 'MORNING'; 
         engineContext.destinationPhase = 'DAY_DISCUSSION';
         resumeRoutinePhase();
     });
@@ -207,11 +235,9 @@ function resumeRoutinePhase() {
     } else {
         engineContext.lastWordsTargets = [];
         
-        // 讀取外部注入的目標並進行轉移
         const destPhase = engineContext.destinationPhase;
         stateMachine.transitionTo(destPhase);
         
-        // [關鍵修復] 如果目標是黑夜，必須設定 4 秒後觸發 START_NIGHT 引擎！
         if (destPhase === 'NIGHT_TRANSITION') {
             setTimeout(() => Engine.EventBus.emit('START_NIGHT'), 4000);
         }
@@ -244,7 +270,6 @@ function syncStateToAll() {
 
     ctx.players.forEach(player => {
         if (connections[player.peerId]) {
-            // 加入網路傳輸例外處理
             try {
                 connections[player.peerId].send({ type: PACKET_TYPE.STATE_SYNC, payload: buildUIStateForPlayer(ctx, player, isDayPhase) });
             } catch (e) {
@@ -261,7 +286,6 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         if (ctx.phase === 'GAME_OVER' || p.seatNumber === player.seatNumber || p.isRevealed) topTag = p.role;
         else if (player.role?.includes('狼人') && p.role?.includes('狼人')) topTag = "狼人"; 
 
-        // [修改] 拔除 ctx.sheriff.seat === p.seatNumber 的 sideTag 判斷
         if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber]; 
         else if (player.role === '女巫' && ctx.witchState?.savedSeat === p.seatNumber) sideTag = "銀水"; 
 
@@ -278,7 +302,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             topTag, sideTag, wolfPreviewTags, isWolfSelected: wolfPreviewTags.length > 0,
             isCandidate: (ctx.sheriff.candidates || []).includes(p.seatNumber), 
             hasWithdrawn: (ctx.sheriff.withdrawn || []).includes(p.seatNumber),
-            isSheriff: (ctx.sheriff.seat === p.seatNumber) // [新增] 獨立屬性給前端繪製菱形
+            isSheriff: (ctx.sheriff.seat === p.seatNumber) 
         };
     });
 
@@ -406,8 +430,14 @@ function handleHostCommand(cmd) {
         if (stateMachine.currentPhase && stateMachine.currentPhase.onTimeout) stateMachine.currentPhase.onTimeout(engineContext);
     } 
     else if (cmd === 'START_SHERIFF_VOTE') stateMachine.transitionTo('SHERIFF_VOTING');
-    else if (cmd === 'START_VOTE') stateMachine.transitionTo('DAY_VOTING');
-    else if (cmd === 'START_PK_VOTE') stateMachine.transitionTo('PK_VOTING');
+    else if (cmd === 'START_VOTE') {
+        engineContext.routineOrigin = 'AFTERNOON'; 
+        stateMachine.transitionTo('DAY_VOTING');
+    }
+    else if (cmd === 'START_PK_VOTE') {
+        engineContext.routineOrigin = 'AFTERNOON';
+        stateMachine.transitionTo('PK_VOTING');
+    }
     else if (cmd === 'END_VOTE_DISPLAY') {
         if (engineContext.nextPhaseAfterVoteDisplay === 'DAWN_RESUME') Engine.EventBus.emit('DAWN_ANNOUNCE');
         else if (engineContext.nextPhaseAfterVoteDisplay === 'RESUME_ROUTINE') resumeRoutinePhase();
