@@ -1,0 +1,290 @@
+// ==========================================
+// v4.0.0 遊戲階段模組 (Phase State Handlers)
+// 檔案位置: js/phases.js
+// ==========================================
+
+window.PhaseRegistry = {
+    init: function(stateMachine, ctx) {
+        
+        // 註冊 1.5 票權重過濾器 (從此算票引擎不再硬寫警長邏輯)
+        ctx.addFilter('VOTE_WEIGHT', (weight, args) => {
+            if (args.voterSeat === ctx.sheriff.seat && !args.isSheriffPhase) return weight + 0.5;
+            return weight;
+        });
+
+        // ------------------------------------------
+        // [階段] 黑夜行動
+        // ------------------------------------------
+        stateMachine.registerPhase('NIGHT_ACTION', {
+            onEnter: (ctx) => {
+                ctx.expectedActionCount = 0;
+                ctx.currentStepActions = [];
+                ctx.wolfPreviews = {};
+                
+                const currentPhase = ctx.nightSequence[ctx.currentNightStepIndex];
+                currentPhase.roles.forEach(roleObj => {
+                    ctx.expectedActionCount += roleObj.activePlayers.length;
+                });
+                
+                ctx.systemLog = `正在等待【${currentPhase.phaseName}】行動...`;
+                stateMachine.setTimer(30000, this.resolveNightStep.bind(this));
+            },
+            onAction: (ctx, player, actionId, targets) => {
+                if (ctx.currentStepActions.some(act => act.player.seatNumber === player.seatNumber)) return;
+                
+                if (player.role === '狼人' && actionId === 'pass') {
+                    ctx.wolfPreviews[player.peerId] = { seat: player.seatNumber, target: 'pass' };
+                }
+                
+                ctx.currentStepActions.push({ player, targets, actionId });
+                ctx.expectedActionCount--;
+                if (ctx.expectedActionCount <= 0) this.resolveNightStep(ctx);
+            }
+        });
+
+        // ------------------------------------------
+        // [階段] 上警意願登記
+        // ------------------------------------------
+        stateMachine.registerPhase('SHERIFF_CANDIDACY', {
+            onEnter: (ctx) => {
+                ctx.sheriff.candidates = [];
+                ctx.sheriff.withdrawn = [];
+                ctx.currentStepActions = []; 
+                ctx.expectedActionCount = ctx.getAlivePlayers().length;
+                ctx.systemLog = "正在等待玩家決定是否上警...";
+                stateMachine.setTimer(30000, this.resolveSheriffCandidacy.bind(this));
+            },
+            onAction: (ctx, player, actionId) => {
+                if (ctx.currentStepActions.some(act => act.player.seatNumber === player.seatNumber)) return;
+                ctx.currentStepActions.push({ player, actionId });
+                ctx.expectedActionCount--;
+                if (actionId === 'run') ctx.sheriff.candidates.push(player.seatNumber);
+                if (ctx.expectedActionCount <= 0) this.resolveSheriffCandidacy(ctx);
+            }
+        });
+
+        // ------------------------------------------
+        // [階段] 白天投票 (常規放逐 & 警長選舉 & PK)
+        // ------------------------------------------
+        const baseVotingLogic = {
+            onEnter: (ctx) => {
+                ctx.votes = {};
+                stateMachine.setTimer(30000, this.resolveVoting.bind(this));
+            },
+            onAction: (ctx, player, actionId, targets) => {
+                if (ctx.votes[player.seatNumber] !== undefined) return;
+                
+                const isPK = ctx.phase === 'PK_VOTING';
+                const isSheriff = ctx.phase === 'SHERIFF_VOTING';
+                
+                if (isPK && ctx.pkTargets.includes(player.seatNumber)) return;
+                if (isSheriff && (ctx.sheriff.candidates.includes(player.seatNumber) || ctx.sheriff.withdrawn.includes(player.seatNumber))) return;
+
+                ctx.votes[player.seatNumber] = (actionId === 'vote' && targets.length > 0) ? targets[0] : 'pass';
+
+                const aliveCount = ctx.getAlivePlayers().filter(p => {
+                    if (isPK && ctx.pkTargets.includes(p.seatNumber)) return false;
+                    if (isSheriff && (ctx.sheriff.candidates.includes(p.seatNumber) || ctx.sheriff.withdrawn.includes(p.seatNumber))) return false;
+                    return true;
+                }).length;
+
+                const votedCount = Object.keys(ctx.votes).length;
+                ctx.systemLog = `投票進度：${votedCount} / ${aliveCount}`;
+                if (votedCount >= aliveCount) this.resolveVoting(ctx);
+            }
+        };
+        stateMachine.registerPhase('DAY_VOTING', baseVotingLogic);
+        stateMachine.registerPhase('PK_VOTING', baseVotingLogic);
+        stateMachine.registerPhase('SHERIFF_VOTING', baseVotingLogic);
+
+stateMachine.registerPhase('SHERIFF_TRANSFER', {
+            onEnter: (ctx) => { ctx.systemLog = "等待警長移交或撕毀警徽..."; },
+            onAction: (ctx, player, actionId, targets) => {
+                if (player.seatNumber !== ctx.sheriff.seat) return;
+                
+                if (actionId === 'transfer' && targets.length > 0) {
+                    ctx.sheriff.seat = targets[0];
+                    ctx.systemLog = `【警長傳承】前任警長將警徽交給了 ${ctx.sheriff.seat} 號玩家。`;
+                } else {
+                    ctx.sheriff.seat = null;
+                    ctx.sheriff.badgeLost = true;
+                    ctx.systemLog = `【警徽流失】前任警長選擇撕毀警徽。`;
+                }
+                
+                // [修正] 直接廣播接續日常流程，不要跳去不相干的投票展示畫面
+                Engine.EventBus.emit('RESUME_ROUTINE');
+            }
+        });
+
+stateMachine.registerPhase('HUNTER_ACTION', {
+            onEnter: (ctx) => { ctx.systemLog = "等待獵人開槍..."; },
+            onAction: (ctx, player, actionId, targets) => {
+                if (player.role !== '獵人') return;
+                
+                const target = targets.length > 0 ? targets[0] : null;
+                if (actionId === 'shoot' && target) {
+                    const tPlayer = ctx.getPlayer(target);
+                    if (tPlayer) tPlayer.kill('shot'); 
+                    ctx.systemLog = `獵人開槍帶走了 ${target} 號玩家。`;
+                    Engine.EventBus.emit('BROADCAST_MESSAGE', `【突發事件】一聲槍響，${target} 號玩家被帶走。`);
+                } else {
+                    ctx.systemLog = `獵人選擇不開槍/無技能。`;
+                }
+                
+                // [修正] 直接廣播接續日常流程
+                Engine.EventBus.emit('RESUME_ROUTINE');
+            }
+        });
+
+    // --- 內部結算邏輯 (封裝在模組內) ---
+
+    resolveNightStep: function(ctx) {
+        window.Engine.StateMachine.clearTimer();
+        const currentPhase = ctx.nightSequence[ctx.currentNightStepIndex];
+        let phaseLog = `【${currentPhase.phaseName}】結算完畢：`;
+        
+        currentPhase.roles.forEach(roleObj => {
+            const plugin = RoleRegistry.plugins[roleObj.roleName];
+            const roleActions = ctx.currentStepActions.filter(act => act.player.role === roleObj.roleName);
+            const result = plugin ? plugin.resolveNightAction(ctx, roleActions) : "【未定義】";
+            roleObj.resultLog = result;
+            phaseLog += `\n- ${roleObj.roleName}：${result}`;
+        });
+        
+        ctx.systemLog = phaseLog;
+        Engine.EventBus.emit('SYNC_STATE');
+        setTimeout(() => Engine.EventBus.emit('NIGHT_STEP_COMPLETE'), 3000); 
+    },
+
+    resolveSheriffCandidacy: function(ctx) {
+        window.Engine.StateMachine.clearTimer();
+        const aliveCount = ctx.getAlivePlayers().length;
+        
+        // 防卡死超時自動補齊棄權
+        ctx.getAlivePlayers().forEach(p => {
+            if (!ctx.currentStepActions.some(act => act.player.seatNumber === p.seatNumber)) {
+                ctx.currentStepActions.push({ player: p, actionId: 'pass' });
+            }
+        });
+
+        if (ctx.sheriff.candidates.length === 0 || ctx.sheriff.candidates.length === aliveCount) {
+            ctx.sheriff.badgeLost = true;
+            ctx.sheriff.electionFinishedToday = true;
+            ctx.systemLog = `由於全體上警/無人上警，本局警徽流失。`;
+            Engine.EventBus.emit('DAWN_ANNOUNCE');
+        } else {
+            ctx.sheriff.candidates.sort((a,b) => a-b);
+            ctx.systemLog = `上警名單：${ctx.sheriff.candidates.join('、')} 號。\n請競選者開始發言...`;
+            window.Engine.StateMachine.transitionTo('SHERIFF_SPEECH');
+        }
+    },
+
+    resolveVoting: function(ctx) {
+        window.Engine.StateMachine.clearTimer();
+        const isSheriff = ctx.phase === 'SHERIFF_VOTING';
+        
+        // 防卡死補票
+        ctx.getAlivePlayers().forEach(p => {
+            const isPK = ctx.phase === 'PK_VOTING';
+            if (isPK && ctx.pkTargets.includes(p.seatNumber)) return;
+            if (isSheriff && (ctx.sheriff.candidates.includes(p.seatNumber) || ctx.sheriff.withdrawn.includes(p.seatNumber))) return;
+            if (ctx.votes[p.seatNumber] === undefined) ctx.votes[p.seatNumber] = 'pass';
+        });
+
+        let voteCounts = {};
+        let voteGroups = {}; 
+        let validVotesCount = 0;
+
+        Object.entries(ctx.votes).forEach(([voterSeatStr, t]) => {
+            const voterSeat = parseInt(voterSeatStr);
+            if (!voteGroups[t]) voteGroups[t] = [];
+            
+            // 使用新架構的 Filter 機制取得動態票數權重！
+            const voteWeight = (t !== 'pass') ? ctx.applyFilter('VOTE_WEIGHT', 1, { voterSeat, isSheriffPhase: isSheriff }) : 0;
+            
+            voteGroups[t].push(voteWeight === 1.5 ? `${voterSeat}(1.5票)*` : `${voterSeat}`);
+            if (t !== 'pass') {
+                voteCounts[t] = (voteCounts[t] || 0) + voteWeight;
+                validVotesCount++;
+            }
+        });
+
+        let maxVotes = 0;
+        let finalTarget = null;
+        let isTie = false;
+
+        for (const [t, count] of Object.entries(voteCounts)) {
+            if (count > maxVotes) { maxVotes = count; finalTarget = parseInt(t); isTie = false; }
+            else if (count === maxVotes) { isTie = true; }
+        }
+        if (validVotesCount === 0) { isTie = true; finalTarget = null; }
+
+        let resultLines = [];
+        for (const [target, voters] of Object.entries(voteGroups)) {
+            const targetName = target === 'pass' ? '棄票' : `${target}號`;
+            resultLines.push(`。${voters.join('、')} → ${targetName}`);
+        }
+
+        // [模組化解耦] 警長結算分支
+        if (isSheriff) {
+            ctx.sheriff.electionFinishedToday = true;
+            if (isTie) {
+                ctx.sheriff.electionDay++;
+                if (ctx.sheriff.electionDay > 2) ctx.sheriff.badgeLost = true;
+                ctx.currentVoteResultString = `【警長平票】\n${resultLines.join('\n')}\n\n本日無警長產生。`;
+            } else {
+                ctx.sheriff.seat = finalTarget;
+                ctx.currentVoteResultString = `【警長誕生】\n${resultLines.join('\n')}\n\n恭喜 ${finalTarget} 號當選警長。`;
+            }
+            ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(警長選舉)\n${ctx.currentVoteResultString}`);
+            ctx.nextPhaseAfterVoteDisplay = 'DAWN_RESUME';
+            window.Engine.StateMachine.transitionTo('VOTE_RESULT_DISPLAY');
+            return;
+        }
+
+        // [模組化解耦] 平票 PK 分支
+        if (isTie && validVotesCount > 0 && ctx.rules.tieResolution === 'pk' && !ctx.isPK) {
+            ctx.isPK = true;
+            ctx.pkTargets = [];
+            for (const [t, count] of Object.entries(voteCounts)) {
+                if (count === maxVotes) ctx.pkTargets.push(parseInt(t));
+            }
+            ctx.currentVoteResultString = `【平票發生】\n${resultLines.join('\n')}\n\n準備進入 PK 發言。`;
+            ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(首次投票)\n${ctx.currentVoteResultString}`);
+            ctx.systemLog = `平票！即將進行 PK 發言。`;
+            ctx.nextPhaseAfterVoteDisplay = 'PK_SPEECH';
+            window.Engine.StateMachine.transitionTo('VOTE_RESULT_DISPLAY');
+            return; 
+        }
+
+        ctx.isPK = false;
+        let header = isTie ? "投票結果出爐，平票或全數棄票，無人出局" : `投票結果出爐，${finalTarget} 號玩家出局`;
+        
+        ctx.pendingHunter = null;
+        ctx.lastWordsTargets = [];
+
+        // [攔截器解耦] 白痴免死判定全部交給 EventBus 自動處理
+        if (!isTie && finalTarget) {
+            const tPlayer = ctx.getPlayer(finalTarget);
+            let exileEvent = { context: ctx, player: tPlayer, cancelExile: false };
+            Engine.EventBus.emit('BEFORE_EXILE', exileEvent);
+            
+            if (exileEvent.cancelExile) {
+                header = ctx.systemLog; // 取得白痴插件修改後的 Log
+            } else {
+                tPlayer.kill('voted'); // 這會自動觸發 PLAYER_DIED，獵人會自動監聽並標記 pendingHunter！
+                ctx.lastWordsTargets = [finalTarget]; 
+            }
+        }
+        
+        ctx.currentVoteResultString = `${header}\n${resultLines.join('\n')}`;
+        ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】\n${ctx.currentVoteResultString}`);
+        ctx.systemLog = header.replace('\n', '');
+        
+        Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+        if (ctx.phase !== 'GAME_OVER') {
+            ctx.nextPhaseAfterVoteDisplay = 'RESUME_ROUTINE';
+            window.Engine.StateMachine.transitionTo('VOTE_RESULT_DISPLAY'); 
+        }
+    }
+};

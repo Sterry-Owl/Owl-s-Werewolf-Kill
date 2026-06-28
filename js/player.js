@@ -1,5 +1,5 @@
 // ==========================================
-// v3.8.0 玩家端網路與狀態管理 (Player Client)
+// v4.0.0 玩家端網路與狀態管理 (Player Client)
 // ==========================================
 
 let playerPeer = null;
@@ -28,7 +28,8 @@ function setupPlayerConnectionListeners(conn) {
                 break;
             case PACKET_TYPE.STATE_SYNC:
                 localState = data.payload;
-                currentActionTarget = [];
+                // [徹底清乾淨] 不再有 if 覆寫，全靠主機 preSelectedTarget 驅動狀態！
+                currentActionTarget = localState.actionPanel?.preSelectedTarget ? [localState.actionPanel.preSelectedTarget] : [];
                 UI.renderPlayerView(localState, handleSeatSelect, handleActionSubmit, currentActionTarget, false);
                 break;
         }
@@ -56,25 +57,16 @@ function handleActionSubmit(actionId) {
     const isPassAction = (actionId === 'pass' || actionId === 'save');
     const finalTargets = isPassAction ? [] : currentActionTarget;
     
+    // [徹底清乾淨] 只送一個封包，也沒有狼人 pass 的特例髒判斷了！
     hostConnection.send({ 
         type: packetType, 
         payload: { actionId: actionId, targets: finalTargets } 
     });
     
-    if (packetType === PACKET_TYPE.ACTION_SUBMIT && localState.phase === GAME_PHASE.NIGHT_ACTION && isWolfRole(localState.myRole) && actionId === 'pass') {
-         hostConnection.send({ type: PACKET_TYPE.WOLF_PREVIEW, payload: { target: 'pass' } });
-    }
-    
     UI.blockActionPanel();
 }
 
-function isWolfRole(roleStr) {
-    if(!roleStr) return false;
-    return roleStr.includes("狼");
-}
-
 document.addEventListener('DOMContentLoaded', () => {
-    // 綁定自爆按鈕
     const btnExplode = document.getElementById('btn-self-explode');
     if (btnExplode) {
         btnExplode.addEventListener('click', () => {
@@ -85,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 綁定票型紀錄切換按鈕
     const btnHistory = document.getElementById('btn-vote-history');
     let isHistoryShowing = false;
     if (btnHistory) {
@@ -95,7 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // [新增] 綁定退水按鈕
     const btnBailout = document.getElementById('btn-bailout');
     if (btnBailout) {
         btnBailout.addEventListener('click', () => {
