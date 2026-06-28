@@ -7,22 +7,21 @@ window.RoleRegistry = {
     plugins: {},
     register: function(roleName, config) { this.plugins[roleName] = config; },
 
-    initPassives: function() {
+initPassives: function() {
         Engine.EventBus.on('PLAYER_DIED', ({ context, player, reason }) => {
             if (player.role === '獵人' && reason !== 'poisoned') {
                 player.isRevealed = true;
                 context.pendingHunter = player.seatNumber; 
             }
-        });
-
-        Engine.EventBus.on('BEFORE_EXILE', (eventData) => {
-            const { context, player } = eventData;
-            if (player.role === '白痴' && !player.isRevealed) {
+            
+            // [修改] 白痴被放逐真實死亡，觸發翻牌廣播
+            if (player.role === '白痴' && reason === 'voted') {
                 player.isRevealed = true;
-                eventData.cancelExile = true; 
-                context.systemLog = `投票結果最高票為 ${player.seatNumber} 號。\n觸發【白痴】技能，翻牌免除出局！`;
+                Engine.EventBus.emit('BROADCAST_MESSAGE', `【突發事件】${player.seatNumber} 號玩家為白痴，翻牌！\n(已喪失投票與被指定權力，須移交警徽，但保留發言權)`);
             }
         });
+
+        // 移除原有的 BEFORE_EXILE 攔截器...
 
         Engine.EventBus.on('WOLF_EXPLODE', ({ context, player }) => {
             if (!player || player.isDead || !this.plugins[player.role]?.canSelfExplode) return;

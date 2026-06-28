@@ -205,8 +205,15 @@ function resumeRoutinePhase() {
         stateMachine.transitionTo('LAST_WORDS');
     } else {
         engineContext.lastWordsTargets = [];
-        // 依據外部注入的目標進行轉移，移除原先寫死的 'DAY_DISCUSSION'
-        stateMachine.transitionTo(engineContext.destinationPhase);
+        
+        // 讀取外部注入的目標並進行轉移
+        const destPhase = engineContext.destinationPhase;
+        stateMachine.transitionTo(destPhase);
+        
+        // [關鍵修復] 如果目標是黑夜，必須設定 4 秒後觸發 START_NIGHT 引擎！
+        if (destPhase === 'NIGHT_TRANSITION') {
+            setTimeout(() => Engine.EventBus.emit('START_NIGHT'), 4000);
+        }
     }
 }
 
@@ -253,8 +260,8 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         if (ctx.phase === 'GAME_OVER' || p.seatNumber === player.seatNumber || p.isRevealed) topTag = p.role;
         else if (player.role?.includes('狼人') && p.role?.includes('狼人')) topTag = "狼人"; 
 
-        if (ctx.sheriff.seat === p.seatNumber) sideTag = "警長";
-        else if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber]; 
+        // [修改] 拔除 ctx.sheriff.seat === p.seatNumber 的 sideTag 判斷
+        if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber]; 
         else if (player.role === '女巫' && ctx.witchState?.savedSeat === p.seatNumber) sideTag = "銀水"; 
 
         if (ctx.phase === 'NIGHT_ACTION' && player.role?.includes('狼人')) {
@@ -265,12 +272,12 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             });
         }
 
-        // [核心修復] 加入 || [] 安全網，防止大廳階段未定義造成客戶端封包斷裂！
         return { 
             seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, 
             topTag, sideTag, wolfPreviewTags, isWolfSelected: wolfPreviewTags.length > 0,
             isCandidate: (ctx.sheriff.candidates || []).includes(p.seatNumber), 
-            hasWithdrawn: (ctx.sheriff.withdrawn || []).includes(p.seatNumber) 
+            hasWithdrawn: (ctx.sheriff.withdrawn || []).includes(p.seatNumber),
+            isSheriff: (ctx.sheriff.seat === p.seatNumber) // [新增] 獨立屬性給前端繪製菱形
         };
     });
 

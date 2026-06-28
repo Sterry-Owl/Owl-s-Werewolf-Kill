@@ -183,9 +183,13 @@ const UI = {
                 if (p.sideTag === '銀水') colorClass = 'tag-silver';
                 else if (p.sideTag === '好人') colorClass = 'tag-gold';
                 else if (p.sideTag === '狼人') colorClass = 'tag-red';
-                else if (p.sideTag === '警長') colorClass = 'tag-sheriff'; // [新增] 警長專屬顏色
 
                 tagsHtml += `<div class="side-tag ${alignClass} ${colorClass}">${p.sideTag}</div>`;
+            }
+
+            // [新增] 警長專屬的右下角金色菱形 (直接透過 Inline CSS 渲染，不需改 CSS 檔)
+            if (p.isSheriff) {
+                tagsHtml += `<div style="position: absolute; bottom: 0px; right: -4px; width: 18px; height: 18px; background: linear-gradient(135deg, #FFD700, #B8860B); transform: rotate(45deg); border: 1.5px solid #222; z-index: 15; box-shadow: 1px 1px 3px rgba(0,0,0,0.5);"></div>`;
             }
 
             if (p.wolfPreviewTags && p.wolfPreviewTags.length > 0) {

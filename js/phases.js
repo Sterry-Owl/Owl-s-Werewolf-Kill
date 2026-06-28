@@ -165,6 +165,12 @@ window.PhaseRegistry = {
             ctx.sheriff.electionFinishedToday = true;
             ctx.systemLog = `由於全體上警/無人上警，本局警徽流失。`;
             Engine.EventBus.emit('DAWN_ANNOUNCE');
+        } else if (ctx.sheriff.candidates.length === 1) {
+            // [新增] 單人上警，自動當選
+            ctx.sheriff.seat = ctx.sheriff.candidates[0];
+            ctx.sheriff.electionFinishedToday = true;
+            ctx.systemLog = `僅 ${ctx.sheriff.seat} 號玩家上警，自動當選警長！`;
+            Engine.EventBus.emit('DAWN_ANNOUNCE');
         } else {
             ctx.sheriff.candidates.sort((a,b) => a-b);
             ctx.systemLog = `上警名單：${ctx.sheriff.candidates.join('、')} 號。\n請競選者開始發言...`;
@@ -254,15 +260,8 @@ window.PhaseRegistry = {
 
         if (!isTie && finalTarget) {
             const tPlayer = ctx.getPlayer(finalTarget);
-            let exileEvent = { context: ctx, player: tPlayer, cancelExile: false };
-            Engine.EventBus.emit('BEFORE_EXILE', exileEvent);
-            
-            if (exileEvent.cancelExile) {
-                header = ctx.systemLog; 
-            } else {
-                tPlayer.kill('voted'); 
-                ctx.lastWordsTargets = [finalTarget]; 
-            }
+            tPlayer.kill('voted'); 
+            ctx.lastWordsTargets = [finalTarget]; 
         }
         
 ctx.currentVoteResultString = `${header}\n${resultLines.join('\n')}`;
