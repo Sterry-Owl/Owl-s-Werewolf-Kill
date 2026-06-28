@@ -1,12 +1,14 @@
 // ==========================================
-// v4.0.0 遊戲階段模組 (Phase State Handlers)
-// 檔案位置: js/phases.js
+// v4.0.1 遊戲階段模組 (Phase State Handlers)
 // ==========================================
 
 window.PhaseRegistry = {
+    sm: null, // 儲存狀態機實例
+    
     init: function(stateMachine, ctx) {
+        this.sm = stateMachine;
+        const self = this; // 確保在 callback 中能抓到正確的 context
         
-        // 註冊 1.5 票權重過濾器 (從此算票引擎不再硬寫警長邏輯)
         ctx.addFilter('VOTE_WEIGHT', (weight, args) => {
             if (args.voterSeat === ctx.sheriff.seat && !args.isSheriffPhase) return weight + 0.5;
             return weight;
@@ -27,7 +29,8 @@ window.PhaseRegistry = {
                 });
                 
                 ctx.systemLog = `正在等待【${currentPhase.phaseName}】行動...`;
-                stateMachine.setTimer(30000, this.resolveNightStep.bind(this));
+                // [核心修復] 直接設定 30 秒，讓引擎自動去呼叫 onTimeout
+                stateMachine.setTimer(30000); 
             },
             onAction: (ctx, player, actionId, targets) => {
                 if (ctx.currentStepActions.some(act => act.player.seatNumber === player.seatNumber)) return;
@@ -38,8 +41,9 @@ window.PhaseRegistry = {
                 
                 ctx.currentStepActions.push({ player, targets, actionId });
                 ctx.expectedActionCount--;
-                if (ctx.expectedActionCount <= 0) this.resolveNightStep(ctx);
-            }
+                if (ctx.expectedActionCount <= 0) self.resolveNightStep(ctx);
+            },
+            onTimeout: (ctx) => self.resolveNightStep(ctx) // [核心修復] 綁定正確的超時結算
         });
 
         // ------------------------------------------
@@ -52,15 +56,16 @@ window.PhaseRegistry = {
                 ctx.currentStepActions = []; 
                 ctx.expectedActionCount = ctx.getAlivePlayers().length;
                 ctx.systemLog = "正在等待玩家決定是否上警...";
-                stateMachine.setTimer(30000, this.resolveSheriffCandidacy.bind(this));
+                stateMachine.setTimer(30000);
             },
             onAction: (ctx, player, actionId) => {
                 if (ctx.currentStepActions.some(act => act.player.seatNumber === player.seatNumber)) return;
                 ctx.currentStepActions.push({ player, actionId });
                 ctx.expectedActionCount--;
                 if (actionId === 'run') ctx.sheriff.candidates.push(player.seatNumber);
-                if (ctx.expectedActionCount <= 0) this.resolveSheriffCandidacy(ctx);
-            }
+                if (ctx.expectedActionCount <= 0) self.resolveSheriffCandidacy(ctx);
+            },
+            onTimeout: (ctx) => self.resolveSheriffCandidacy(ctx)
         });
 
         // ------------------------------------------
@@ -69,7 +74,7 @@ window.PhaseRegistry = {
         const baseVotingLogic = {
             onEnter: (ctx) => {
                 ctx.votes = {};
-                stateMachine.setTimer(30000, this.resolveVoting.bind(this));
+                stateMachine.setTimer(30000);
             },
             onAction: (ctx, player, actionId, targets) => {
                 if (ctx.votes[player.seatNumber] !== undefined) return;
@@ -90,14 +95,18 @@ window.PhaseRegistry = {
 
                 const votedCount = Object.keys(ctx.votes).length;
                 ctx.systemLog = `投票進度：${votedCount} / ${aliveCount}`;
-                if (votedCount >= aliveCount) this.resolveVoting(ctx);
-            }
+                if (votedCount >= aliveCount) self.resolveVoting(ctx);
+            },
+            onTimeout: (ctx) => self.resolveVoting(ctx)
         };
         stateMachine.registerPhase('DAY_VOTING', baseVotingLogic);
         stateMachine.registerPhase('PK_VOTING', baseVotingLogic);
         stateMachine.registerPhase('SHERIFF_VOTING', baseVotingLogic);
 
-stateMachine.registerPhase('SHERIFF_TRANSFER', {
+        // ------------------------------------------
+        // [階段] 警徽移交
+        // ------------------------------------------
+        stateMachine.registerPhase('SHERIFF_TRANSFER', {
             onEnter: (ctx) => { ctx.systemLog = "等待警長移交或撕毀警徽..."; },
             onAction: (ctx, player, actionId, targets) => {
                 if (player.seatNumber !== ctx.sheriff.seat) return;
@@ -111,12 +120,14 @@ stateMachine.registerPhase('SHERIFF_TRANSFER', {
                     ctx.systemLog = `【警徽流失】前任警長選擇撕毀警徽。`;
                 }
                 
-                // [修正] 直接廣播接續日常流程，不要跳去不相干的投票展示畫面
                 Engine.EventBus.emit('RESUME_ROUTINE');
             }
         });
 
-stateMachine.registerPhase('HUNTER_ACTION', {
+        // ------------------------------------------
+        // [階段] 獵人開槍
+        // ------------------------------------------
+        stateMachine.registerPhase('HUNTER_ACTION', {
             onEnter: (ctx) => { ctx.systemLog = "等待獵人開槍..."; },
             onAction: (ctx, player, actionId, targets) => {
                 if (player.role !== '獵人') return;
@@ -131,15 +142,15 @@ stateMachine.registerPhase('HUNTER_ACTION', {
                     ctx.systemLog = `獵人選擇不開槍/無技能。`;
                 }
                 
-                // [修正] 直接廣播接續日常流程
                 Engine.EventBus.emit('RESUME_ROUTINE');
             }
         });
+    },
 
-    // --- 內部結算邏輯 (封裝在模組內) ---
+    // --- 內部結算邏輯 ---
 
     resolveNightStep: function(ctx) {
-        window.Engine.StateMachine.clearTimer();
+        this.sm.clearTimer(); // [核心修復] 使用正確的實例呼叫
         const currentPhase = ctx.nightSequence[ctx.currentNightStepIndex];
         let phaseLog = `【${currentPhase.phaseName}】結算完畢：`;
         
@@ -157,10 +168,9 @@ stateMachine.registerPhase('HUNTER_ACTION', {
     },
 
     resolveSheriffCandidacy: function(ctx) {
-        window.Engine.StateMachine.clearTimer();
+        this.sm.clearTimer();
         const aliveCount = ctx.getAlivePlayers().length;
         
-        // 防卡死超時自動補齊棄權
         ctx.getAlivePlayers().forEach(p => {
             if (!ctx.currentStepActions.some(act => act.player.seatNumber === p.seatNumber)) {
                 ctx.currentStepActions.push({ player: p, actionId: 'pass' });
@@ -175,15 +185,14 @@ stateMachine.registerPhase('HUNTER_ACTION', {
         } else {
             ctx.sheriff.candidates.sort((a,b) => a-b);
             ctx.systemLog = `上警名單：${ctx.sheriff.candidates.join('、')} 號。\n請競選者開始發言...`;
-            window.Engine.StateMachine.transitionTo('SHERIFF_SPEECH');
+            this.sm.transitionTo('SHERIFF_SPEECH'); // [核心修復] 使用正確的實例呼叫
         }
     },
 
     resolveVoting: function(ctx) {
-        window.Engine.StateMachine.clearTimer();
+        this.sm.clearTimer();
         const isSheriff = ctx.phase === 'SHERIFF_VOTING';
         
-        // 防卡死補票
         ctx.getAlivePlayers().forEach(p => {
             const isPK = ctx.phase === 'PK_VOTING';
             if (isPK && ctx.pkTargets.includes(p.seatNumber)) return;
@@ -199,7 +208,6 @@ stateMachine.registerPhase('HUNTER_ACTION', {
             const voterSeat = parseInt(voterSeatStr);
             if (!voteGroups[t]) voteGroups[t] = [];
             
-            // 使用新架構的 Filter 機制取得動態票數權重！
             const voteWeight = (t !== 'pass') ? ctx.applyFilter('VOTE_WEIGHT', 1, { voterSeat, isSheriffPhase: isSheriff }) : 0;
             
             voteGroups[t].push(voteWeight === 1.5 ? `${voterSeat}(1.5票)*` : `${voterSeat}`);
@@ -225,7 +233,6 @@ stateMachine.registerPhase('HUNTER_ACTION', {
             resultLines.push(`。${voters.join('、')} → ${targetName}`);
         }
 
-        // [模組化解耦] 警長結算分支
         if (isSheriff) {
             ctx.sheriff.electionFinishedToday = true;
             if (isTie) {
@@ -238,11 +245,10 @@ stateMachine.registerPhase('HUNTER_ACTION', {
             }
             ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(警長選舉)\n${ctx.currentVoteResultString}`);
             ctx.nextPhaseAfterVoteDisplay = 'DAWN_RESUME';
-            window.Engine.StateMachine.transitionTo('VOTE_RESULT_DISPLAY');
+            this.sm.transitionTo('VOTE_RESULT_DISPLAY');
             return;
         }
 
-        // [模組化解耦] 平票 PK 分支
         if (isTie && validVotesCount > 0 && ctx.rules.tieResolution === 'pk' && !ctx.isPK) {
             ctx.isPK = true;
             ctx.pkTargets = [];
@@ -253,7 +259,7 @@ stateMachine.registerPhase('HUNTER_ACTION', {
             ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(首次投票)\n${ctx.currentVoteResultString}`);
             ctx.systemLog = `平票！即將進行 PK 發言。`;
             ctx.nextPhaseAfterVoteDisplay = 'PK_SPEECH';
-            window.Engine.StateMachine.transitionTo('VOTE_RESULT_DISPLAY');
+            this.sm.transitionTo('VOTE_RESULT_DISPLAY');
             return; 
         }
 
@@ -263,16 +269,15 @@ stateMachine.registerPhase('HUNTER_ACTION', {
         ctx.pendingHunter = null;
         ctx.lastWordsTargets = [];
 
-        // [攔截器解耦] 白痴免死判定全部交給 EventBus 自動處理
         if (!isTie && finalTarget) {
             const tPlayer = ctx.getPlayer(finalTarget);
             let exileEvent = { context: ctx, player: tPlayer, cancelExile: false };
             Engine.EventBus.emit('BEFORE_EXILE', exileEvent);
             
             if (exileEvent.cancelExile) {
-                header = ctx.systemLog; // 取得白痴插件修改後的 Log
+                header = ctx.systemLog; 
             } else {
-                tPlayer.kill('voted'); // 這會自動觸發 PLAYER_DIED，獵人會自動監聽並標記 pendingHunter！
+                tPlayer.kill('voted'); 
                 ctx.lastWordsTargets = [finalTarget]; 
             }
         }
@@ -284,7 +289,7 @@ stateMachine.registerPhase('HUNTER_ACTION', {
         Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
         if (ctx.phase !== 'GAME_OVER') {
             ctx.nextPhaseAfterVoteDisplay = 'RESUME_ROUTINE';
-            window.Engine.StateMachine.transitionTo('VOTE_RESULT_DISPLAY'); 
+            this.sm.transitionTo('VOTE_RESULT_DISPLAY'); 
         }
     }
 };

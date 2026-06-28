@@ -1,5 +1,5 @@
 // ==========================================
-// v4.0.0 玩家端網路與狀態管理 (Player Client)
+// v4.0.1 玩家端網路與狀態管理 (Player Client)
 // ==========================================
 
 let playerPeer = null;
@@ -27,9 +27,15 @@ function setupPlayerConnectionListeners(conn) {
                 mySeatNumber = data.payload.seatNumber;
                 break;
             case PACKET_TYPE.STATE_SYNC:
+                const isNewPhase = localState.phase !== data.payload.phase;
                 localState = data.payload;
-                // [徹底清乾淨] 不再有 if 覆寫，全靠主機 preSelectedTarget 驅動狀態！
-                currentActionTarget = localState.actionPanel?.preSelectedTarget ? [localState.actionPanel.preSelectedTarget] : [];
+                
+                // [核心修復] 絕對尊重玩家的本地鎖定！
+                // 只有在「進入新階段」時，才清空玩家的選擇，徹底杜絕閃爍與被強制跳過的 Bug
+                if (isNewPhase) {
+                    currentActionTarget = [];
+                }
+                
                 UI.renderPlayerView(localState, handleSeatSelect, handleActionSubmit, currentActionTarget, false);
                 break;
         }
@@ -57,7 +63,6 @@ function handleActionSubmit(actionId) {
     const isPassAction = (actionId === 'pass' || actionId === 'save');
     const finalTargets = isPassAction ? [] : currentActionTarget;
     
-    // [徹底清乾淨] 只送一個封包，也沒有狼人 pass 的特例髒判斷了！
     hostConnection.send({ 
         type: packetType, 
         payload: { actionId: actionId, targets: finalTargets } 
