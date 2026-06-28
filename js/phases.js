@@ -265,12 +265,14 @@ window.PhaseRegistry = {
             }
         }
         
-        ctx.currentVoteResultString = `${header}\n${resultLines.join('\n')}`;
+ctx.currentVoteResultString = `${header}\n${resultLines.join('\n')}`;
         ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】\n${ctx.currentVoteResultString}`);
         ctx.systemLog = header.replace('\n', '');
         
         Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
         if (ctx.phase !== 'GAME_OVER') {
+            // 設定死亡連鎖反應結束後的目標為進入黑夜
+            ctx.destinationPhase = 'NIGHT_TRANSITION';
             ctx.nextPhaseAfterVoteDisplay = 'RESUME_ROUTINE';
             this.sm.transitionTo('VOTE_RESULT_DISPLAY'); 
         }

@@ -165,6 +165,9 @@ function setupEngineFlowControllers() {
         engineContext.systemLog = msg;
         Engine.EventBus.emit('BROADCAST_MESSAGE', msg);
         engineContext.isPK = false;
+        
+        // 設定死亡連鎖反應結束後的目標為白天討論
+        engineContext.destinationPhase = 'DAY_DISCUSSION';
         resumeRoutinePhase();
     });
 
@@ -202,7 +205,8 @@ function resumeRoutinePhase() {
         stateMachine.transitionTo('LAST_WORDS');
     } else {
         engineContext.lastWordsTargets = [];
-        stateMachine.transitionTo('DAY_DISCUSSION');
+        // 依據外部注入的目標進行轉移，移除原先寫死的 'DAY_DISCUSSION'
+        stateMachine.transitionTo(engineContext.destinationPhase);
     }
 }
 
@@ -231,7 +235,14 @@ function syncStateToAll() {
     UI.renderHostView(hostState, handleHostCommand);
 
     ctx.players.forEach(player => {
-        if (connections[player.peerId]) connections[player.peerId].send({ type: PACKET_TYPE.STATE_SYNC, payload: buildUIStateForPlayer(ctx, player, isDayPhase) });
+        if (connections[player.peerId]) {
+            // 加入網路傳輸例外處理
+            try {
+                connections[player.peerId].send({ type: PACKET_TYPE.STATE_SYNC, payload: buildUIStateForPlayer(ctx, player, isDayPhase) });
+            } catch (e) {
+                console.error(`玩家 ${player.seatNumber} 狀態同步失敗:`, e);
+            }
+        }
     });
 }
 

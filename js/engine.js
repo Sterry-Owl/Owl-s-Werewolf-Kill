@@ -68,6 +68,7 @@ class GameContext {
         this.nightSequence = [];
         this.lastWordsTargets = [];
         this.nightTags = { killed: [], poisoned: [], witchUsedSaveTonight: false };
+        this.destinationPhase = 'DAY_DISCUSSION';
 
         this.filters = {};
     }
