@@ -1,5 +1,6 @@
 // ==========================================
-// v4.0.1 玩家端網路與狀態管理 (Player Client)
+// v4.0.3 玩家端網路與狀態管理 (Player Client)
+// 檔案位置: js/player.js
 // ==========================================
 
 let playerPeer = null;
@@ -30,8 +31,7 @@ function setupPlayerConnectionListeners(conn) {
                 const isNewPhase = localState.phase !== data.payload.phase;
                 localState = data.payload;
                 
-                // [核心修復] 絕對尊重玩家的本地鎖定！
-                // 只有在「進入新階段」時，才清空玩家的選擇，徹底杜絕閃爍與被強制跳過的 Bug
+                // [純淨架構] 只有在「進入新階段」時才清空玩家選擇
                 if (isNewPhase) {
                     currentActionTarget = [];
                 }
@@ -63,6 +63,7 @@ function handleActionSubmit(actionId) {
     const isPassAction = (actionId === 'pass' || actionId === 'save');
     const finalTargets = isPassAction ? [] : currentActionTarget;
     
+    // [純淨架構] 前端放棄思考，只負責傳遞 [目標, 動作]
     hostConnection.send({ 
         type: packetType, 
         payload: { actionId: actionId, targets: finalTargets } 
