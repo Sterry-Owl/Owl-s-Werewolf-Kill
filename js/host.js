@@ -133,7 +133,7 @@ function setupEngineFlowControllers() {
         }
     });
 
-    Engine.EventBus.on('PROCESS_DAWN', () => {
+Engine.EventBus.on('PROCESS_DAWN', () => {
         engineContext.deadThisNight = [];
         engineContext.hunterDiedThisNight = false;
         engineContext.sheriff.electionFinishedToday = false; 
@@ -143,7 +143,8 @@ function setupEngineFlowControllers() {
             const isKilled = engineContext.nightTags.killed.includes(p.seatNumber);
             const isPoisoned = engineContext.nightTags.poisoned.includes(p.seatNumber);
             if (isKilled || isPoisoned) {
-                p.kill(isPoisoned ? 'poisoned' : 'killed');
+                // [關鍵修復] 將 engineContext 傳入，防止獵人死亡時崩潰
+                p.kill(isPoisoned ? 'poisoned' : 'killed', engineContext);
                 engineContext.deadThisNight.push(p.seatNumber);
             }
         });

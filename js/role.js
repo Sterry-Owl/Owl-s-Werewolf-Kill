@@ -26,7 +26,7 @@ initPassives: function() {
         Engine.EventBus.on('WOLF_EXPLODE', ({ context, player }) => {
             if (!player || player.isDead || !this.plugins[player.role]?.canSelfExplode) return;
             
-            player.kill('explode');
+            player.kill('explode', context);
             player.isRevealed = true;
             
             if (context.sheriff.seat === player.seatNumber) {

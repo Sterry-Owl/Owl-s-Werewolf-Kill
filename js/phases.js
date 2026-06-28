@@ -10,6 +10,13 @@ window.PhaseRegistry = {
         this.sm = stateMachine;
         const self = this; 
         
+        // [安全修復] 註冊靜態等待階段，防止狀態機跳轉時產生 undefined 錯誤
+        const dummyPhase = { onEnter: () => {} };
+        stateMachine.registerPhase('DAY_DISCUSSION', dummyPhase);
+        stateMachine.registerPhase('SHERIFF_SPEECH', dummyPhase);
+        stateMachine.registerPhase('LAST_WORDS', dummyPhase);
+        stateMachine.registerPhase('VOTE_RESULT_DISPLAY', dummyPhase);
+        
         ctx.addFilter('VOTE_WEIGHT', (weight, args) => {
             if (args.voterSeat === ctx.sheriff.seat && !args.isSheriffPhase) return weight + 0.5;
             return weight;
@@ -120,13 +127,13 @@ window.PhaseRegistry = {
                 const target = targets.length > 0 ? targets[0] : null;
                 if (actionId === 'shoot' && target) {
                     const tPlayer = ctx.getPlayer(target);
-                    if (tPlayer) tPlayer.kill('shot'); 
+                    // [關鍵修復] 傳入 ctx
+                    if (tPlayer) tPlayer.kill('shot', ctx); 
                     ctx.systemLog = `獵人開槍帶走了 ${target} 號玩家。`;
                     Engine.EventBus.emit('BROADCAST_MESSAGE', `【突發事件】一聲槍響，${target} 號玩家被帶走。`);
                 } else {
                     ctx.systemLog = `獵人選擇不開槍/無技能。`;
                 }
-                
                 Engine.EventBus.emit('RESUME_ROUTINE');
             }
         });
@@ -254,23 +261,23 @@ window.PhaseRegistry = {
 
         ctx.isPK = false;
         let header = isTie ? "投票結果出爐，平票或全數棄票，無人出局" : `投票結果出爐，${finalTarget} 號玩家出局`;
-        
+
         ctx.pendingHunter = null;
         ctx.lastWordsTargets = [];
 
         if (!isTie && finalTarget) {
             const tPlayer = ctx.getPlayer(finalTarget);
-            tPlayer.kill('voted'); 
+            // [關鍵修復] 傳入 ctx
+            tPlayer.kill('voted', ctx); 
             ctx.lastWordsTargets = [finalTarget]; 
         }
         
-ctx.currentVoteResultString = `${header}\n${resultLines.join('\n')}`;
+        ctx.currentVoteResultString = `${header}\n${resultLines.join('\n')}`;
         ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】\n${ctx.currentVoteResultString}`);
         ctx.systemLog = header.replace('\n', '');
         
         Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
         if (ctx.phase !== 'GAME_OVER') {
-            // 設定死亡連鎖反應結束後的目標為進入黑夜
             ctx.destinationPhase = 'NIGHT_TRANSITION';
             ctx.nextPhaseAfterVoteDisplay = 'RESUME_ROUTINE';
             this.sm.transitionTo('VOTE_RESULT_DISPLAY'); 

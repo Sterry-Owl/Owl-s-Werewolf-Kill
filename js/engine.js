@@ -1,8 +1,7 @@
 // ==========================================
-// v4.0.4 核心引擎 (Event-Driven & OOP Architecture)
+// v4.0.5 核心引擎 (Event-Driven & OOP Architecture)
 // 檔案位置: js/engine.js
 // ==========================================
-
 class EventBus {
     constructor() { this.listeners = {}; }
     on(event, callback) {
@@ -28,10 +27,11 @@ class PlayerModel {
         this.tags = new Set(); 
         this.data = {};        
     }
-    kill(reason) {
+    // [關鍵修復] 要求傳入 context，並打包進事件中傳給插件
+    kill(reason, context) {
         if (this.isDead) return false;
         this.isDead = true;
-        GameEvent.emit('PLAYER_DIED', { player: this, reason: reason });
+        GameEvent.emit('PLAYER_DIED', { context: context, player: this, reason: reason });
         return true;
     }
     addTag(tag) { this.tags.add(tag); }
@@ -41,6 +41,7 @@ class PlayerModel {
 }
 
 class GameContext {
+    // ... 內部保持不變，直接保留您原本檔案的 GameContext 內容 ...
     constructor() {
         this.players = [];
         this.rules = {};
@@ -48,59 +49,30 @@ class GameContext {
         this.phase = "LOBBY";
         this.nightCount = 0;
         this.systemLog = "等待遊戲開始...";
-        
+        this.routineOrigin = 'MORNING'; 
         this.deadThisNight = [];
         this.voteHistory = [];
         this.votes = {};
-
-        // [核心修復] 嚴格初始化所有陣列，徹底根絕 undefined 導致的靜默崩潰！
-        this.sheriff = {
-            enabled: false,
-            seat: null,
-            badgeLost: false,
-            electionDay: 1,
-            candidates: [], // 預設空陣列
-            withdrawn: []   // 預設空陣列
-        };
-
+        this.sheriff = { enabled: false, seat: null, badgeLost: false, electionDay: 1, candidates: [], withdrawn: [] };
         this.wolfPreviews = {};
         this.pkTargets = [];
         this.nightSequence = [];
         this.lastWordsTargets = [];
         this.nightTags = { killed: [], poisoned: [], witchUsedSaveTonight: false };
-        this.destinationPhase = 'DAY_DISCUSSION';
-
+        this.destinationPhase = 'DAY_DISCUSSION'; 
         this.filters = {};
     }
-
-    addPlayer(peerId, name) {
-        const p = new PlayerModel(this.players.length + 1, peerId, name);
-        this.players.push(p);
-        return p;
-    }
-
+    addPlayer(peerId, name) { const p = new PlayerModel(this.players.length + 1, peerId, name); this.players.push(p); return p; }
     getPlayer(seat) { return this.players.find(p => p.seatNumber === seat); }
     getPlayerByPeer(peerId) { return this.players.find(p => p.peerId === peerId); }
     getAlivePlayers() { return this.players.filter(p => !p.isDead); }
-
-    addFilter(type, fn) {
-        if (!this.filters[type]) this.filters[type] = [];
-        this.filters[type].push(fn);
-    }
-
-    applyFilter(type, initialValue, args = {}) {
-        if (!this.filters[type]) return initialValue;
-        return this.filters[type].reduce((currentValue, fn) => fn(currentValue, args), initialValue);
-    }
+    addFilter(type, fn) { if (!this.filters[type]) this.filters[type] = []; this.filters[type].push(fn); }
+    applyFilter(type, initialValue, args = {}) { if (!this.filters[type]) return initialValue; return this.filters[type].reduce((currentValue, fn) => fn(currentValue, args), initialValue); }
 }
 
 class StateMachine {
-    constructor(context) {
-        this.ctx = context;
-        this.phases = {};
-        this.currentPhase = null;
-        this.timer = null;
-    }
+    // ... 保持不變 ...
+    constructor(context) { this.ctx = context; this.phases = {}; this.currentPhase = null; this.timer = null; }
     registerPhase(name, phaseLogic) { this.phases[name] = phaseLogic; }
     transitionTo(phaseName, payload = {}) {
         if (this.currentPhase && this.currentPhase.onExit) this.currentPhase.onExit(this.ctx);
@@ -110,9 +82,7 @@ class StateMachine {
         if (this.currentPhase && this.currentPhase.onEnter) this.currentPhase.onEnter(this.ctx, payload);
         GameEvent.emit('PHASE_CHANGED', { phase: phaseName });
     }
-    handleAction(player, actionId, targets) {
-        if (this.currentPhase && this.currentPhase.onAction) this.currentPhase.onAction(this.ctx, player, actionId, targets);
-    }
+    handleAction(player, actionId, targets) { if (this.currentPhase && this.currentPhase.onAction) this.currentPhase.onAction(this.ctx, player, actionId, targets); }
     setTimer(ms, timeoutCallback) {
         this.clearTimer();
         this.ctx.deadline = Date.now() + ms;
@@ -122,10 +92,7 @@ class StateMachine {
             else if (this.currentPhase && this.currentPhase.onTimeout) this.currentPhase.onTimeout(this.ctx);
         }, ms);
     }
-    clearTimer() {
-        if (this.timer) { clearTimeout(this.timer); this.timer = null; }
-        this.ctx.deadline = null;
-    }
+    clearTimer() { if (this.timer) { clearTimeout(this.timer); this.timer = null; } this.ctx.deadline = null; }
 }
 
 window.Engine = { EventBus: GameEvent, GameContext, PlayerModel, StateMachine };
