@@ -56,6 +56,13 @@ RoleRegistry.register("狼人", {
     getPrompt: () => "選擇今晚的襲擊目標 (或跳過以空刀)",
     getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
     getButtons: () => [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
+    getPassTags: (ctx, mySeat) => {
+        let tags = [];
+        Object.values(ctx.wolfPreviews || {}).forEach(preview => {
+            if (String(preview.target) === 'pass' && preview.seat !== mySeat) tags.push(`${preview.seat}號`);
+        });
+        return tags;
+    },
     resolveNightAction: (ctx, actions) => {
         let validTargets = actions.filter(act => act.actionId !== 'pass' && act.targets.length > 0).map(act => act.targets[0]);
         if (validTargets.length === 0) return "【空刀】";

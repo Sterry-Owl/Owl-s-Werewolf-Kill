@@ -1,5 +1,5 @@
 // ==========================================
-// v4.0.3 網路通訊橋樑與 UI 同步器 (Network & Bridge)
+// v4.0.4 網路通訊橋樑與 UI 同步器 (Network & Bridge)
 // 檔案位置: js/host.js
 // ==========================================
 
@@ -9,7 +9,6 @@ let engineContext = null;
 let stateMachine = null;
 
 window.initHost = function(roomId) {
-    // [優化 UX / 模組化] 1. 立即渲染房號，絕不等待網路！
     document.getElementById('display-room-id').textContent = roomId;
     
     engineContext = new Engine.GameContext();
@@ -26,11 +25,9 @@ window.initHost = function(roomId) {
         syncStateToAll();
     });
 
-    // [優化 UX] 2. 立即渲染畫面，顯示連線中
     engineContext.systemLog = '⏳ 正在與連線伺服器建立通道，請稍候...';
     syncStateToAll();
 
-    // 3. 開始背景連線
     hostPeer = new Peer(roomId, PEER_CONFIG);
 
     hostPeer.on('open', (id) => {
@@ -65,7 +62,7 @@ function handleIncomingPacket(peerId, data) {
     }
     else if (data.type === PACKET_TYPE.SHERIFF_BAILOUT && engineContext.phase === 'SHERIFF_SPEECH') {
         const player = engineContext.getPlayerByPeer(peerId);
-        if (player && engineContext.sheriff.candidates.includes(player.seatNumber)) {
+        if (player && (engineContext.sheriff.candidates || []).includes(player.seatNumber)) {
             engineContext.sheriff.candidates = engineContext.sheriff.candidates.filter(s => s !== player.seatNumber);
             engineContext.sheriff.withdrawn.push(player.seatNumber);
             engineContext.systemLog = `【突發事件】${player.seatNumber} 號玩家選擇退水！`;
@@ -100,9 +97,6 @@ window.startGame = function(selectedRoles, boardName, rules) {
     return true; 
 };
 
-// ==========================================
-// 流程控制器 (Flow Controllers)
-// ==========================================
 function setupEngineFlowControllers() {
     Engine.EventBus.on('START_NIGHT', () => {
         engineContext.nightCount++;
@@ -212,9 +206,6 @@ function resumeRoutinePhase() {
     }
 }
 
-// ==========================================
-// 狀態同步與 UI 橋接器
-// ==========================================
 function syncStateToAll() {
     const ctx = engineContext;
     const isDayPhase = ['DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING', 'SHERIFF_TRANSFER', 'DAY_DISCUSSION', 'DAY_VOTING', 'PK_SPEECH', 'PK_VOTING', 'VOTE_RESULT_DISPLAY', 'LAST_WORDS', 'GAME_OVER'].includes(ctx.phase);
@@ -256,18 +247,19 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         else if (player.role === '女巫' && ctx.witchState?.savedSeat === p.seatNumber) sideTag = "銀水"; 
 
         if (ctx.phase === 'NIGHT_ACTION' && player.role?.includes('狼人')) {
-            Object.values(ctx.wolfPreviews).forEach(preview => {
+            Object.values(ctx.wolfPreviews || {}).forEach(preview => {
                 if (String(preview.target) === String(p.seatNumber) && preview.seat !== player.seatNumber) {
                     wolfPreviewTags.push(`${preview.seat}號`);
                 }
             });
         }
 
+        // [核心修復] 加入 || [] 安全網，防止大廳階段未定義造成客戶端封包斷裂！
         return { 
             seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, 
             topTag, sideTag, wolfPreviewTags, isWolfSelected: wolfPreviewTags.length > 0,
-            isCandidate: ctx.sheriff.candidates.includes(p.seatNumber), 
-            hasWithdrawn: ctx.sheriff.withdrawn.includes(p.seatNumber) 
+            isCandidate: (ctx.sheriff.candidates || []).includes(p.seatNumber), 
+            hasWithdrawn: (ctx.sheriff.withdrawn || []).includes(p.seatNumber) 
         };
     });
 
@@ -286,6 +278,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             actionPanel.type = plugin.actionType;
             actionPanel.selectableSeats = plugin.getSelectableSeats(ctx);
             actionPanel.buttons = plugin.getButtons(ctx, player.seatNumber);
+            actionPanel.passTags = plugin.getPassTags ? plugin.getPassTags(ctx, player.seatNumber) : [];
             
             if (myRoleInPhase.roleName === '狼人') {
                 const myPreview = ctx.wolfPreviews[player.peerId];
@@ -313,11 +306,11 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     }
     else if (ctx.phase === 'SHERIFF_VOTING' && !player.isDead) {
         actionPanel.show = true;
-        const isEligible = !ctx.sheriff.candidates.includes(player.seatNumber) && !ctx.sheriff.withdrawn.includes(player.seatNumber);
+        const isEligible = !(ctx.sheriff.candidates || []).includes(player.seatNumber) && !(ctx.sheriff.withdrawn || []).includes(player.seatNumber);
         if (!isEligible) { actionPanel.prompt = "你是警上玩家（或已退水），無法參與警長投票。"; actionPanel.buttons = []; }
         else if (ctx.votes[player.seatNumber] !== undefined) { actionPanel.prompt = "投票完成，等待..."; actionPanel.buttons = []; }
         else {
-            actionPanel.type = 'single_select'; actionPanel.deadline = ctx.deadline; actionPanel.selectableSeats = ctx.sheriff.candidates;
+            actionPanel.type = 'single_select'; actionPanel.deadline = ctx.deadline; actionPanel.selectableSeats = ctx.sheriff.candidates || [];
             actionPanel.prompt = '選擇你要投票的警長候選人：';
             actionPanel.submitPacketType = PACKET_TYPE.VOTE_SUBMIT;
             actionPanel.buttons = [{ id: 'vote', text: '投票', requiresTarget: true }, { id: 'pass', text: '棄票', requiresTarget: false }];
@@ -331,7 +324,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     else if ((ctx.phase === 'DAY_VOTING' || ctx.phase === 'PK_VOTING') && !player.isDead) {
         actionPanel.show = true;
         const isPK = ctx.phase === 'PK_VOTING';
-        if (isPK && ctx.pkTargets.includes(player.seatNumber)) { actionPanel.prompt = "你是 PK 發言對象，無法投票。"; actionPanel.buttons = []; }
+        if (isPK && (ctx.pkTargets || []).includes(player.seatNumber)) { actionPanel.prompt = "你是 PK 發言對象，無法投票。"; actionPanel.buttons = []; }
         else if (ctx.votes[player.seatNumber] !== undefined) { actionPanel.prompt = "投票完成，等待..."; actionPanel.buttons = []; }
         else {
             actionPanel.type = 'single_select'; actionPanel.deadline = ctx.deadline; actionPanel.selectableSeats = isPK ? ctx.pkTargets : ctx.getAlivePlayers().map(p=>p.seatNumber);
@@ -346,7 +339,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     }
     else if (ctx.phase === 'LAST_WORDS' || ctx.phase === 'PK_SPEECH') {
         actionPanel.show = true;
-        let targets = ctx.phase === 'PK_SPEECH' ? [...ctx.pkTargets] : [...ctx.lastWordsTargets].sort((a,b)=>a-b);
+        let targets = ctx.phase === 'PK_SPEECH' ? [...(ctx.pkTargets||[])] : [...(ctx.lastWordsTargets||[])].sort((a,b)=>a-b);
         actionPanel.prompt = `請 ${targets.join('號、')} 號玩家${ctx.phase === 'PK_SPEECH' ? "PK 發言" : "發表遺言"}`;
     }
     else if (ctx.phase === 'HUNTER_ACTION') {
@@ -369,7 +362,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         boardName: ctx.boardName, phase: ctx.phase, mySeat: player.seatNumber, myRole: player.role,
         message: personalMessage, players: mappedPlayers, actionPanel, latestCheckResult: player.data.latestCheckResult || null,
         voteHistory: ctx.voteHistory, allowSelfExplode: !player.isDead && isDayPhase && RoleRegistry.plugins[player.role]?.canSelfExplode,
-        allowBailout: !player.isDead && ctx.phase === 'SHERIFF_SPEECH' && ctx.sheriff.candidates.includes(player.seatNumber) 
+        allowBailout: !player.isDead && ctx.phase === 'SHERIFF_SPEECH' && (ctx.sheriff.candidates || []).includes(player.seatNumber) 
     };
 }
 
