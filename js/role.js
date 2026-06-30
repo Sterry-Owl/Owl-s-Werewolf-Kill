@@ -71,7 +71,7 @@ initPassives: function(ctx) {
         Engine.EventBus.emit('CHECK_WIN_CONDITION', context);
         if (context.phase !== 'GAME_OVER') Engine.EventBus.emit('FORCE_ENTER_NIGHT', context);
     });
-},
+};
 
 RoleRegistry.register("狼人", {
     canSelfExplode: true,
