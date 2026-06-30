@@ -153,6 +153,21 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 .candidate-dot.withdrawn { background: #666; /* 退水後變為灰色 */ }
 
+/* [新增] PK 狀態的小紅圓圈 */
+.pk-dot {
+    position: absolute; bottom: -2px; right: -2px;
+    width: 14px; height: 14px; background: var(--accent-red);
+    border-radius: 50%; border: 2px solid #2b3a42; z-index: 18;
+    box-shadow: 0 0 6px rgba(239, 35, 60, 0.8);
+    animation: pulse-red 1.5s infinite; /* 加上呼吸燈效果更明顯 */
+}
+
+@keyframes pulse-red {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 35, 60, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 35, 60, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 35, 60, 0); }
+}
+
 .top-tag { 
     position: absolute; top: -16px; left: 50%; transform: translateX(-50%); 
     background: #a8e8e2; color: #111; padding: 2px 6px; border-radius: 8px; 
