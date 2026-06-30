@@ -120,11 +120,11 @@ window.PhaseRegistry = {
             }
         });
 
-        stateMachine.registerPhase('HUNTER_ACTION', {
-            allowDeadAction: true, // [新增] 宣告此階段允許死者送出動作
+stateMachine.registerPhase('HUNTER_ACTION', {
+            allowDeadAction: true, 
             onEnter: (ctx) => { ctx.systemLog = "等待獵人開槍..."; },
             onAction: (ctx, player, actionId, targets) => {
-                if (player.role !== '獵人') return;
+                if (player.seatNumber !== ctx.activeShooter) return; // [修正] 安全鎖：不相干的人亂點按鈕直接無視
                 
                 const target = targets.length > 0 ? targets[0] : null;
                 if (actionId === 'shoot' && target) {
@@ -136,14 +136,21 @@ window.PhaseRegistry = {
                     ctx.systemLog = `獵人選擇不開槍/無技能。`;
                 }
                 
-                Engine.EventBus.emit('RESUME_ROUTINE');
+                ctx.activeShooter = null; // [新增] 開槍完畢，解除鎖定
+                
+                // [關鍵修正] 開槍殺人後，必須立刻檢查遊戲是否達到屠邊條件！
+                Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+                if (ctx.phase !== 'GAME_OVER') {
+                    Engine.EventBus.emit('RESUME_ROUTINE');
+                }
             }
         });
+        
         stateMachine.registerPhase('WOLFKING_ACTION', {
             allowDeadAction: true, 
             onEnter: (ctx) => { ctx.systemLog = "等待狼王開槍..."; },
             onAction: (ctx, player, actionId, targets) => {
-                if (player.role !== '狼王') return;
+                if (player.seatNumber !== ctx.activeShooter) return; // [修正] 安全鎖：不相干的人亂點按鈕直接無視
                 
                 const target = targets.length > 0 ? targets[0] : null;
                 if (actionId === 'shoot' && target) {
@@ -155,7 +162,13 @@ window.PhaseRegistry = {
                     ctx.systemLog = `狼王選擇不開槍。`;
                 }
                 
-                Engine.EventBus.emit('RESUME_ROUTINE');
+                ctx.activeShooter = null; // [新增] 開槍完畢，解除鎖定
+                
+                // [關鍵修正] 開槍殺人後，必須立刻檢查遊戲是否達到屠邊條件！
+                Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+                if (ctx.phase !== 'GAME_OVER') {
+                    Engine.EventBus.emit('RESUME_ROUTINE');
+                }
             }
         });
     },
