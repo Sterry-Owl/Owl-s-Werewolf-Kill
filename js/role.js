@@ -44,7 +44,7 @@ initPassives: function(ctx) {
 
         if (player.role === '白痴' && reason === 'voted') {
             player.isRevealed = true;
-            Engine.EventBus.emit('BROADCAST_MESSAGE', `【突發事件】${player.seatNumber} 號玩家為白痴，翻牌！\n(已喪失投票與被指定權力，須移交警徽，但保留發言權)`);
+            Engine.EventBus.emit('BROADCAST_MESSAGE', `${player.seatNumber} 號玩家為白痴，翻牌！\n(已喪失投票與被指定權力，須移交警徽，但保留發言權)`);
         }
     });
 
@@ -63,9 +63,9 @@ initPassives: function(ctx) {
         if (['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING'].includes(context.phase)) {
             context.sheriff.electionDay++;
             if (context.sheriff.electionDay > 2) context.sheriff.badgeLost = true;
-            context.systemLog = `【突發事件】${player.seatNumber} 號玩家自爆！\n選舉中斷（視同平票）。`;
+            context.systemLog = `${player.seatNumber} 號玩家自爆，\n警長選舉被中斷。`;
         } else {
-            context.systemLog = `【突發事件】${player.seatNumber} 號玩家選擇自爆！發言階段立即結束！`;
+            context.systemLog = `${player.seatNumber} 號玩家選擇自爆，天黑請閉眼。`;
         }
 
         Engine.EventBus.emit('CHECK_WIN_CONDITION', context);
@@ -78,9 +78,9 @@ RoleRegistry.register("狼人", {
     canSelfExplode: true,
     nightPhase: "midnight",      
     actionType: "consensus",     
-    getPrompt: () => "選擇今晚的襲擊目標 (或跳過以空刀)",
+    getPrompt: () => "選擇今晚的襲擊目標 (或選擇跳過以空刀)",
     getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
-    getButtons: () => [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
+    getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
     getPassTags: (ctx, mySeat) => {
         let tags = [];
         Object.values(ctx.wolfPreviews || {}).forEach(preview => {
@@ -90,11 +90,11 @@ RoleRegistry.register("狼人", {
     },
     resolveNightAction: (ctx, actions) => {
         let validTargets = actions.filter(act => act.actionId !== 'pass' && act.targets.length > 0).map(act => act.targets[0]);
-        if (validTargets.length === 0) return "【空刀】";
+        if (validTargets.length === 0) return "空刀";
         const finalTarget = validTargets[Math.floor(Math.random() * validTargets.length)];
         if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
         ctx.nightTags.killed.push(parseInt(finalTarget));
-        return `【襲擊: ${finalTarget}號】`;
+        return `襲擊: ${finalTarget}號`;
     }
 });
 
@@ -104,7 +104,7 @@ RoleRegistry.register("女巫", {
     actionType: "dynamic_buttons",
     getPrompt: (ctx, mySeat) => {
         if (!ctx.witchState) ctx.witchState = {};
-        if (ctx.witchState.antidoteUsed) return "你的解藥已用過，無法得知刀口。\n請選擇要發動的技能：";
+        if (ctx.witchState.antidoteUsed) return "解藥已經用盡。\n請選擇要發動的技能：";
         const victim = ctx.nightTags?.killed?.length > 0 ? ctx.nightTags.killed[0] : "無";
         let extraMsg = "";
         if (victim === mySeat) {
@@ -133,7 +133,7 @@ RoleRegistry.register("女巫", {
     getPreSelectedTarget: (ctx) => (!(ctx.witchState?.antidoteUsed) && ctx.nightTags?.killed?.length > 0) ? ctx.nightTags.killed[0] : null,
     resolveNightAction: (ctx, actions) => {
         const act = actions[0];
-        if (!act) return "【跳過行動】"; 
+        if (!act) return "跳過行動"; 
         if (!ctx.witchState) ctx.witchState = {};
         const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
         if (act.actionId === 'save' && !ctx.witchState.antidoteUsed) {
@@ -142,20 +142,20 @@ RoleRegistry.register("女巫", {
                 ctx.nightTags.killed = []; 
                 ctx.nightTags.witchUsedSaveTonight = true;
                 ctx.witchState.antidoteUsed = true;
-                return "【解救成功】";
+                return "生，還是死，這是一個問題。";
             }
-            return "【無刀可救】";
+            return "生，還是死，這是一個問題。";
         } else if (act.actionId === 'poison' && !ctx.witchState.poisonUsed && !ctx.nightTags?.witchUsedSaveTonight) {
         // [新增] 如果解藥還沒用過，且你想毒的人剛好是刀口，直接擋下來
         if (!ctx.witchState.antidoteUsed && ctx.nightTags?.killed?.length > 0 && target === ctx.nightTags.killed[0]) {
-            return "【無法發動：解藥未用時不可毒殺刀口】";
+            return "解藥尚未使用時，不可毒殺被襲擊者。";
             }
             if (target) {
                 ctx.nightTags.poisoned.push(target);
                 ctx.witchState.poisonUsed = true;
-                return `【毒殺: ${target}號】`;
+                return `也許${target}號玩家的生命，就到此為止了。`;
             }
-            return "【空毒】";
+            return "暫時放過你們一天。";
         }
         return "【跳過行動】";
     }
