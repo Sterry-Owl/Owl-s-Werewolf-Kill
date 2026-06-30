@@ -50,11 +50,11 @@ const PACKET_TYPE = {
 const BOARD_TEMPLATES = [
     { id: "standard_6", name: "6人 獵人局", playerCount: 6, deck: ["預言家", "獵人", "狼人", "狼人", "平民", "平民"] },
     { id: "test_witch_6", name: "6人 女巫局", playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "平民", "平民"] },
-    { id: "test_1-6", name: "6人 狼王守衛測試", playerCount: 6, deck: ["預言家", "守衛", "狼王", "狼人", "平民", "平民"] },    
+    { id: "test_1-6", name: "6人 狼王守衛", playerCount: 6, deck: ["預言家", "守衛", "狼王", "狼人", "平民", "平民"] },    
     { id: "standard_9", name: "9人 標準局", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "standard_10", name: "10人 標準局", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "standard_12", name: "12人 標準局", playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
-    { id: "wk_gud_12", name: "12人 標準局", playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }    
+    { id: "wk_gud_12", name: "12人 狼王守衛", playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }    
 ];
 
 const ROLE_DICTIONARY = {
