@@ -44,7 +44,7 @@ initPassives: function(ctx) {
 
         if (player.role === '白痴' && reason === 'voted') {
             player.isRevealed = true;
-            Engine.EventBus.emit('BROADCAST_MESSAGE', `${player.seatNumber} 號玩家為白痴，翻牌！\n(已喪失投票與被指定權力，須移交警徽，但保留發言權)`);
+            Engine.EventBus.emit('BROADCAST_MESSAGE', `${player.seatNumber} 號玩家為白痴，進行翻牌。\n(已喪失投票與被指定權力，須移交警徽，但保留發言權)`);
         }
     });
 
@@ -155,9 +155,9 @@ RoleRegistry.register("女巫", {
                 ctx.witchState.poisonUsed = true;
                 return `也許${target}號玩家的生命，就到此為止了。`;
             }
-            return "暫時放過你們一天。";
+            return "暫時，放過你們一天。";
         }
-        return "【跳過行動】";
+        return "跳過行動";
     }
 });
 
@@ -167,22 +167,22 @@ RoleRegistry.register("預言家", {
     actionType: "single_select",
     getPrompt: () => "選擇今晚的查驗目標",
     getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
-    getButtons: () => [{ id: 'confirm', text: '確認查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
+    getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
         const act = actions[0];
         if (!act) return "【跳過行動】";
         const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
         if (act.actionId === 'confirm' && target) {
             const tPlayer = ctx.getPlayer(target);
-            const isWolf = (tPlayer.role && tPlayer.role.includes("狼人")); 
+            const isWolf = (tPlayer.role && ROLE_DICTIONARY[tPlayer.role]?.faction === 'wolf');
             const alignment = isWolf ? "狼人" : "好人";
             act.player.data.seerRecords = act.player.data.seerRecords || {};
             act.player.data.seerRecords[target] = alignment;
             act.player.data.latestCheckResult = { seat: target, alignment: alignment };
-            act.player.data.tempPrivateMessage = `系統提示：${target}號玩家為【${alignment}】陣營。`;
-            return `【查驗: ${target}號】`;
+            act.player.data.tempPrivateMessage = `${target}號玩家是【${alignment}】。`;
+            return `查驗: ${target}號`;
         }
-        return "【跳過行動】";
+        return "跳過行動";
     }
 });
 
