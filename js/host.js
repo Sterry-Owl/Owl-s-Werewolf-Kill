@@ -280,6 +280,9 @@ function syncStateToAll() {
 }
 
 function buildUIStateForPlayer(ctx, player, isDayPhase) {
+    // [新增] 嚴格判定當前是否處於「警長競選」的三個階段
+    const isSheriffPhase = ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING'].includes(ctx.phase);
+
     const mappedPlayers = ctx.players.map(p => {
         let topTag = null, sideTag = null, wolfPreviewTags = [];
         
@@ -300,10 +303,10 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         return { 
             seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, 
             topTag, sideTag, wolfPreviewTags, isWolfSelected: wolfPreviewTags.length > 0,
-            isCandidate: (ctx.sheriff.candidates || []).includes(p.seatNumber), 
-            hasWithdrawn: (ctx.sheriff.withdrawn || []).includes(p.seatNumber),
+            // [修改] 綁定生命週期：競選結束後，綠圓點與灰圓點強制註銷
+            isCandidate: isSheriffPhase && (ctx.sheriff.candidates || []).includes(p.seatNumber), 
+            hasWithdrawn: isSheriffPhase && (ctx.sheriff.withdrawn || []).includes(p.seatNumber),
             isSheriff: (ctx.sheriff.seat === p.seatNumber),
-            // [新增] 判斷該玩家是否為當前 PK 對象 (只有在 PK 發言或投票階段才顯示)
             isPKTarget: (ctx.phase === 'PK_SPEECH' || ctx.phase === 'PK_VOTING') && (ctx.pkTargets || []).includes(p.seatNumber)
         };
     });

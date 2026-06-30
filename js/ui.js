@@ -190,9 +190,9 @@ const UI = {
                 tagsHtml += `<div class="side-tag ${alignClass} ${colorClass}">${p.sideTag}</div>`;
             }
 
-            // [新增] 警長專屬的右下角金色菱形 (直接透過 Inline CSS 渲染，不需改 CSS 檔)
+            // [修改] 拔除 Inline CSS，改呼叫外部樣式類別
             if (p.isSheriff) {
-                tagsHtml += `<div style="position: absolute; bottom: 0px; right: -4px; width: 18px; height: 18px; background: linear-gradient(135deg, #FFD700, #B8860B); transform: rotate(45deg); border: 1.5px solid #222; z-index: 15; box-shadow: 1px 1px 3px rgba(0,0,0,0.5);"></div>`;
+                tagsHtml += `<div class="sheriff-diamond"></div>`;
             }
 
             if (p.wolfPreviewTags && p.wolfPreviewTags.length > 0) {
