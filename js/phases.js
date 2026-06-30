@@ -39,7 +39,7 @@ window.PhaseRegistry = {
             onAction: (ctx, player, actionId, targets) => {
                 if (ctx.currentStepActions.some(act => act.player.seatNumber === player.seatNumber)) return;
                 
-                if (player.role === '狼人' && actionId === 'pass') {
+                if (ROLE_DICTIONARY[player.role]?.faction === 'wolf' && actionId === 'pass') {
                     ctx.wolfPreviews[player.peerId] = { seat: player.seatNumber, target: 'pass' };
                 }
                 
