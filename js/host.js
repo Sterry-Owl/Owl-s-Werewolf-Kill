@@ -302,7 +302,9 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             topTag, sideTag, wolfPreviewTags, isWolfSelected: wolfPreviewTags.length > 0,
             isCandidate: (ctx.sheriff.candidates || []).includes(p.seatNumber), 
             hasWithdrawn: (ctx.sheriff.withdrawn || []).includes(p.seatNumber),
-            isSheriff: (ctx.sheriff.seat === p.seatNumber) 
+            isSheriff: (ctx.sheriff.seat === p.seatNumber),
+            // [新增] 判斷該玩家是否為當前 PK 對象 (只有在 PK 發言或投票階段才顯示)
+            isPKTarget: (ctx.phase === 'PK_SPEECH' || ctx.phase === 'PK_VOTING') && (ctx.pkTargets || []).includes(p.seatNumber)
         };
     });
 

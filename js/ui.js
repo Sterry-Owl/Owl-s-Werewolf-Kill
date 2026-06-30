@@ -166,8 +166,11 @@ const UI = {
 
             let tagsHtml = '';
             
-            // [新增] 繪製警長競選狀態圓圈 (參選/退水)
-            if (p.isCandidate) {
+            // [新增] 繪製警長競選狀態圓圈 (參選/退水) 或 PK 紅色圓點
+            // 注意：因為它們都在右下角，我們讓 PK 圓點優先級更高（會蓋過退水標記）
+            if (p.isPKTarget) {
+                tagsHtml += `<div class="pk-dot"></div>`;
+            } else if (p.isCandidate) {
                 tagsHtml += `<div class="candidate-dot"></div>`;
             } else if (p.hasWithdrawn) {
                 tagsHtml += `<div class="candidate-dot withdrawn"></div>`;
