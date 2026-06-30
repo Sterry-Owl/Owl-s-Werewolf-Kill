@@ -32,13 +32,10 @@ initPassives: function(ctx) {
 
     Engine.EventBus.on('PLAYER_DIED', ({ context, player, reason }) => {
         if (player.role === '獵人' && reason !== 'poisoned') {
-            player.isRevealed = true;
             context.pendingHunter = player.seatNumber; 
         }
-
         // [新增] 狼王被動：被狼刀、被票出、被獵人射皆可開槍。被毒(poisoned)與自爆(explode)不可發動。
         if (player.role === '狼王' && reason !== 'poisoned' && reason !== 'explode') {
-            player.isRevealed = true;
             context.pendingWolfKing = player.seatNumber;
         }
 
