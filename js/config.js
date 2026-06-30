@@ -29,6 +29,7 @@ const GAME_PHASE = {
     VOTE_RESULT_DISPLAY: 'VOTE_RESULT_DISPLAY', 
     LAST_WORDS: 'LAST_WORDS',                   
     HUNTER_ACTION: 'HUNTER_ACTION',
+    WOLFKING_ACTION: 'WOLFKING_ACTION',
     GAME_OVER: 'GAME_OVER'
 };
 
@@ -52,6 +53,7 @@ const BOARD_TEMPLATES = [
     { id: "standard_9", name: "9人 標準局", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "standard_10", name: "10人 標準局", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "standard_12", name: "12人 標準局", playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }
+    { id: "wk_gud_12", name: "12人 標準局", playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }    
 ];
 
 const ROLE_DICTIONARY = {
@@ -61,4 +63,6 @@ const ROLE_DICTIONARY = {
     "狼人": { faction: "wolf", type: "wolf", nightPhase: "midnight", actionType: "consensus", prompt: "選擇今晚的襲擊目標 (或跳過以空刀)" },
     "女巫": { faction: "good", type: "god", nightPhase: "second_half", actionType: "dynamic_buttons", prompt: "女巫請行動" },
     "預言家": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚的查驗目標" }
+    "狼王": { faction: "wolf", type: "wolf", nightPhase: "midnight", actionType: "consensus", prompt: "選擇今晚的襲擊目標 (或跳過以空刀)" },
+    "守衛": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚守護的目標" }
 };

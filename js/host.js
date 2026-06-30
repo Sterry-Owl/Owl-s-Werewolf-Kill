@@ -15,7 +15,8 @@ window.initHost = function(roomId) {
     stateMachine = new Engine.StateMachine(engineContext);
     
     PhaseRegistry.init(stateMachine, engineContext);
-    RoleRegistry.initPassives();
+    // [修改] 傳入 engineContext，讓角色模組可以註冊全域過濾器
+    RoleRegistry.initPassives(engineContext);
     
     Engine.EventBus.on('SYNC_STATE', syncStateToAll);
     Engine.EventBus.on('PHASE_CHANGED', syncStateToAll);
@@ -29,7 +30,6 @@ window.initHost = function(roomId) {
     syncStateToAll();
 
     hostPeer = new Peer(roomId, PEER_CONFIG);
-
     hostPeer.on('open', (id) => {
         engineContext.systemLog = '✅ 房間建立成功！請等待玩家加入...';
         syncStateToAll();
@@ -168,22 +168,37 @@ function setupEngineFlowControllers() {
     });
 
     Engine.EventBus.on('DAWN_ANNOUNCE', () => {
-        // [關鍵修復] 將昨晚的死亡結算推遲到這裡執行
         engineContext.deadThisNight = [];
         engineContext.hunterDiedThisNight = false;
 
+        // [新架構] 收集黑夜標籤，準備交給過濾器運算
+        const calculation = {
+            killed: [...engineContext.nightTags.killed],
+            poisoned: [...engineContext.nightTags.poisoned],
+            saved: engineContext.witchState?.savedSeat ? [engineContext.witchState.savedSeat] : [],
+            guarded: engineContext.guardedSeat ? [engineContext.guardedSeat] : []
+        };
+
+        // 呼叫過濾器，由 role.js 裡的守衛/女巫插件去算「同守同救」
+        const finalKilledList = engineContext.applyFilter('DAWN_DEATH_EVALUATION', calculation);
+
+        // 最終死亡判定執行
         engineContext.players.forEach(p => {
             if (p.isDead) return;
-            const isKilled = engineContext.nightTags.killed.includes(p.seatNumber);
-            const isPoisoned = engineContext.nightTags.poisoned.includes(p.seatNumber);
+            
+            const isKilled = finalKilledList.includes(p.seatNumber);
+            const isPoisoned = engineContext.nightTags.poisoned.includes(p.seatNumber); // 毒藥強制致死，不進入守衛過濾
+
             if (isKilled || isPoisoned) {
                 p.kill(isPoisoned ? 'poisoned' : 'killed', engineContext);
                 engineContext.deadThisNight.push(p.seatNumber);
             }
         });
         
+        // 清理昨晚標籤
         engineContext.nightTags.killed = [];
         engineContext.nightTags.poisoned = [];
+        engineContext.guardedSeat = null; 
 
         Engine.EventBus.emit('CHECK_WIN_CONDITION', engineContext);
         if (engineContext.phase === 'GAME_OVER') return;
@@ -230,6 +245,10 @@ function resumeRoutinePhase() {
     } else if (engineContext.pendingHunter) {
         engineContext.pendingHunter = null;
         stateMachine.transitionTo('HUNTER_ACTION');
+    } else if (engineContext.pendingWolfKing) {
+        engineContext.pendingWolfKing = null;
+        // [新增] 狼王開槍路由
+        stateMachine.transitionTo('WOLFKING_ACTION');
     } else if (engineContext.lastWordsTargets && engineContext.lastWordsTargets.length > 0) {
         stateMachine.transitionTo('LAST_WORDS');
     } else {
@@ -246,7 +265,7 @@ function resumeRoutinePhase() {
 
 function syncStateToAll() {
     const ctx = engineContext;
-    const isDayPhase = ['DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING', 'SHERIFF_TRANSFER', 'DAY_DISCUSSION', 'DAY_VOTING', 'PK_SPEECH', 'PK_VOTING', 'VOTE_RESULT_DISPLAY', 'LAST_WORDS', 'GAME_OVER'].includes(ctx.phase);
+    const isDayPhase = ['DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING', 'SHERIFF_TRANSFER', 'DAY_DISCUSSION', 'DAY_VOTING', 'PK_SPEECH', 'PK_VOTING', 'VOTE_RESULT_DISPLAY', 'LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION'].includes(ctx.phase);
 
     const hostState = {
         systemLog: ctx.systemLog,
@@ -263,8 +282,7 @@ function syncStateToAll() {
         })),
         allowForceNext: ctx.phase === 'NIGHT_ACTION',
         dayBtnText: getDayBtnText(ctx.phase),
-        dayBtnDisabled: ['SHERIFF_CANDIDACY', 'SHERIFF_VOTING', 'SHERIFF_TRANSFER', 'DAY_VOTING', 'PK_VOTING', 'HUNTER_ACTION', 'GAME_OVER'].includes(ctx.phase),
-        dayBtnCommand: getDayBtnCommand(ctx.phase)
+        dayBtnDisabled: ['SHERIFF_CANDIDACY', 'SHERIFF_VOTING', 'SHERIFF_TRANSFER', 'DAY_VOTING', 'PK_VOTING', 'HUNTER_ACTION', 'WOLFKING_ACTION', 'GAME_OVER'].includes(ctx.phase),        dayBtnCommand: getDayBtnCommand(ctx.phase)
     };
     UI.renderHostView(hostState, handleHostCommand);
 
@@ -390,16 +408,18 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         let targets = ctx.phase === 'PK_SPEECH' ? [...(ctx.pkTargets||[])] : [...(ctx.lastWordsTargets||[])].sort((a,b)=>a-b);
         actionPanel.prompt = `請 ${targets.join('號、')} 號玩家${ctx.phase === 'PK_SPEECH' ? "PK 發言" : "發表遺言"}`;
     }
-    else if (ctx.phase === 'HUNTER_ACTION') {
-        actionPanel.show = true;
-        if (player.role === '獵人' && !ctx.currentStepActions.some(act => act.player.seatNumber === player.seatNumber)) {
-            actionPanel.type = 'single_select'; actionPanel.selectableSeats = ctx.getAlivePlayers().map(p=>p.seatNumber);
-            actionPanel.prompt = '你已死亡，選擇開槍目標：';
-            actionPanel.buttons = [{ id: 'shoot', text: '開槍', requiresTarget: true }, { id: 'pass', text: '不開槍', requiresTarget: false }];
-        } else {
-            actionPanel.prompt = "系統結算中，請等待...";
-        }
+    else if (ctx.phase === 'HUNTER_ACTION' || ctx.phase === 'WOLFKING_ACTION') {
+    actionPanel.show = true;
+    const targetRole = ctx.phase === 'HUNTER_ACTION' ? '獵人' : '狼王';
+
+    if (player.role === targetRole && !ctx.currentStepActions.some(act => act.player.seatNumber === player.seatNumber)) {
+        actionPanel.type = 'single_select'; actionPanel.selectableSeats = ctx.getAlivePlayers().map(p=>p.seatNumber);
+        actionPanel.prompt = `你已死亡，選擇開槍目標：`;
+        actionPanel.buttons = [{ id: 'shoot', text: '開槍', requiresTarget: true }, { id: 'pass', text: '不開槍', requiresTarget: false }];
+    } else {
+        actionPanel.prompt = "系統結算中，請等待...";
     }
+}
 
     if (player.data.tempPrivateMessage) {
         personalMessage += "\n" + player.data.tempPrivateMessage;
@@ -415,12 +435,12 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
 }
 
 function getPhaseMessageForPlayer(phase) {
-    const dict = { 'NIGHT_TRANSITION': "天黑請閉眼...", 'NIGHT_ACTION': "夜間行動中...", 'SHERIFF_CANDIDACY': "登記上警意願...", 'SHERIFF_SPEECH': "警長發言中...", 'SHERIFF_VOTING': "警長投票...", 'SHERIFF_TRANSFER': "移交警徽中...", 'DAY_DISCUSSION': "白天發言階段。", 'DAY_VOTING': "放逐投票...", 'PK_SPEECH': "PK 發言...", 'PK_VOTING': "PK 投票...", 'VOTE_RESULT_DISPLAY': "展示投票結果...", 'LAST_WORDS': "遺言發表。", 'HUNTER_ACTION': "系統結算中...", 'GAME_OVER': "遊戲結束。" };
+    const dict = { 'NIGHT_TRANSITION': "天黑請閉眼...", 'NIGHT_ACTION': "夜間行動中...", 'SHERIFF_CANDIDACY': "登記上警意願...", 'SHERIFF_SPEECH': "警長發言中...", 'SHERIFF_VOTING': "警長投票...", 'SHERIFF_TRANSFER': "移交警徽中...", 'DAY_DISCUSSION': "白天發言階段。", 'DAY_VOTING': "放逐投票...", 'PK_SPEECH': "PK 發言...", 'PK_VOTING': "PK 投票...", 'VOTE_RESULT_DISPLAY': "展示投票結果...", 'LAST_WORDS': "遺言發表。", 'HUNTER_ACTION': "系統結算中...", 'WOLFKING_ACTION': "系統結算中...", 'GAME_OVER': "遊戲結束。" };
     return dict[phase] || "等待中...";
 }
 
 function getDayBtnText(phase) {
-    const dict = { 'SHERIFF_CANDIDACY': "強制結束上警登記 (防卡死)", 'SHERIFF_VOTING': "強制結算警長投票 (防卡死)", 'SHERIFF_SPEECH': "發起警長投票", 'DAY_DISCUSSION': "發起放逐投票", 'PK_SPEECH': "發起 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入下一步", 'LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍..." };
+    const dict = { 'SHERIFF_CANDIDACY': "強制結束上警登記 (防卡死)", 'SHERIFF_VOTING': "強制結算警長投票 (防卡死)", 'SHERIFF_SPEECH': "發起警長投票", 'DAY_DISCUSSION': "發起放逐投票", 'PK_SPEECH': "發起 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入下一步", 'LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍...", 'WOLFKING_ACTION': "等待狼王開槍..." };
     return dict[phase] || "投票/行動進行中...";
 }
 

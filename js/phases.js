@@ -139,6 +139,25 @@ window.PhaseRegistry = {
                 Engine.EventBus.emit('RESUME_ROUTINE');
             }
         });
+        stateMachine.registerPhase('WOLFKING_ACTION', {
+            allowDeadAction: true, 
+            onEnter: (ctx) => { ctx.systemLog = "等待狼王開槍..."; },
+            onAction: (ctx, player, actionId, targets) => {
+                if (player.role !== '狼王') return;
+                
+                const target = targets.length > 0 ? targets[0] : null;
+                if (actionId === 'shoot' && target) {
+                    const tPlayer = ctx.getPlayer(target);
+                    if (tPlayer) tPlayer.kill('shot', ctx); 
+                    ctx.systemLog = `狼王開槍帶走了 ${target} 號玩家。`;
+                    Engine.EventBus.emit('BROADCAST_MESSAGE', `【突發事件】一聲槍響，${target} 號玩家被帶走。`);
+                } else {
+                    ctx.systemLog = `狼王選擇不開槍。`;
+                }
+                
+                Engine.EventBus.emit('RESUME_ROUTINE');
+            }
+        });
     },
 
     resolveNightStep: function(ctx) {
