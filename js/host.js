@@ -243,11 +243,12 @@ function resumeRoutinePhase() {
     if (deadSheriff && !engineContext.sheriff.badgeLost) {
         stateMachine.transitionTo('SHERIFF_TRANSFER');
     } else if (engineContext.pendingHunter) {
+        engineContext.activeShooter = engineContext.pendingHunter; // [新增] 鎖定開槍者座位
         engineContext.pendingHunter = null;
         stateMachine.transitionTo('HUNTER_ACTION');
     } else if (engineContext.pendingWolfKing) {
+        engineContext.activeShooter = engineContext.pendingWolfKing; // [新增] 鎖定開槍者座位
         engineContext.pendingWolfKing = null;
-        // [新增] 狼王開槍路由
         stateMachine.transitionTo('WOLFKING_ACTION');
     } else if (engineContext.lastWordsTargets && engineContext.lastWordsTargets.length > 0) {
         stateMachine.transitionTo('LAST_WORDS');
@@ -408,17 +409,17 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         actionPanel.prompt = `請 ${targets.join('號、')} 號玩家${ctx.phase === 'PK_SPEECH' ? "PK 發言" : "發表遺言"}`;
     }
     else if (ctx.phase === 'HUNTER_ACTION' || ctx.phase === 'WOLFKING_ACTION') {
-    actionPanel.show = true;
-    const targetRole = ctx.phase === 'HUNTER_ACTION' ? '獵人' : '狼王';
+        actionPanel.show = true;
 
-    if (player.role === targetRole) {
-        actionPanel.type = 'single_select'; actionPanel.selectableSeats = ctx.getAlivePlayers().map(p=>p.seatNumber);
-        actionPanel.prompt = `你已死亡，選擇開槍目標：`;
-        actionPanel.buttons = [{ id: 'shoot', text: '開槍', requiresTarget: true }, { id: 'pass', text: '不開槍', requiresTarget: false }];
-    } else {
-        actionPanel.prompt = "系統結算中，請等待...";
+        // [修正] 不再看職業，而是精準比對剛剛鎖定的 activeShooter 座位號碼
+        if (player.seatNumber === ctx.activeShooter) {
+            actionPanel.type = 'single_select'; actionPanel.selectableSeats = ctx.getAlivePlayers().map(p=>p.seatNumber);
+            actionPanel.prompt = `你已死亡，選擇開槍目標：`;
+            actionPanel.buttons = [{ id: 'shoot', text: '開槍', requiresTarget: true }, { id: 'pass', text: '不開槍', requiresTarget: false }];
+        } else {
+            actionPanel.prompt = "系統結算中，請等待...";
+        }
     }
-}
 
     if (player.data.tempPrivateMessage) {
         personalMessage += "\n" + player.data.tempPrivateMessage;
