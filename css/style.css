@@ -125,7 +125,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 /* ==================================================== */
 .floating-btn {
     position: absolute; bottom: 20px; width: 55px; height: 55px;
-    cursor: pointer; z-index: 30; pointer-events: auto; transition: 0.2s;
+    cursor: pointer; z-index: 50; pointer-events: auto; transition: 0.2s;
     background-color: transparent; border: none; box-shadow: none; color: transparent;
     background-size: contain; background-repeat: no-repeat; background-position: center;
 }
@@ -160,6 +160,17 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     border-radius: 50%; border: 2px solid #2b3a42; z-index: 18;
     box-shadow: 0 0 6px rgba(239, 35, 60, 0.8);
     animation: pulse-red 1.5s infinite; /* 加上呼吸燈效果更明顯 */
+}
+
+/* [新增] 警長標記：尺寸縮小，精準對齊右下角端點 */
+.sheriff-diamond {
+    position: absolute; bottom: -2px; right: -2px; /* 與圓點座標一致 */
+    width: 10px; height: 10px; /* 旋轉45度後，對角線長度完美吻合 14px 圓形 */
+    background: linear-gradient(135deg, #FFD700, #B8860B);
+    transform: rotate(45deg);
+    border: 1.5px solid #222;
+    z-index: 19; /* 覆蓋在其他標記之上 */
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.6);
 }
 
 @keyframes pulse-red {
