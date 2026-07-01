@@ -73,6 +73,9 @@ initPassives: function(ctx) {
 
 RoleRegistry.register("狼人", {
     canSelfExplode: true,
+    canSeeWolves: true,
+    seenAsWolf: true,
+    isAttacker: true,
     nightPhase: "midnight",      
     actionType: "consensus",     
     getPrompt: () => "選擇今晚的襲擊目標 (或選擇跳過以空刀)",
@@ -188,6 +191,9 @@ RoleRegistry.register("獵人", { canSelfExplode: false });
 RoleRegistry.register("白痴", { canSelfExplode: false });
 RoleRegistry.register("狼王", {
     canSelfExplode: true,
+    canSeeWolves: true,
+    seenAsWolf: true,
+    isAttacker: true,
     nightPhase: "midnight",      
     actionType: "consensus",     
     getPrompt: () => "選擇今晚的襲擊目標 (或跳過以空刀)",
