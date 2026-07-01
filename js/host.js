@@ -50,6 +50,7 @@ window.initHost = function(roomId) {
 };
 
 function handleIncomingPacket(peerId, data) {
+    if (engineContext.isResolvingAsync) return;
     if (data.type === PACKET_TYPE.JOIN_ROOM && engineContext.phase === 'LOBBY') {
         const p = engineContext.addPlayer(peerId, data.payload.name);
         try {
