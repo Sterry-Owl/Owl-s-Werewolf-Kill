@@ -108,6 +108,7 @@ function handleIncomingPacket(peerId, data) {
         
         // 防呆：玩家活著 + 擁有該技能 + 技能ID吻合
         if (player && !player.isDead && plugin?.daySkill && plugin.daySkill.id === data.payload.skillId) {
+            if (!plugin.daySkill.allowedPhases.includes(engineContext.phase)) return;
             const validTargets = plugin.daySkill.getSelectableSeats(engineContext, player.seatNumber);
             if (!validTargets.includes(data.payload.target)) return;
             plugin.daySkill.resolve(engineContext, player, data.payload.target);
