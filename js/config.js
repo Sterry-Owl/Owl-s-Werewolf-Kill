@@ -17,10 +17,10 @@ const GAME_PHASE = {
     NIGHT_TRANSITION: 'NIGHT_TRANSITION',
     NIGHT_ACTION: 'NIGHT_ACTION',
     DAWN_SETTLEMENT: 'DAWN_SETTLEMENT',
-    SHERIFF_CANDIDACY: 'SHERIFF_CANDIDACY', // [新增] 上警階段 (詢問是否參選)
-    SHERIFF_SPEECH: 'SHERIFF_SPEECH',       // [新增] 競選發言階段 (可退水)
-    SHERIFF_VOTING: 'SHERIFF_VOTING',       // [新增] 警長投票階段
-    SHERIFF_TRANSFER: 'SHERIFF_TRANSFER',   // [新增] 移交或撕毀警徽
+    SHERIFF_CANDIDACY: 'SHERIFF_CANDIDACY', 
+    SHERIFF_SPEECH: 'SHERIFF_SPEECH', 
+    SHERIFF_VOTING: 'SHERIFF_VOTING',
+    SHERIFF_TRANSFER: 'SHERIFF_TRANSFER',
     DAY_DISCUSSION: 'DAY_DISCUSSION',
     DAY_VOTING: 'DAY_VOTING',
     PK_SPEECH: 'PK_SPEECH',         
@@ -44,19 +44,21 @@ const PACKET_TYPE = {
     VOTE_SUBMIT: 'VOTE_SUBMIT',     
     WOLF_PREVIEW: 'WOLF_PREVIEW',
     WOLF_EXPLODE: 'WOLF_EXPLODE',
-    SHERIFF_BAILOUT: 'SHERIFF_BAILOUT' // [新增] 退水專用非同步封包
+    SHERIFF_BAILOUT: 'SHERIFF_BAILOUT'
 };
 
 const BOARD_TEMPLATES = [
     { id: "standard_6", name: "6人 獵人局", playerCount: 6, deck: ["預言家", "獵人", "狼人", "狼人", "平民", "平民"] },
     { id: "test_witch_6", name: "6人 女巫局", playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "平民", "平民"] },
     { id: "test_1-6", name: "6人 狼王守衛", playerCount: 6, deck: ["預言家", "守衛", "狼王", "狼人", "平民", "平民"] },
-    { id: "survivor_7", name: "7人 生還者", playerCount: 6, deck: ["預言家", "守衛", "女巫", "獵人", "狼王", "狼王", "平民"] },
-    { id: "voting_8", name: "8人 末日狂徒", playerCount: 6, deck: ["預言家", "守衛", "獵人", "狼人", "狼人", "狼人", "平民", "平民"] },       
+    { id: "survivortwo_7", name: "7人 生還者(雙狼王)", playerCount: 6, deck: ["預言家", "守衛", "女巫", "獵人", "狼王", "狼王", "平民"] },
+    { id: "survivortwo_7", name: "7人 生還者(標準)", playerCount: 6, deck: ["預言家", "守衛", "女巫", "獵人", "白狼王", "狼人", "平民"] },    
+    { id: "lastday_8", name: "8人 末日狂徒", playerCount: 6, deck: ["預言家", "守衛", "獵人", "狼人", "狼人", "狼人", "平民", "平民"] },       
     { id: "standard_9", name: "9人 標準局", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "standard_10", name: "10人 標準局", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "standard_12", name: "12人 標準局", playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
-    { id: "speck1-_12", name: "12人 狼王守衛", playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }    
+    { id: "wk_grd_12", name: "12人 狼王守衛", playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "wwk_kn_12", name: "12人 白狼王騎士", playerCount: 12, deck: ["預言家", "女巫", "騎士", "守衛", "白狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }
 ];
 
 const ROLE_DICTIONARY = {
@@ -67,5 +69,7 @@ const ROLE_DICTIONARY = {
     "女巫": { faction: "good", type: "god", nightPhase: "second_half", actionType: "dynamic_buttons", prompt: "女巫請行動" },
     "預言家": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚的查驗目標" },
     "狼王": { faction: "wolf", type: "wolf", nightPhase: "midnight", actionType: "consensus", prompt: "選擇今晚的襲擊目標 (或跳過以空刀)" },
-    "守衛": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚守護的目標" }
+    "守衛": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚守護的目標" },
+    "白狼王": { faction: "wolf", type: "wolf", nightPhase: "midnight", actionType: "consensus",prompt: "選擇今晚的襲擊目標 (或跳過以空刀)" },
+    "騎士": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "天黑請閉眼" }
 };
