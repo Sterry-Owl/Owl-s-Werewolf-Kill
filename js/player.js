@@ -100,4 +100,45 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    const btnDaySkill = document.getElementById('btn-day-skill');
+    const localPanel = document.getElementById('local-day-skill-panel');
+    const targetsContainer = document.getElementById('local-day-skill-targets');
+    const btnCancelSkill = document.getElementById('btn-cancel-day-skill');
+    const promptEl = document.getElementById('local-day-skill-prompt');
+
+    if (btnDaySkill && localPanel && targetsContainer && btnCancelSkill) {
+        btnDaySkill.addEventListener('click', () => {
+            if (!localState.daySkill) return;
+            
+            btnDaySkill.classList.add('hidden');
+            localPanel.classList.remove('hidden');
+            promptEl.textContent = `發動技能：${localState.daySkill.buttonText}\n請選擇目標：`;
+            targetsContainer.innerHTML = '';
+            localState.daySkill.selectableSeats.forEach(seat => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-primary';
+                btn.textContent = `${seat}號`;
+                btn.style.margin = '4px';
+                btn.style.flex = '1 1 30%';
+                
+                btn.onclick = () => {
+                    if (confirm(`確定要對 ${seat} 號玩家 ${localState.daySkill.buttonText} 嗎？`)) {
+                        if (hostConnection) {
+                            hostConnection.send({ 
+                                type: 'DAY_SKILL_SUBMIT', 
+                                payload: { skillId: localState.daySkill.id, target: seat } 
+                            });
+                        }
+                        localPanel.classList.add('hidden');
+                    }
+                };
+                targetsContainer.appendChild(btn);
+            });
+        });
+
+        btnCancelSkill.addEventListener('click', () => {
+            localPanel.classList.add('hidden');
+            btnDaySkill.classList.remove('hidden');
+        });
+    }
 });
