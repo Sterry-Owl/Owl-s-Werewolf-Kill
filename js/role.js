@@ -35,7 +35,7 @@ initPassives: function(ctx) {
             context.pendingHunter = player.seatNumber; 
         }
         // [新增] 狼王被動：被狼刀、被票出、被獵人射皆可開槍。被毒(poisoned)與自爆(explode)不可發動。
-        if (player.role === '狼王' && reason !== 'poisoned' && reason !== 'explode') {
+        if (player.role === '狼王' && reason !== 'poisoned' && reason !== 'explode' && reason !== 'dueled') {
             context.pendingWolfKing = player.seatNumber;
         }
 
@@ -146,7 +146,6 @@ RoleRegistry.register("女巫", {
             }
             return "生，還是死，這是一個問題。";
         } else if (act.actionId === 'poison' && !ctx.witchState.poisonUsed && !ctx.nightTags?.witchUsedSaveTonight) {
-        // [新增] 如果解藥還沒用過，且你想毒的人剛好是刀口，直接擋下來
         if (!ctx.witchState.antidoteUsed && ctx.nightTags?.killed?.length > 0 && target === ctx.nightTags.killed[0]) {
             return "解藥尚未使用時，不可毒殺被襲擊者。";
             }
@@ -227,37 +226,31 @@ RoleRegistry.register("守衛", {
         const act = actions[0];
         if (!act || act.actionId === 'pass') {
             ctx.guardedSeat = null;
-            ctx.lastGuardedSeat = null; // 空守後，隔晚可以守護任何人
+            ctx.lastGuardedSeat = null;
             return "【空守】";
         }
         const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
         ctx.guardedSeat = target;
-        ctx.lastGuardedSeat = target; // 記憶本次守護目標，防止明晚連守
+        ctx.lastGuardedSeat = target;
         return `【守護: ${target}號】`;
     }
 });
 RoleRegistry.register("白狼王", {
-    canSelfExplode: false, // [關鍵] 關閉普通自爆，由下方 daySkill 取代
-    canSeeWolves: true, seenAsWolf: true, isAttacker: true, // 完美繼承四大屬性
+    canSelfExplode: false, 
+    canSeeWolves: true, seenAsWolf: true, isAttacker: true,
     nightPhase: "midnight", actionType: "consensus",     
     getPrompt: () => "選擇今晚的襲擊目標 (或跳過以空刀)",
     getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
     getButtons: () => [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
-    resolveNightAction: RoleRegistry.plugins["狼王"].resolveNightAction, // 直接借用狼王的黑夜結算邏輯
-    
-    // [新增] 白狼王專屬白天技能
+    resolveNightAction: RoleRegistry.plugins["狼人"].resolveNightAction,
     daySkill: {
         id: 'wwk_explode', buttonText: '自爆並帶走', requiresTarget: true,
         getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
         resolve: (ctx, player, targetSeat) => {
             const targetPlayer = ctx.getPlayer(targetSeat);
-            player.isRevealed = true; // 翻牌
-            
-            // 處理雙殺
+            player.isRevealed = true;
             player.kill('explode', ctx);
             targetPlayer.kill('shot', ctx); 
-
-            // 處理警徽中斷
             if (ctx.sheriff.seat === player.seatNumber) { ctx.sheriff.badgeLost = true; ctx.sheriff.seat = null; }
             if (['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING'].includes(ctx.phase)) {
                 ctx.sheriff.electionDay++;
@@ -268,50 +261,44 @@ RoleRegistry.register("白狼王", {
             Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
 
             Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
-            if (ctx.phase !== 'GAME_OVER') Engine.EventBus.emit('FORCE_ENTER_NIGHT', ctx);
-        }
+            if (ctx.phase !== 'GAME_OVER') {
+                ctx.destinationPhase = 'NIGHT_TRANSITION';
+                Engine.EventBus.emit('RESUME_ROUTINE');
+            }
     }
 });
 RoleRegistry.register("騎士", {
-    canSelfExplode: false, // 好人無自爆權
-    // [新增] 騎士專屬白天技能
+    canSelfExplode: false,
     daySkill: {
         id: 'duel', buttonText: '發起決鬥', requiresTarget: true,
         getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
         resolve: (ctx, player, targetSeat) => {
             const targetPlayer = ctx.getPlayer(targetSeat);
             player.isRevealed = true; // 騎士翻牌自證
-
             ctx.systemLog = `【突發事件】\n${player.seatNumber} 號玩家(騎士)發起決鬥，\n目標是 ${targetSeat} 號玩家！`;
             Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
-
-            // 判斷目標是否為狼陣營
             const isWolf = ROLE_DICTIONARY[targetPlayer.role]?.faction === 'wolf';
-
             if (isWolf) {
-                targetPlayer.isRevealed = true; // 狼人翻牌
-                targetPlayer.kill('dueled', ctx); // 狼人死
-                
-                // 若在警長競選期刺中狼人，競選中斷，直接天黑
+                targetPlayer.kill('dueled', ctx);
                 if (['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING'].includes(ctx.phase)) {
                     ctx.sheriff.electionDay++;
                     if (ctx.sheriff.electionDay > 2) ctx.sheriff.badgeLost = true;
                 }
-                
                 setTimeout(() => {
-                    Engine.EventBus.emit('BROADCAST_MESSAGE', `${targetSeat} 號玩家是狼人，決鬥成功！\n天黑請閉眼。`);
+                    Engine.EventBus.emit('BROADCAST_MESSAGE', `決鬥結束，${targetSeat} 號玩家是狼人\n天黑請閉眼。`);
                     Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
-                    if (ctx.phase !== 'GAME_OVER') Engine.EventBus.emit('FORCE_ENTER_NIGHT', ctx);
-                }, 2000); // 留2秒給玩家看翻牌動畫
+                    if (ctx.phase !== 'GAME_OVER') {
+                        ctx.destinationPhase = 'NIGHT_TRANSITION'; 
+                        Engine.EventBus.emit('RESUME_ROUTINE');
+                    }
+                }, 5000);
             } else {
-                player.kill('dueled', ctx); // 騎士死
-                
+                player.kill('dueled', ctx);
                 setTimeout(() => {
-                    Engine.EventBus.emit('BROADCAST_MESSAGE', `${targetSeat} 號玩家是好人，決鬥失敗，騎士以死謝罪。`);
+                    Engine.EventBus.emit('BROADCAST_MESSAGE', `決鬥結束${targetSeat} 號玩家是好人，決鬥失敗，請玩家繼續發言。`);
                     Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
-                    // 騎士死亡不中斷白天流程，透過狀態機接續(遺言或移交警徽)
                     if (ctx.phase !== 'GAME_OVER') Engine.EventBus.emit('RESUME_ROUTINE'); 
-                }, 2000);
+                }, 5000);
             }
         }
     }
