@@ -265,6 +265,7 @@ RoleRegistry.register("白狼王", {
                 ctx.destinationPhase = 'NIGHT_TRANSITION';
                 Engine.EventBus.emit('RESUME_ROUTINE');
             }
+        }
     }
 });
 RoleRegistry.register("騎士", {
