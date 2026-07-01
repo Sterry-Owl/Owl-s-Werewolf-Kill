@@ -306,7 +306,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         let topTag = null, sideTag = null, wolfPreviewTags = [];
         
         if (ctx.phase === 'GAME_OVER' || p.seatNumber === player.seatNumber || p.isRevealed) topTag = p.role;
-        else if (ROLE_DICTIONARY[player.role]?.faction === 'wolf' && ROLE_DICTIONARY[p.role]?.faction === 'wolf') topTag = "狼人";
+        else if (ROLE_DICTIONARY[player.role]?.faction === 'wolf' && ROLE_DICTIONARY[p.role]?.faction === 'wolf') topTag = p.role;
         if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber]; 
         else if (player.role === '女巫' && ctx.witchState?.savedSeat === p.seatNumber) sideTag = "銀水"; 
 
