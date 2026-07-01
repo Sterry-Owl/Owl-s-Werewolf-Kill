@@ -296,9 +296,14 @@ RoleRegistry.register("騎士", {
             } else {
                 player.kill('dueled', ctx);
                 setTimeout(() => {
-                    Engine.EventBus.emit('BROADCAST_MESSAGE', `決鬥結束${targetSeat} 號玩家是好人，決鬥失敗，請玩家繼續發言。`);
+                    // [修正] 補上逗號
+                    Engine.EventBus.emit('BROADCAST_MESSAGE', `決鬥結束，${targetSeat} 號玩家是好人，決鬥失敗，請玩家繼續發言。`);
                     Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
-                    if (ctx.phase !== 'GAME_OVER') Engine.EventBus.emit('RESUME_ROUTINE'); 
+                    if (ctx.phase !== 'GAME_OVER') {
+                        // [關鍵修復] 強制把目的地設為「當前階段 (例如警長發言)」，防止狀態機迷航
+                        ctx.destinationPhase = ctx.phase; 
+                        Engine.EventBus.emit('RESUME_ROUTINE'); 
+                    }
                 }, 5000);
             }
         }
