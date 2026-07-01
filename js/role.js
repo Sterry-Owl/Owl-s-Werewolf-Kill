@@ -236,3 +236,83 @@ RoleRegistry.register("守衛", {
         return `【守護: ${target}號】`;
     }
 });
+RoleRegistry.register("白狼王", {
+    canSelfExplode: false, // [關鍵] 關閉普通自爆，由下方 daySkill 取代
+    canSeeWolves: true, seenAsWolf: true, isAttacker: true, // 完美繼承四大屬性
+    nightPhase: "midnight", actionType: "consensus",     
+    getPrompt: () => "選擇今晚的襲擊目標 (或跳過以空刀)",
+    getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
+    getButtons: () => [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
+    resolveNightAction: RoleRegistry.plugins["狼王"].resolveNightAction, // 直接借用狼王的黑夜結算邏輯
+    
+    // [新增] 白狼王專屬白天技能
+    daySkill: {
+        id: 'wwk_explode', buttonText: '自爆並帶走', requiresTarget: true,
+        getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+        resolve: (ctx, player, targetSeat) => {
+            const targetPlayer = ctx.getPlayer(targetSeat);
+            player.isRevealed = true; // 翻牌
+            
+            // 處理雙殺
+            player.kill('explode', ctx);
+            targetPlayer.kill('shot', ctx); 
+
+            // 處理警徽中斷
+            if (ctx.sheriff.seat === player.seatNumber) { ctx.sheriff.badgeLost = true; ctx.sheriff.seat = null; }
+            if (['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING'].includes(ctx.phase)) {
+                ctx.sheriff.electionDay++;
+                if (ctx.sheriff.electionDay > 2) ctx.sheriff.badgeLost = true;
+            }
+
+            ctx.systemLog = `${player.seatNumber} 號玩家(白狼王)自爆，\n並帶走了 ${targetSeat} 號玩家！天黑請閉眼。`;
+            Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
+
+            Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+            if (ctx.phase !== 'GAME_OVER') Engine.EventBus.emit('FORCE_ENTER_NIGHT', ctx);
+        }
+    }
+});
+RoleRegistry.register("騎士", {
+    canSelfExplode: false, // 好人無自爆權
+    // [新增] 騎士專屬白天技能
+    daySkill: {
+        id: 'duel', buttonText: '發起決鬥', requiresTarget: true,
+        getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+        resolve: (ctx, player, targetSeat) => {
+            const targetPlayer = ctx.getPlayer(targetSeat);
+            player.isRevealed = true; // 騎士翻牌自證
+
+            ctx.systemLog = `【突發事件】\n${player.seatNumber} 號玩家(騎士)發起決鬥，\n目標是 ${targetSeat} 號玩家！`;
+            Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
+
+            // 判斷目標是否為狼陣營
+            const isWolf = ROLE_DICTIONARY[targetPlayer.role]?.faction === 'wolf';
+
+            if (isWolf) {
+                targetPlayer.isRevealed = true; // 狼人翻牌
+                targetPlayer.kill('dueled', ctx); // 狼人死
+                
+                // 若在警長競選期刺中狼人，競選中斷，直接天黑
+                if (['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING'].includes(ctx.phase)) {
+                    ctx.sheriff.electionDay++;
+                    if (ctx.sheriff.electionDay > 2) ctx.sheriff.badgeLost = true;
+                }
+                
+                setTimeout(() => {
+                    Engine.EventBus.emit('BROADCAST_MESSAGE', `${targetSeat} 號玩家是狼人，決鬥成功！\n天黑請閉眼。`);
+                    Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+                    if (ctx.phase !== 'GAME_OVER') Engine.EventBus.emit('FORCE_ENTER_NIGHT', ctx);
+                }, 2000); // 留2秒給玩家看翻牌動畫
+            } else {
+                player.kill('dueled', ctx); // 騎士死
+                
+                setTimeout(() => {
+                    Engine.EventBus.emit('BROADCAST_MESSAGE', `${targetSeat} 號玩家是好人，決鬥失敗，騎士以死謝罪。`);
+                    Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+                    // 騎士死亡不中斷白天流程，透過狀態機接續(遺言或移交警徽)
+                    if (ctx.phase !== 'GAME_OVER') Engine.EventBus.emit('RESUME_ROUTINE'); 
+                }, 2000);
+            }
+        }
+    }
+});
