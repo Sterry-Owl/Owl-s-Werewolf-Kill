@@ -245,6 +245,7 @@ RoleRegistry.register("白狼王", {
     resolveNightAction: RoleRegistry.plugins["狼人"].resolveNightAction,
     daySkill: {
         id: 'wwk_explode', buttonText: '自爆並帶走', requiresTarget: true,
+        allowedPhases: ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'DAY_DISCUSSION', 'PK_SPEECH', 'LAST_WORDS'],
         getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
         resolve: (ctx, player, targetSeat) => {
             const targetPlayer = ctx.getPlayer(targetSeat);
@@ -272,6 +273,7 @@ RoleRegistry.register("騎士", {
     canSelfExplode: false,
     daySkill: {
         id: 'duel', buttonText: '發起決鬥', requiresTarget: true,
+        allowedPhases: ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'DAY_DISCUSSION', 'PK_SPEECH', 'LAST_WORDS'],
         getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
         resolve: (ctx, player, targetSeat) => {
             const targetPlayer = ctx.getPlayer(targetSeat);
@@ -285,7 +287,9 @@ RoleRegistry.register("騎士", {
                     ctx.sheriff.electionDay++;
                     if (ctx.sheriff.electionDay > 2) ctx.sheriff.badgeLost = true;
                 }
+                ctx.isResolvingAsync = true;
                 setTimeout(() => {
+                    ctx.isResolvingAsync = false;
                     Engine.EventBus.emit('BROADCAST_MESSAGE', `決鬥結束，${targetSeat} 號玩家是狼人\n天黑請閉眼。`);
                     Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
                     if (ctx.phase !== 'GAME_OVER') {
@@ -296,7 +300,7 @@ RoleRegistry.register("騎士", {
             } else {
                 player.kill('dueled', ctx);
                 setTimeout(() => {
-                    // [修正] 補上逗號
+                    ctx.isResolvingAsync = false;
                     Engine.EventBus.emit('BROADCAST_MESSAGE', `決鬥結束，${targetSeat} 號玩家是好人，決鬥失敗，請玩家繼續發言。`);
                     Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
                     if (ctx.phase !== 'GAME_OVER') {
