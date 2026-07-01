@@ -67,7 +67,22 @@ const UI = {
             if (state.voteHistory && state.voteHistory.length > 0) btnHistory.classList.remove('hidden');
             else btnHistory.classList.add('hidden');
         }
-
+        const btnDaySkill = document.getElementById('btn-day-skill');
+        const localPanel = document.getElementById('local-day-skill-panel');
+        if (btnDaySkill) {
+            if (state.daySkill && !state.actionPanel.show) {
+                btnDaySkill.classList.remove('hidden');
+                // 動態替換背景圖片：騎士用你上傳的新圖，白狼王用原本的自爆圖
+                if (state.myRole === '騎士') {
+                    btnDaySkill.style.backgroundImage = "url('../img/btn-knight.png')"; // 使用你上傳的騎士技能圖
+                } else {
+                    btnDaySkill.style.backgroundImage = "url('../img/btn-explode.png')"; // 白狼王沿用原本的自爆圖
+                }
+            } else {
+                btnDaySkill.classList.add('hidden');
+                if (localPanel) localPanel.classList.add('hidden'); // 確保切換階段時關閉面板
+            }
+        }
         const cardPanel = document.querySelector('.card-panel');
         const cardImg = document.getElementById('my-card-img');
         const historyPanel = document.getElementById('vote-history-panel');
