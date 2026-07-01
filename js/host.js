@@ -101,6 +101,17 @@ function handleIncomingPacket(peerId, data) {
             syncStateToAll();
         }
     }
+    else if (data.type === 'DAY_SKILL_SUBMIT') { // 注意：前端發送封包時 type 需對應
+        const player = engineContext.getPlayerByPeer(peerId);
+        const plugin = RoleRegistry.plugins[player?.role];
+        
+        // 防呆：玩家活著 + 擁有該技能 + 技能ID吻合
+        if (player && !player.isDead && plugin?.daySkill && plugin.daySkill.id === data.payload.skillId) {
+            // 直接把執行權交給角色的 resolve 函數
+            plugin.daySkill.resolve(engineContext, player, data.payload.target);
+            syncStateToAll();
+        }
+    }
 }
 
 window.startGame = function(selectedRoles, boardName, rules) {
@@ -429,7 +440,15 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     return {
         boardName: ctx.boardName, phase: ctx.phase, mySeat: player.seatNumber, myRole: player.role,
         message: personalMessage, players: mappedPlayers, actionPanel, latestCheckResult: player.data.latestCheckResult || null,
-        voteHistory: ctx.voteHistory, allowSelfExplode: !player.isDead && isDayPhase && RoleRegistry.plugins[player.role]?.canSelfExplode,
+        voteHistory: ctx.voteHistory, 
+        allowSelfExplode: !player.isDead && isDayPhase && RoleRegistry.plugins[player.role]?.canSelfExplode,
+        // [新增] 讀取並打包白天主動技能
+        daySkill: (!player.isDead && isDayPhase && RoleRegistry.plugins[player.role]?.daySkill) ? {
+            id: RoleRegistry.plugins[player.role].daySkill.id,
+            buttonText: RoleRegistry.plugins[player.role].daySkill.buttonText,
+            requiresTarget: RoleRegistry.plugins[player.role].daySkill.requiresTarget,
+            selectableSeats: RoleRegistry.plugins[player.role].daySkill.getSelectableSeats(ctx, player.seatNumber)
+        } : null,
         allowBailout: !player.isDead && ctx.phase === 'SHERIFF_SPEECH' && (ctx.sheriff.candidates || []).includes(player.seatNumber) 
     };
 }
