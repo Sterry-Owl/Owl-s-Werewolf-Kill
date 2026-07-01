@@ -96,7 +96,7 @@ function handleIncomingPacket(peerId, data) {
     }
     else if (data.type === PACKET_TYPE.WOLF_PREVIEW) {
         const player = engineContext.getPlayerByPeer(peerId);
-        if (player && player.role && ROLE_DICTIONARY[player.role]?.faction === 'wolf' && engineContext.phase === 'NIGHT_ACTION') {
+        if (player && player.role && RoleRegistry.plugins[player.role]?.isAttacker && engineContext.phase === 'NIGHT_ACTION') {
             engineContext.wolfPreviews[peerId] = { seat: player.seatNumber, target: data.payload.target };
             syncStateToAll();
         }
@@ -306,11 +306,11 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         let topTag = null, sideTag = null, wolfPreviewTags = [];
         
         if (ctx.phase === 'GAME_OVER' || p.seatNumber === player.seatNumber || p.isRevealed) topTag = p.role;
-        else if (ROLE_DICTIONARY[player.role]?.faction === 'wolf' && ROLE_DICTIONARY[p.role]?.faction === 'wolf') topTag = p.role;
+        else if (RoleRegistry.plugins[player.role]?.canSeeWolves && RoleRegistry.plugins[p.role]?.seenAsWolf) topTag = p.role;
         if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber]; 
         else if (player.role === '女巫' && ctx.witchState?.savedSeat === p.seatNumber) sideTag = "銀水"; 
 
-        if (ctx.phase === 'NIGHT_ACTION' && ROLE_DICTIONARY[player.role]?.faction === 'wolf') {
+        if (ctx.phase === 'NIGHT_ACTION' && RoleRegistry.plugins[player.role]?.isAttacker) {
             Object.values(ctx.wolfPreviews || {}).forEach(preview => {
                 if (String(preview.target) === String(p.seatNumber) && preview.seat !== player.seatNumber) {
                     wolfPreviewTags.push(`${preview.seat}號`);
@@ -346,7 +346,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             actionPanel.buttons = plugin.getButtons(ctx, player.seatNumber);
             actionPanel.passTags = plugin.getPassTags ? plugin.getPassTags(ctx, player.seatNumber) : [];
             
-            if (ROLE_DICTIONARY[myRoleInPhase.roleName]?.faction === 'wolf') {
+            if (RoleRegistry.plugins[myRoleInPhase.roleName]?.isAttacker) {
                 const myPreview = ctx.wolfPreviews[player.peerId];
                 if (myPreview && myPreview.target !== 'pass') actionPanel.preSelectedTarget = parseInt(myPreview.target);
             } else {
@@ -354,7 +354,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             }
 
             if (hasActed) {
-                actionPanel.prompt = (ROLE_DICTIONARY[myRoleInPhase.roleName]?.faction === 'wolf') ? "等待隊友決定。" : "行動已送出。";
+                actionPanel.prompt = (RoleRegistry.plugins[myRoleInPhase.roleName]?.isAttacker) ? "等待隊友決定。" : "行動已送出。";
                 actionPanel.buttons = []; actionPanel.deadline = null;
             } else {
                 actionPanel.prompt = plugin.getPrompt(ctx, player.seatNumber);
