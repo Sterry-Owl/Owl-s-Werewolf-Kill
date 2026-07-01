@@ -74,9 +74,9 @@ const UI = {
                 btnDaySkill.classList.remove('hidden');
                 // 動態替換背景圖片：騎士用你上傳的新圖，白狼王用原本的自爆圖
                 if (state.myRole === '騎士') {
-                    btnDaySkill.style.backgroundImage = "url('../img/btn-knight.png')"; // 使用你上傳的騎士技能圖
+                    btnDaySkill.style.backgroundImage = "url('./img/btn-knight.png')"; // 使用你上傳的騎士技能圖
                 } else {
-                    btnDaySkill.style.backgroundImage = "url('../img/btn-explode.png')"; // 白狼王沿用原本的自爆圖
+                    btnDaySkill.style.backgroundImage = "url('./img/btn-explode.png')"; // 白狼王沿用原本的自爆圖
                 }
             } else {
                 btnDaySkill.classList.add('hidden');
