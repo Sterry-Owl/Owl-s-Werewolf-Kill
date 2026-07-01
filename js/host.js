@@ -232,9 +232,8 @@ function setupEngineFlowControllers() {
         if (ctx.phase === 'GAME_OVER') return;
         const alive = ctx.getAlivePlayers();
         const wolfCount = alive.filter(p => p.role && ROLE_DICTIONARY[p.role]?.faction === 'wolf').length;
-        const godCount = alive.filter(p => ['預言家','女巫','獵人','白痴'].includes(p.role)).length;
-        const vilCount = alive.filter(p => p.role === '平民').length;
-
+        const godCount = alive.filter(p => p.role && ROLE_DICTIONARY[p.role]?.type === 'god').length;
+        const vilCount = alive.filter(p => p.role && ROLE_DICTIONARY[p.role]?.type === 'villager').length;
         let winner = null, reason = "";
         if (ctx.rules.winCondition === 'kill_all' && godCount + vilCount === 0) { winner = "狼人"; reason = "好人陣營全數出局"; }
         else if (ctx.rules.winCondition === 'kill_side' && (godCount === 0 || vilCount === 0)) { winner = "狼人"; reason = godCount===0?"神職全滅":"平民全滅"; }
