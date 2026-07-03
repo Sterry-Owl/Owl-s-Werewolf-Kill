@@ -45,7 +45,6 @@ initPassives: function(ctx) {
         if (player.role === '獵人' && reason !== 'poisoned') {
             context.pendingHunter = player.seatNumber; 
         }
-        // [新增] 狼王被動：被狼刀、被票出、被獵人射皆可開槍。被毒(poisoned)與自爆(explode)不可發動。
         if (player.role === '狼王' && reason !== 'poisoned' && reason !== 'explode' && reason !== 'dueled') {
             context.pendingWolfKing = player.seatNumber;
         }
@@ -59,7 +58,6 @@ initPassives: function(ctx) {
     Engine.EventBus.on('WOLF_EXPLODE', ({ context, player }) => {
         if (!player || player.isDead || !this.plugins[player.role]?.canSelfExplode) return;
 
-        // 這裡傳入 'explode' 作為死因，會被上面的狼王判定自動過濾，確保自爆不開槍
         player.kill('explode', context);
         player.isRevealed = true;
 
@@ -214,14 +212,7 @@ RoleRegistry.register("狼王", {
     getPrompt: () => "選擇今晚的襲擊目標 (或跳過以空刀)",
     getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
     getButtons: () => [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
-    resolveNightAction: (ctx, actions) => {
-        let validTargets = actions.filter(act => act.actionId !== 'pass' && act.targets.length > 0).map(act => act.targets[0]);
-        if (validTargets.length === 0) return "【空刀】";
-        const finalTarget = validTargets[Math.floor(Math.random() * validTargets.length)];
-        if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
-        ctx.nightTags.killed.push(parseInt(finalTarget));
-        return `【襲擊: ${finalTarget}號】`;
-    }
+    resolveNightAction: RoleRegistry.plugins["狼人"].resolveNightAction
 });
 
 RoleRegistry.register("守衛", {
@@ -455,5 +446,101 @@ RoleRegistry.register("烏鴉", {
         ctx.cursedSeat = target;
         ctx.lastCursedSeat = target;
         return `【詛咒: ${target}號】`;
+    }
+});
+RoleRegistry.register("噩夢之影", {
+    canSelfExplode: true,
+    canSeeWolves: true,
+    seenAsWolf: true,
+    
+    nightPhase: ["first_half", "midnight"], 
+    
+    // [安全防護] 確保非夜晚階段讀取時不會噴錯
+    actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half' ? 'single_select' : 'consensus',
+    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
+
+    getPrompt: (ctx, mySeat) => {
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half') return "選擇今晚恐懼的目標 (使其今晚無法行動)";
+        return "選擇今晚的襲擊目標 (或跳過以空刀)";
+    },
+    
+    getSelectableSeats: (ctx, mySeat) => {
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half') {
+            return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
+        }
+        return ctx.getAlivePlayers().map(p => p.seatNumber);
+    },
+    
+    getButtons: (ctx, mySeat) => {
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half') {
+            return [{ id: 'fear', text: '恐懼', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
+        }
+        return [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
+    },
+    
+    resolveNightAction: (ctx, actions) => {
+        const phaseId = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
+        
+        // 【乾淨架構：委派模式】午夜殺人邏輯，直接外包給普通狼人處理！杜絕複製貼上！
+        if (phaseId === 'midnight') {
+            return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
+        }
+        
+        // 前半夜專屬邏輯
+        const act = actions[0];
+        if (!act || act.actionId === 'pass') return "【跳過行動】";
+        
+        if (phaseId === 'first_half' && act.actionId === 'fear') {
+            const target = act.targets[0];
+            ctx.fearedSeat = target; // 寫入全域狀態，讓 Middleware 攔截
+            return `【恐懼: ${target}號】`;
+        }
+    }
+});
+
+RoleRegistry.register("狼美人", {
+    canSelfExplode: false, 
+    canSeeWolves: true,
+    seenAsWolf: true,
+    
+    nightPhase: ["midnight", "second_half"], 
+    
+    actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
+    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
+    
+    getPrompt: (ctx, mySeat) => {
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') return "選擇今晚的襲擊目標 (或跳過以空刀)";
+        return "選擇今晚的魅惑目標 (死亡時目標將會殉情)";
+    },
+    
+    getSelectableSeats: (ctx, mySeat) => {
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') return ctx.getAlivePlayers().map(p => p.seatNumber);
+        return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber); 
+    },
+    
+    getButtons: (ctx, mySeat) => {
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
+            return [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
+        }
+        return [{ id: 'charm', text: '魅惑', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
+    },
+    
+    resolveNightAction: (ctx, actions) => {
+        const phaseId = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
+        
+        // 【乾淨架構：委派模式】午夜殺人邏輯，直接外包給普通狼人！
+        if (phaseId === 'midnight') {
+            return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
+        }
+        
+        // 後半夜專屬邏輯
+        const act = actions[0];
+        if (!act || act.actionId === 'pass') return "【跳過行動】";
+        
+        if (phaseId === 'second_half' && act.actionId === 'charm') {
+            const target = act.targets[0];
+            ctx.charmedSeat = target; // 覆寫魅惑標籤
+            return `【魅惑: ${target}號】`;
+        }
     }
 });
