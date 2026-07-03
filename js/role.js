@@ -313,3 +313,81 @@ RoleRegistry.register("騎士", {
         }
     }
 });
+RoleRegistry.register("守墓人", {
+    canSelfExplode: false,
+    nightPhase: "second_half",   
+    actionType: "single_select", 
+    getPrompt: (ctx, mySeat) => {
+        const player = ctx.getPlayer(mySeat);
+        if (ctx.votedOutToday) {
+            const target = ctx.getPlayer(ctx.votedOutToday);
+            const isWolf = ROLE_DICTIONARY[target.role]?.faction === 'wolf';
+            const alignment = isWolf ? '狼人' : '好人';
+            
+            player.data.seerRecords = player.data.seerRecords || {};
+            player.data.seerRecords[ctx.votedOutToday] = alignment;
+            player.data.latestCheckResult = { seat: ctx.votedOutToday, alignment: alignment };
+
+            return `昨天白天被放逐的 ${ctx.votedOutToday} 號玩家是【${alignment}】。\n請點擊「了解」結束回合。`;
+        }
+        return "昨天白天沒有人被放逐。\n請點擊「了解」結束回合。";
+    },
+    getSelectableSeats: () => [], // 不需選人
+    getButtons: () => [{ id: 'confirm', text: '了解', requiresTarget: false }],
+    resolveNightAction: () => "確認資訊"
+});
+
+RoleRegistry.register("石像鬼", {
+    canSelfExplode: false,
+    canSeeWolves: false,
+    seenAsWolf: false,
+    isAttacker: true,    
+    nightPhase: ["first_half", "midnight"], 
+    actionType: "dynamic_buttons",
+    getPrompt: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex];
+        if (step.phaseId === 'first_half') return "選擇今晚的查驗目標\n(將得知該玩家具體身分)";
+        
+        const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
+        if (otherWolves.length > 0) return "狼同伴存活，無法操刀。";
+        return "狼同伴已全數陣亡，請選擇襲擊目標。";
+    },
+    getSelectableSeats: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex];
+        if (step.phaseId === 'first_half') return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
+        
+        const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
+        if (otherWolves.length > 0) return [];
+        return ctx.getAlivePlayers().map(p => p.seatNumber);
+    },
+    getButtons: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex];
+        if (step.phaseId === 'first_half') return [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
+        
+        const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
+        if (otherWolves.length > 0) return [{ id: 'pass', text: '跳過 (狼同伴操刀)', requiresTarget: false }];
+        return [{ id: 'kill', text: '襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
+    },
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || act.actionId === 'pass') return "跳過行動";
+        
+        const step = ctx.nightSequence[ctx.currentNightStepIndex];
+        const target = act.targets[0];
+        
+        if (step.phaseId === 'first_half' && act.actionId === 'check') {
+            const tPlayer = ctx.getPlayer(target);
+            act.player.data.seerRecords = act.player.data.seerRecords || {};
+            act.player.data.seerRecords[target] = tPlayer.role; 
+            act.player.data.latestCheckResult = { seat: target, alignment: tPlayer.role };
+            act.player.data.tempPrivateMessage = `${target}號玩家的身分是【${tPlayer.role}】。`;
+            return `查驗: ${target}號`;
+            
+        } else if (step.phaseId === 'midnight' && act.actionId === 'kill') {
+            if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
+            ctx.nightTags.killed.push(parseInt(target));
+            return `襲擊: ${target}號`;
+        }
+        return "跳過行動";
+    }
+});
