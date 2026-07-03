@@ -145,9 +145,15 @@ function setupEngineFlowControllers() {
         alive.forEach(p => {
             const def = RoleRegistry.plugins[p.role];
             if (def && def.nightPhase) {
-                let r = phases[def.nightPhase].find(x => x.roleName === p.role);
-                if (!r) phases[def.nightPhase].push({ roleName: p.role, roleDef: def, activePlayers: [p], resultLog: "" });
-                else r.activePlayers.push(p);
+                // [神級架構] 將 def.nightPhase 轉為陣列，支援多階段覺醒
+                const phaseArray = Array.isArray(def.nightPhase) ? def.nightPhase : [def.nightPhase];
+                phaseArray.forEach(phaseName => {
+                    if (phases[phaseName]) {
+                        let r = phases[phaseName].find(x => x.roleName === p.role);
+                        if (!r) phases[phaseName].push({ roleName: p.role, roleDef: def, activePlayers: [p], resultLog: "" });
+                        else r.activePlayers.push(p);
+                    }
+                });
             }
         });
         
