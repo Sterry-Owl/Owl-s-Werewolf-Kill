@@ -28,10 +28,9 @@ function setupPlayerConnectionListeners(conn) {
                 mySeatNumber = data.payload.seatNumber;
                 break;
             case PACKET_TYPE.STATE_SYNC:
-                const isNewPhase = localState.phase !== data.payload.phase;
+                const isNewPhase = localState.phase !== data.payload.phase || localState.nightStepIndex !== data.payload.nightStepIndex;
                 localState = data.payload;
                 
-                // [純淨架構] 只有在「進入新階段」時才清空玩家選擇
                 if (isNewPhase) {
                     currentActionTarget = [];
                 }
