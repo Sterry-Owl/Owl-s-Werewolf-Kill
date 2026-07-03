@@ -351,7 +351,7 @@ RoleRegistry.register("石像鬼", {
     canSelfExplode: false,
     canSeeWolves: false,
     seenAsWolf: false,
-    isAttacker: true,    
+    isAttacker: false,    
     nightPhase: ["first_half", "midnight"], 
     actionType: "dynamic_buttons",
     getPrompt: (ctx, mySeat) => {
