@@ -25,6 +25,10 @@ initPassives: function(ctx) {
             });
             return finalKilled;
         });
+        ctx.addFilter('NIGHT_ACTION_PERMISSION', (canAct, args) => {
+            if (args.context.fearedSeat === args.player.seatNumber) return false;
+            return canAct;
+        });
     }
     Engine.EventBus.on('START_NIGHT', () => {
         if (ctx.votedOutToday) {
@@ -52,6 +56,16 @@ initPassives: function(ctx) {
         if (player.role === '白痴' && reason === 'voted') {
             player.isRevealed = true;
             Engine.EventBus.emit('BROADCAST_MESSAGE', `${player.seatNumber} 號玩家為白痴，進行翻牌。\n(已喪失投票與被指定權力，須移交警徽，但保留發言權)`);
+        }
+        if (player.role === '狼美人' && reason !== 'dueled') {
+            if (context.charmedSeat) {
+                const target = context.getPlayer(context.charmedSeat);
+                if (target && !target.isDead) {
+                    context.systemLog += `\n狼美人死亡，觸發殉情機制，帶走了 ${target.seatNumber} 號。`;
+                    Engine.EventBus.emit('BROADCAST_MESSAGE', `【突發事件】狼美人倒牌，魅惑鏈生效，${target.seatNumber} 號玩家隨之殉情！`);
+                    target.kill('charmed', context);
+                }
+            }
         }
     });
 
