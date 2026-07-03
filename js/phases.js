@@ -251,6 +251,18 @@ stateMachine.registerPhase('HUNTER_ACTION', {
             }
         });
 
+        const isPK = ctx.phase === 'PK_VOTING';
+        if (!isSheriff && ctx.cursedSeat) {
+            const t = ctx.cursedSeat;
+            const isEligible = isPK ? ctx.pkTargets.includes(t) : ctx.getAlivePlayers().some(p => p.seatNumber === t);
+            if (isEligible) {
+                if (!voteGroups[t]) voteGroups[t] = [];
+                voteGroups[t].push(`咒詛`);
+                voteCounts[t] = (voteCounts[t] || 0) + 1;
+                validVotesCount++;
+            }
+        }
+
         let maxVotes = 0;
         let finalTarget = null;
         let isTie = false;
