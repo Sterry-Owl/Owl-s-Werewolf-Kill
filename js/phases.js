@@ -222,6 +222,7 @@ stateMachine.registerPhase('HUNTER_ACTION', {
     resolveVoting: function(ctx) {
         this.sm.clearTimer();
         const isSheriff = ctx.phase === 'SHERIFF_VOTING';
+        if (!isSheriff) ctx.votedOutToday = null;
         
         ctx.getAlivePlayers().forEach(p => {
             const isPK = ctx.phase === 'PK_VOTING';
