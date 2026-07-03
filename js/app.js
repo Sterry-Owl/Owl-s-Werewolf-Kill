@@ -50,8 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // 初始化：預設渲染「快速場 (quick)」
-        renderTemplatesByCategory('quick');
+        // 初始化：預設渲染「快速場 (quick)」→我自己改成測試場
+        renderTemplatesByCategory('test');
     }
 
     // === 升級後：規則滑動開關邏輯 ===
