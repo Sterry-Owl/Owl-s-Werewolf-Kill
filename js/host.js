@@ -15,8 +15,6 @@ window.initHost = function(roomId) {
     stateMachine = new Engine.StateMachine(engineContext);
     
     PhaseRegistry.init(stateMachine, engineContext);
-    // [修改] 傳入 engineContext，讓角色模組可以註冊全域過濾器
-    RoleRegistry.initPassives(engineContext);
     
     Engine.EventBus.on('SYNC_STATE', syncStateToAll);
     Engine.EventBus.on('PHASE_CHANGED', syncStateToAll);
@@ -47,6 +45,7 @@ window.initHost = function(roomId) {
     });
     
     setupEngineFlowControllers();
+    RoleRegistry.initPassives(engineContext);
 };
 
 function handleIncomingPacket(peerId, data) {
