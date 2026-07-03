@@ -97,7 +97,7 @@ function handleIncomingPacket(peerId, data) {
     }
     else if (data.type === PACKET_TYPE.WOLF_PREVIEW) {
         const player = engineContext.getPlayerByPeer(peerId);
-        if (player && player.role && RoleRegistry.plugins[player.role]?.isAttacker && engineContext.phase === 'NIGHT_ACTION') {
+        if (player && player.role && RoleRegistry.plugins[player.role]?.canSeeWolves && engineContext.phase === 'NIGHT_ACTION') {
             engineContext.wolfPreviews[peerId] = { seat: player.seatNumber, target: data.payload.target };
             syncStateToAll();
         }
