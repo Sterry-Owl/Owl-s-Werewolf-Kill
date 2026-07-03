@@ -328,18 +328,48 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber]; 
         else if (player.role === '女巫' && ctx.witchState?.savedSeat === p.seatNumber) sideTag = "銀水"; 
 
-        if (ctx.phase === 'NIGHT_ACTION' && RoleRegistry.plugins[player.role]?.canSeeWolves) {
-            Object.values(ctx.wolfPreviews || {}).forEach(preview => {
-                if (String(preview.target) === String(p.seatNumber) && preview.seat !== player.seatNumber) {
-                    wolfPreviewTags.push(`${preview.seat}號`);
+        if (ctx.phase === 'NIGHT_ACTION' && !player.isDead) {
+        const currentPhase = ctx.nightSequence[ctx.currentNightStepIndex];
+        let myRoleInPhase = currentPhase ? currentPhase.roles.find(r => r.activePlayers.some(ap => ap.seatNumber === player.seatNumber)) : null;
+        const hasActed = ctx.currentStepActions.some(act => act.player.seatNumber === player.seatNumber);
+        
+        if (myRoleInPhase) {
+            const plugin = RoleRegistry.plugins[myRoleInPhase.roleName];
+            // [新增] 檢查該角色當前是否具有行動權限，若為 false 則跳過面板渲染
+            const canAct = plugin.hasAction ? plugin.hasAction(ctx, player.seatNumber) : true;
+            
+            if (canAct) {
+                actionPanel.show = true;
+                actionPanel.deadline = ctx.deadline;
+                actionPanel.type = plugin.actionType;
+                actionPanel.selectableSeats = plugin.getSelectableSeats(ctx, player.seatNumber);
+                actionPanel.buttons = plugin.getButtons(ctx, player.seatNumber);
+                actionPanel.passTags = plugin.getPassTags ? plugin.getPassTags(ctx, player.seatNumber) : [];
+                
+                if (RoleRegistry.plugins[myRoleInPhase.roleName]?.isAttacker) {
+                    const myPreview = ctx.wolfPreviews[player.peerId];
+                    if (myPreview && myPreview.target !== 'pass') actionPanel.preSelectedTarget = parseInt(myPreview.target);
+                } else {
+                    actionPanel.preSelectedTarget = plugin.getPreSelectedTarget ? plugin.getPreSelectedTarget(ctx) : null; 
                 }
-            });
+
+                if (hasActed) {
+                    actionPanel.prompt = (RoleRegistry.plugins[myRoleInPhase.roleName]?.isAttacker) ? "等待隊友決定。" : "行動已送出。";
+                    actionPanel.buttons = []; actionPanel.deadline = null;
+                } else {
+                    actionPanel.prompt = plugin.getPrompt(ctx, player.seatNumber);
+                }
+            }
         }
+    }
 
         return { 
+            boardName: ctx.boardName, phase: ctx.phase, 
+            nightStepIndex: ctx.currentNightStepIndex, // [新增]
+            mySeat: player.seatNumber, myRole: player.role,
+            message: personalMessage, players: mappedPlayers, actionPanel, latestCheckResult: player.data.latestCheckResult || null,
             seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, 
             topTag, sideTag, wolfPreviewTags, isWolfSelected: wolfPreviewTags.length > 0,
-            // [修改] 綁定生命週期：競選結束後，綠圓點與灰圓點強制註銷
             isCandidate: isSheriffPhase && (ctx.sheriff.candidates || []).includes(p.seatNumber), 
             hasWithdrawn: isSheriffPhase && (ctx.sheriff.withdrawn || []).includes(p.seatNumber),
             isSheriff: (ctx.sheriff.seat === p.seatNumber),
