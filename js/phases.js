@@ -31,7 +31,9 @@ window.PhaseRegistry = {
                 currentPhase.roles.forEach(roleObj => {
                     const plugin = RoleRegistry.plugins[roleObj.roleName];
                     roleObj.activePlayers.forEach(p => {
-                        const canAct = plugin.hasAction ? plugin.hasAction(ctx, p.seatNumber) : true;
+                        let canAct = plugin.hasAction ? plugin.hasAction(ctx, p.seatNumber) : true;
+                        canAct = ctx.applyFilter('NIGHT_ACTION_PERMISSION', canAct, { context: ctx, player: p });
+                        
                         if (canAct) {
                             ctx.expectedActionCount++;
                         }
