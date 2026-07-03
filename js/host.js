@@ -157,9 +157,9 @@ function setupEngineFlowControllers() {
         });
         
         engineContext.nightSequence = [];
-        if (phases['first_half'].length > 0) engineContext.nightSequence.push({ phaseName: '前半夜', roles: phases['first_half'] });
-        if (phases['midnight'].length > 0) engineContext.nightSequence.push({ phaseName: '午夜 (狼人)', roles: phases['midnight'] });
-        if (phases['second_half'].length > 0) engineContext.nightSequence.push({ phaseName: '後半夜', roles: phases['second_half'] });
+        if (phases['first_half'].length > 0) engineContext.nightSequence.push({ phaseId: 'first_half', phaseName: '前半夜', roles: phases['first_half'] });
+        if (phases['midnight'].length > 0) engineContext.nightSequence.push({ phaseId: 'midnight', phaseName: '午夜 (狼人)', roles: phases['midnight'] });
+        if (phases['second_half'].length > 0) engineContext.nightSequence.push({ phaseId: 'second_half', phaseName: '後半夜', roles: phases['second_half'] });
         
         engineContext.currentNightStepIndex = -1;
         Engine.EventBus.emit('NIGHT_STEP_COMPLETE');
