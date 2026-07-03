@@ -16,10 +16,8 @@ initPassives: function(ctx) {
                 const isGuarded = calc.guarded.includes(targetSeat);
                 const isSaved = calc.saved.includes(targetSeat);
 
-                if (isGuarded && isSaved) {
-                    finalKilled.push(targetSeat);
-                } else if (isGuarded || isSaved) {
-                } else {
+                // 邏輯合併：同守同救或皆未發生時，目標死亡
+                if ((isGuarded && isSaved) || (!isGuarded && !isSaved)) {
                     finalKilled.push(targetSeat);
                 }
             });
