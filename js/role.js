@@ -17,12 +17,9 @@ initPassives: function(ctx) {
                 const isSaved = calc.saved.includes(targetSeat);
 
                 if (isGuarded && isSaved) {
-                    // 同守同救 = 奶穿 = 死亡
                     finalKilled.push(targetSeat);
                 } else if (isGuarded || isSaved) {
-                    // 單守 或 單救 = 存活 (不加入 finalKilled)
                 } else {
-                    // 沒被守也沒被救 = 死亡
                     finalKilled.push(targetSeat);
                 }
             });
@@ -181,7 +178,13 @@ RoleRegistry.register("預言家", {
         if (act.actionId === 'confirm' && target) {
             const tPlayer = ctx.getPlayer(target);
             const isWolf = (tPlayer.role && ROLE_DICTIONARY[tPlayer.role]?.faction === 'wolf');
-            const alignment = isWolf ? "狼人" : "好人";
+            let alignment = isWolf ? "狼人" : "好人";
+            
+            // [乾淨架構] 讀取目標角色的自定義標籤，判斷是否覆寫查驗結果 (如：隱狼)
+            const pluginDef = RoleRegistry.plugins[tPlayer.role];
+            if (pluginDef && pluginDef.seenBySeerAsGood) {
+                alignment = "好人";
+            }
             act.player.data.seerRecords = act.player.data.seerRecords || {};
             act.player.data.seerRecords[target] = alignment;
             act.player.data.latestCheckResult = { seat: target, alignment: alignment };
@@ -388,5 +391,60 @@ RoleRegistry.register("石像鬼", {
             return `襲擊: ${target}號`;
         }
         return "跳過行動";
+    }
+});
+
+RoleRegistry.register("隱狼", {
+    canSelfExplode: false,
+    canSeeWolves: true,
+    seenAsWolf: false,
+    isAttacker: false,
+    seenBySeerAsGood: true, // [屬性標籤] 完美騙過預言家
+    nightPhase: "midnight",      
+    actionType: "single_select", 
+    
+    // 行動權限合約：隊友死光才亮起操刀面板
+    hasAction: (ctx, mySeat) => {
+        const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
+        return otherWolves.length === 0; 
+    },
+    
+    getPrompt: () => "狼同伴已全數陣亡，請選擇襲擊目標。",
+    getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
+    getButtons: () => [{ id: 'kill', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
+    
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || act.actionId === 'pass') return "【空刀】";
+        
+        const target = act.targets[0];
+        if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
+        ctx.nightTags.killed.push(parseInt(target));
+        return `【襲擊: ${target}號】`;
+    }
+});
+
+RoleRegistry.register("烏鴉", {
+    canSelfExplode: false,
+    nightPhase: "second_half",   
+    actionType: "single_select",
+    
+    getPrompt: () => "選擇今晚詛咒的目標 (不可連續兩晚詛咒同一人)",
+    // [邏輯過濾] 動態過濾掉昨晚的目標 ctx.lastCursedSeat
+    getSelectableSeats: (ctx) => ctx.getAlivePlayers().filter(p => p.seatNumber !== ctx.lastCursedSeat).map(p => p.seatNumber),
+    getButtons: () => [{ id: 'curse', text: '詛咒', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
+    
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || act.actionId === 'pass') {
+            ctx.cursedSeat = null;
+            ctx.lastCursedSeat = null;
+            return "【跳過行動】";
+        }
+        
+        const target = act.targets[0];
+        ctx.cursedSeat = target;
+        ctx.lastCursedSeat = target;
+        return `【詛咒: ${target}號】`;
     }
 });
