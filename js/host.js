@@ -481,7 +481,7 @@ function getPhaseMessageForPlayer(phase) {
 }
 
 function getDayBtnText(phase) {
-    const dict = { 'SHERIFF_CANDIDACY': "強制結束上警登記 (防卡死)", 'SHERIFF_VOTING': "強制結算警長投票 (防卡死)", 'SHERIFF_SPEECH': "發起警長投票", 'DAY_DISCUSSION': "發起放逐投票", 'PK_SPEECH': "發起 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入下一步", 'LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍...", 'WOLFKING_ACTION': "等待狼王開槍..." };
+    const dict = { 'SHERIFF_CANDIDACY': "強制結束上警登記 (防卡死)", 'SHERIFF_VOTING': "強制結算警長投票 (防卡死)", 'SHERIFF_SPEECH': "發起警長投票", 'DAY_DISCUSSION': "發起放逐投票", 'PK_SPEECH': "發起 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入遺言發表階段", 'LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍...", 'WOLFKING_ACTION': "等待狼王開槍..." };
     return dict[phase] || "投票/行動進行中...";
 }
 
