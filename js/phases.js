@@ -10,7 +10,6 @@ window.PhaseRegistry = {
         this.sm = stateMachine;
         const self = this; 
         
-        // [安全修復] 註冊靜態等待階段，防止狀態機跳轉時產生 undefined 錯誤
         const dummyPhase = { onEnter: () => {} };
         stateMachine.registerPhase('DAY_DISCUSSION', dummyPhase);
         stateMachine.registerPhase('SHERIFF_SPEECH', dummyPhase);
@@ -30,18 +29,22 @@ window.PhaseRegistry = {
                 
                 const currentPhase = ctx.nightSequence[ctx.currentNightStepIndex];
                 currentPhase.roles.forEach(roleObj => {
-                    ctx.expectedActionCount += roleObj.activePlayers.length;
+                    const plugin = RoleRegistry.plugins[roleObj.roleName];
+                    roleObj.activePlayers.forEach(p => {
+                        const canAct = plugin.hasAction ? plugin.hasAction(ctx, p.seatNumber) : true;
+                        if (canAct) {
+                            ctx.expectedActionCount++;
+                        }
+                    });
                 });
                 
                 ctx.systemLog = `正在等待【${currentPhase.phaseName}】行動...`;
-                self.sm.setTimer(30000); 
+                
+                if (ctx.expectedActionCount <= 0) self.resolveNightStep(ctx);
+                else self.sm.setTimer(30000); 
             },
             onAction: (ctx, player, actionId, targets) => {
                 if (ctx.currentStepActions.some(act => act.player.seatNumber === player.seatNumber)) return;
-                
-                if (ROLE_DICTIONARY[player.role]?.faction === 'wolf' && actionId === 'pass') {
-                    ctx.wolfPreviews[player.peerId] = { seat: player.seatNumber, target: 'pass' };
-                }
                 
                 ctx.currentStepActions.push({ player, targets, actionId });
                 ctx.expectedActionCount--;
