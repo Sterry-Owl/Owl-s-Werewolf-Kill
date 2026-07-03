@@ -100,7 +100,9 @@ RoleRegistry.register("狼人", {
     nightPhase: "midnight",      
     actionType: "consensus",     
     getPrompt: () => "選擇今晚的襲擊目標 (或選擇跳過以空刀)",
-    getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
+    getSelectableSeats: (ctx) => ctx.getAlivePlayers()
+        .filter(p => !RoleRegistry.plugins[p.role]?.immuneToWolfKill)
+        .map(p => p.seatNumber),
     getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
         let validTargets = actions.filter(act => act.actionId !== 'pass' && act.targets.length > 0).map(act => act.targets[0]);
@@ -222,7 +224,7 @@ RoleRegistry.register("狼王", {
     nightPhase: "midnight",      
     actionType: "consensus",     
     getPrompt: () => "選擇今晚的襲擊目標 (或跳過以空刀)",
-    getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
+    getSelectableSeats: RoleRegistry.plugins["狼人"].getSelectableSeats,
     getButtons: () => [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
     resolveNightAction: RoleRegistry.plugins["狼人"].resolveNightAction
 });
@@ -252,7 +254,7 @@ RoleRegistry.register("白狼王", {
     canSeeWolves: true, seenAsWolf: true, isAttacker: true,
     nightPhase: "midnight", actionType: "consensus",     
     getPrompt: () => "選擇今晚的襲擊目標 (或跳過以空刀)",
-    getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
+    getSelectableSeats: RoleRegistry.plugins["狼人"].getSelectableSeats,
     getButtons: () => [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
     resolveNightAction: RoleRegistry.plugins["狼人"].resolveNightAction,
     daySkill: {
@@ -368,9 +370,10 @@ RoleRegistry.register("石像鬼", {
     },
     
     getSelectableSeats: (ctx, mySeat) => {
-        const step = ctx.nightSequence[ctx.currentNightStepIndex];
-        if (step.phaseId === 'first_half') return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
-        return ctx.getAlivePlayers().map(p => p.seatNumber);
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
+            return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
+        }
+        return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber); 
     },
     
     getButtons: (ctx, mySeat) => {
@@ -414,15 +417,13 @@ RoleRegistry.register("隱狼", {
     },
     nightPhase: "midnight",      
     actionType: "single_select", 
-    
-    // 行動權限合約：隊友死光才亮起操刀面板
     hasAction: (ctx, mySeat) => {
         const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
         return otherWolves.length === 0; 
     },
     
     getPrompt: () => "狼同伴已全數陣亡，請選擇襲擊目標。",
-    getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
+    getSelectableSeats: RoleRegistry.plugins["狼人"].getSelectableSeats,
     getButtons: () => [{ id: 'kill', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
     
     resolveNightAction: (ctx, actions) => {
@@ -442,7 +443,6 @@ RoleRegistry.register("烏鴉", {
     actionType: "single_select",
     
     getPrompt: () => "選擇今晚詛咒的目標 (不可連續兩晚詛咒同一人)",
-    // [邏輯過濾] 動態過濾掉昨晚的目標 ctx.lastCursedSeat
     getSelectableSeats: (ctx) => ctx.getAlivePlayers().filter(p => p.seatNumber !== ctx.lastCursedSeat).map(p => p.seatNumber),
     getButtons: () => [{ id: 'curse', text: '詛咒', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
     
@@ -466,8 +466,7 @@ RoleRegistry.register("噩夢之影", {
     seenAsWolf: true,
     
     nightPhase: ["first_half", "midnight"], 
-    
-    // [安全防護] 確保非夜晚階段讀取時不會噴錯
+
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half' ? 'single_select' : 'consensus',
     isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
 
@@ -477,10 +476,10 @@ RoleRegistry.register("噩夢之影", {
     },
     
     getSelectableSeats: (ctx, mySeat) => {
-        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half') {
-            return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
+            return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
         }
-        return ctx.getAlivePlayers().map(p => p.seatNumber);
+        return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber); 
     },
     
     getButtons: (ctx, mySeat) => {
@@ -493,12 +492,10 @@ RoleRegistry.register("噩夢之影", {
     resolveNightAction: (ctx, actions) => {
         const phaseId = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
         
-        // 【乾淨架構：委派模式】午夜殺人邏輯，直接外包給普通狼人處理！杜絕複製貼上！
         if (phaseId === 'midnight') {
             return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
         }
-        
-        // 前半夜專屬邏輯
+
         const act = actions[0];
         if (!act || act.actionId === 'pass') return "【跳過行動】";
         
@@ -514,7 +511,7 @@ RoleRegistry.register("狼美人", {
     canSelfExplode: false, 
     canSeeWolves: true,
     seenAsWolf: true,
-    
+    immuneToWolfKill: true,
     nightPhase: ["midnight", "second_half"], 
     
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
@@ -526,7 +523,10 @@ RoleRegistry.register("狼美人", {
     },
     
     getSelectableSeats: (ctx, mySeat) => {
-        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') return ctx.getAlivePlayers().map(p => p.seatNumber);
+        // [乾淨架構：委派模式] 午夜選人邏輯，外包給普通狼人
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
+            return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
+        }
         return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber); 
     },
     
@@ -539,13 +539,11 @@ RoleRegistry.register("狼美人", {
     
     resolveNightAction: (ctx, actions) => {
         const phaseId = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
-        
-        // 【乾淨架構：委派模式】午夜殺人邏輯，直接外包給普通狼人！
+
         if (phaseId === 'midnight') {
             return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
         }
         
-        // 後半夜專屬邏輯
         const act = actions[0];
         if (!act || act.actionId === 'pass') return "【跳過行動】";
         
