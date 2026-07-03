@@ -320,22 +320,51 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     // [新增] 嚴格判定當前是否處於「警長競選」的三個階段
     const isSheriffPhase = ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING'].includes(ctx.phase);
 
+    // ==========================================
+    // 1. 處理每個玩家座位上的標籤與狀態
+    // ==========================================
     const mappedPlayers = ctx.players.map(p => {
         let topTag = null, sideTag = null, wolfPreviewTags = [];
         
         if (ctx.phase === 'GAME_OVER' || p.seatNumber === player.seatNumber || p.isRevealed) topTag = p.role;
         else if (RoleRegistry.plugins[player.role]?.canSeeWolves && RoleRegistry.plugins[p.role]?.seenAsWolf) topTag = p.role;
+        
         if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber]; 
         else if (player.role === '女巫' && ctx.witchState?.savedSeat === p.seatNumber) sideTag = "銀水"; 
 
-        if (ctx.phase === 'NIGHT_ACTION' && !player.isDead) {
+        // [正確的位置] 狼人互相看到的預覽標籤 (石像鬼看不見)
+        if (ctx.phase === 'NIGHT_ACTION' && RoleRegistry.plugins[player.role]?.canSeeWolves) {
+            Object.values(ctx.wolfPreviews || {}).forEach(preview => {
+                if (String(preview.target) === String(p.seatNumber) && preview.seat !== player.seatNumber) {
+                    wolfPreviewTags.push(`${preview.seat}號`);
+                }
+            });
+        }
+
+        return { 
+            seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, 
+            topTag, sideTag, wolfPreviewTags, isWolfSelected: wolfPreviewTags.length > 0,
+            isCandidate: isSheriffPhase && (ctx.sheriff.candidates || []).includes(p.seatNumber), 
+            hasWithdrawn: isSheriffPhase && (ctx.sheriff.withdrawn || []).includes(p.seatNumber),
+            isSheriff: (ctx.sheriff.seat === p.seatNumber),
+            isPKTarget: (ctx.phase === 'PK_SPEECH' || ctx.phase === 'PK_VOTING') && (ctx.pkTargets || []).includes(p.seatNumber)
+        };
+    });
+
+    let actionPanel = { show: false, type: 'none', prompt: '', selectableSeats: [], buttons: [], submitPacketType: PACKET_TYPE.ACTION_SUBMIT };
+    let personalMessage = getPhaseMessageForPlayer(ctx.phase);
+
+    // ==========================================
+    // 2. 處理玩家本人的行動面板 (Action Panel)
+    // ==========================================
+    if (ctx.phase === 'NIGHT_ACTION' && !player.isDead) {
         const currentPhase = ctx.nightSequence[ctx.currentNightStepIndex];
         let myRoleInPhase = currentPhase ? currentPhase.roles.find(r => r.activePlayers.some(ap => ap.seatNumber === player.seatNumber)) : null;
         const hasActed = ctx.currentStepActions.some(act => act.player.seatNumber === player.seatNumber);
         
         if (myRoleInPhase) {
             const plugin = RoleRegistry.plugins[myRoleInPhase.roleName];
-            // [新增] 檢查該角色當前是否具有行動權限，若為 false 則跳過面板渲染
+            // [權限守衛] 使用 hasAction 攔截不需要行動的面板 (解決石像鬼問題)
             const canAct = plugin.hasAction ? plugin.hasAction(ctx, player.seatNumber) : true;
             
             if (canAct) {
@@ -359,53 +388,6 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                 } else {
                     actionPanel.prompt = plugin.getPrompt(ctx, player.seatNumber);
                 }
-            }
-        }
-    }
-
-        return { 
-            boardName: ctx.boardName, phase: ctx.phase, 
-            nightStepIndex: ctx.currentNightStepIndex, // [新增]
-            mySeat: player.seatNumber, myRole: player.role,
-            message: personalMessage, players: mappedPlayers, actionPanel, latestCheckResult: player.data.latestCheckResult || null,
-            seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, 
-            topTag, sideTag, wolfPreviewTags, isWolfSelected: wolfPreviewTags.length > 0,
-            isCandidate: isSheriffPhase && (ctx.sheriff.candidates || []).includes(p.seatNumber), 
-            hasWithdrawn: isSheriffPhase && (ctx.sheriff.withdrawn || []).includes(p.seatNumber),
-            isSheriff: (ctx.sheriff.seat === p.seatNumber),
-            isPKTarget: (ctx.phase === 'PK_SPEECH' || ctx.phase === 'PK_VOTING') && (ctx.pkTargets || []).includes(p.seatNumber)
-        };
-    });
-
-    let actionPanel = { show: false, type: 'none', prompt: '', selectableSeats: [], buttons: [], submitPacketType: PACKET_TYPE.ACTION_SUBMIT };
-    let personalMessage = getPhaseMessageForPlayer(ctx.phase);
-
-    if (ctx.phase === 'NIGHT_ACTION' && !player.isDead) {
-        const currentPhase = ctx.nightSequence[ctx.currentNightStepIndex];
-        let myRoleInPhase = currentPhase ? currentPhase.roles.find(r => r.activePlayers.some(ap => ap.seatNumber === player.seatNumber)) : null;
-        const hasActed = ctx.currentStepActions.some(act => act.player.seatNumber === player.seatNumber);
-        
-        if (myRoleInPhase) {
-            actionPanel.show = true;
-            actionPanel.deadline = ctx.deadline;
-            const plugin = RoleRegistry.plugins[myRoleInPhase.roleName];
-            actionPanel.type = plugin.actionType;
-            actionPanel.selectableSeats = plugin.getSelectableSeats(ctx);
-            actionPanel.buttons = plugin.getButtons(ctx, player.seatNumber);
-            actionPanel.passTags = plugin.getPassTags ? plugin.getPassTags(ctx, player.seatNumber) : [];
-            
-            if (RoleRegistry.plugins[myRoleInPhase.roleName]?.isAttacker) {
-                const myPreview = ctx.wolfPreviews[player.peerId];
-                if (myPreview && myPreview.target !== 'pass') actionPanel.preSelectedTarget = parseInt(myPreview.target);
-            } else {
-                actionPanel.preSelectedTarget = plugin.getPreSelectedTarget ? plugin.getPreSelectedTarget(ctx) : null; 
-            }
-
-            if (hasActed) {
-                actionPanel.prompt = (RoleRegistry.plugins[myRoleInPhase.roleName]?.isAttacker) ? "等待隊友決定。" : "行動已送出。";
-                actionPanel.buttons = []; actionPanel.deadline = null;
-            } else {
-                actionPanel.prompt = plugin.getPrompt(ctx, player.seatNumber);
             }
         }
     } 
@@ -458,8 +440,6 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     }
     else if (ctx.phase === 'HUNTER_ACTION' || ctx.phase === 'WOLFKING_ACTION') {
         actionPanel.show = true;
-
-        // [修正] 不再看職業，而是精準比對剛剛鎖定的 activeShooter 座位號碼
         if (player.seatNumber === ctx.activeShooter) {
             actionPanel.type = 'single_select'; actionPanel.selectableSeats = ctx.getAlivePlayers().map(p=>p.seatNumber);
             actionPanel.prompt = `你已死亡，選擇開槍目標：`;
@@ -474,12 +454,16 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         player.data.tempPrivateMessage = null; 
     }
 
+    // ==========================================
+    // 3. 打包回傳封包給前端渲染
+    // ==========================================
     return {
-        boardName: ctx.boardName, phase: ctx.phase, mySeat: player.seatNumber, myRole: player.role,
+        boardName: ctx.boardName, phase: ctx.phase, 
+        nightStepIndex: ctx.currentNightStepIndex,
+        mySeat: player.seatNumber, myRole: player.role,
         message: personalMessage, players: mappedPlayers, actionPanel, latestCheckResult: player.data.latestCheckResult || null,
         voteHistory: ctx.voteHistory, 
         allowSelfExplode: !player.isDead && isDayPhase && RoleRegistry.plugins[player.role]?.canSelfExplode,
-        // [新增] 讀取並打包白天主動技能
         daySkill: (!player.isDead && isDayPhase && RoleRegistry.plugins[player.role]?.daySkill) ? {
             id: RoleRegistry.plugins[player.role].daySkill.id,
             buttonText: RoleRegistry.plugins[player.role].daySkill.buttonText,
