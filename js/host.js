@@ -329,7 +329,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber]; 
         else if (player.role === '女巫' && ctx.witchState?.savedSeat === p.seatNumber) sideTag = "銀水"; 
 
-        if (ctx.phase === 'NIGHT_ACTION' && RoleRegistry.plugins[player.role]?.isAttacker) {
+        if (ctx.phase === 'NIGHT_ACTION' && RoleRegistry.plugins[player.role]?.canSeeWolves) {
             Object.values(ctx.wolfPreviews || {}).forEach(preview => {
                 if (String(preview.target) === String(p.seatNumber) && preview.seat !== player.seatNumber) {
                     wolfPreviewTags.push(`${preview.seat}號`);
