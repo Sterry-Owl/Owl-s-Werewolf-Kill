@@ -50,32 +50,32 @@
         <!-- 規則一：女巫自救 -->
         <label>女巫自救：</label>
         <div class="toggle-group" data-target="rule-witch-save">
-            <div class="toggle-option active" data-value="first_night" style="--active-bg: #fff3b0; --active-color: #000;">僅首夜可以自救</div>
-            <div class="toggle-option" data-value="never" style="--active-bg: #ffaa5e; --active-color: #000;">全程不可自救</div>
+            <div class="toggle-option active" data-value="first_night" style="--active-bg: #96a164; --active-color: #000;">僅首夜可以自救</div>
+            <div class="toggle-option" data-value="never" style="--active-bg: #69424e; --active-color: #000;">全程不可自救</div>
         </div>
         <input type="hidden" id="rule-witch-save" value="first_night">
 
         <!-- 規則二：勝利條件 -->
         <label>勝利條件：</label>
         <div class="toggle-group" data-target="rule-win-condition">
-            <div class="toggle-option active" data-value="kill_side" style="--active-bg: var(--accent-red); --active-color: #fff;">屠邊 (神職全滅 或 平民全滅)</div>
-            <div class="toggle-option" data-value="kill_all" style="--active-bg: #991524; --active-color: #fff;">屠城 (好人陣營全滅)</div>
+            <div class="toggle-option active" data-value="kill_side" style="--active-bg: #96a164; --active-color: #000;">屠邊 (神職全滅 或 平民全滅)</div>
+            <div class="toggle-option" data-value="kill_all" style="--active-bg: #69424e; --active-color: #000;">屠城 (好人陣營全滅)</div>
         </div>
         <input type="hidden" id="rule-win-condition" value="kill_side">
 
         <!-- 規則三：放逐平票處置 -->
         <label>放逐平票處置：</label>
         <div class="toggle-group" data-target="rule-tie-resolution">
-            <div class="toggle-option active" data-value="pk" style="--active-bg: var(--accent-blue); --active-color: #fff;">PK 發言與投票</div>
-            <div class="toggle-option" data-value="peace" style="--active-bg: #555; --active-color: #fff;">平票無人出局</div>
+            <div class="toggle-option active" data-value="pk" style="--active-bg: #96a164; --active-color: #000;">PK 發言與投票</div>
+            <div class="toggle-option" data-value="peace" style="--active-bg: #69424e; --active-color: #000;">平票無人出局</div>
         </div>
         <input type="hidden" id="rule-tie-resolution" value="pk">
 
         <!-- 規則四：警長機制 -->
         <label>警長機制：</label>
         <div class="toggle-group" data-target="rule-sheriff">
-            <div class="toggle-option active" data-value="enabled" style="--active-bg: var(--sheriff-gold); --active-color: #000;">開啟警長 (首日競選)</div>
-            <div class="toggle-option" data-value="disabled" style="--active-bg: #555; --active-color: #fff;">關閉警長</div>
+            <div class="toggle-option active" data-value="enabled" style="--active-bg: #96a164; --active-color: #000;">開啟警長 (首日競選)</div>
+            <div class="toggle-option" data-value="disabled" style="--active-bg: #69424e; --active-color: #000;">關閉警長</div>
         </div>
         <input type="hidden" id="rule-sheriff" value="enabled">
 
