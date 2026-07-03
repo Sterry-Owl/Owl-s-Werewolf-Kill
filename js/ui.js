@@ -275,7 +275,7 @@ const UI = {
                             }
                         }
                         else if (bInfo.id === 'poison') {
-                            btn.style.background = '#800080'; 
+                            btn.style.background = '#aa68b0'; 
                         }
                         else {
                             btn.className = 'btn-primary';
