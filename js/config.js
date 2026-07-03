@@ -48,22 +48,22 @@ const PACKET_TYPE = {
 };
 
 const BOARD_TEMPLATES = [
-    { id: "standard_6", name: "6人 獵人局", playerCount: 6, deck: ["預言家", "獵人", "狼人", "狼人", "平民", "平民"] },
-    { id: "test-1_6", name: "6人 女巫局", playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "平民", "平民"] },
-    { id: "test-2_6", name: "6人 狼王守衛(測試)", playerCount: 6, deck: ["預言家", "守衛", "狼王", "狼人", "平民", "平民"] },
-    { id: "test-3_6", name: "6人 白狼王騎士(測試)", playerCount: 6, deck: ["預言家", "騎士", "白狼王", "狼人", "平民", "平民"] },
-    { id: "test-4_6", name: "6人 石像鬼守墓人(測試)", playerCount: 6, deck: ["預言家", "守墓人", "石像鬼", "狼人", "平民", "平民"] },
-    { id: "test-5_6", name: "6人 隱狼烏鴉(測試)", playerCount: 6, deck: ["預言家", "烏鴉", "隱狼", "狼人", "平民", "平民"] }, 
-    { id: "survivortwo_7", name: "7人 生還者(雙狼王)", playerCount: 6, deck: ["預言家", "守衛", "女巫", "獵人", "狼王", "狼王", "平民"] },
-    { id: "survivorstd_7", name: "7人 生還者(標準)", playerCount: 6, deck: ["預言家", "守衛", "女巫", "獵人", "白狼王", "狼人", "平民"] },    
-    { id: "lastday_8", name: "8人 末日狂徒", playerCount: 6, deck: ["預言家", "守衛", "獵人", "狼人", "狼人", "狼人", "平民", "平民"] },       
-    { id: "standard_9", name: "9人 標準局", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
-    { id: "standard_10", name: "10人 標準局", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
-    { id: "standard_12", name: "12人 標準局", playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
-    { id: "wk_grd_12", name: "12人 狼王守衛", playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
-    { id: "gh_gra_12", name: "12人 石像鬼守墓人", playerCount: 12, deck: ["預言家", "女巫", "獵人", "守墓人", "石像鬼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
-    { id: "wwk_kn_12", name: "12人 白狼王騎士", playerCount: 12, deck: ["預言家", "女巫", "騎士", "守衛", "白狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
-    { id: "inw_cl_12", name: "12人 隱狼烏鴉", playerCount: 12, deck: ["預言家", "女巫", "獵人", "烏鴉", "隱狼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }    
+    { id: "standard_6", name: "6人 獵人局", category: 'quick', playerCount: 6, deck: ["預言家", "獵人", "狼人", "狼人", "平民", "平民"] },
+    { id: "test-1_6", name: "6人 女巫局", category: 'quick', playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "平民", "平民"] },
+    { id: "test-2_6", name: "6人 狼王守衛(測試)", category: 'test', playerCount: 6, deck: ["預言家", "守衛", "狼王", "狼人", "平民", "平民"] },
+    { id: "test-3_6", name: "6人 白狼王騎士(測試)", category: 'test', playerCount: 6, deck: ["預言家", "騎士", "白狼王", "狼人", "平民", "平民"] },
+    { id: "test-4_6", name: "6人 石像鬼守墓人(測試)", category: 'test', playerCount: 6, deck: ["預言家", "守墓人", "石像鬼", "狼人", "平民", "平民"] },
+    { id: "test-5_6", name: "6人 隱狼烏鴉(測試)", category: 'test', playerCount: 6, deck: ["預言家", "烏鴉", "隱狼", "狼人", "平民", "平民"] }, 
+    { id: "survivortwo_7", name: "7人 生還者(雙狼王)", category: 'test', playerCount: 6, deck: ["預言家", "守衛", "女巫", "獵人", "狼王", "狼王", "平民"] },
+    { id: "survivorstd_7", name: "7人 生還者(標準)", category: 'fun', playerCount: 6, deck: ["預言家", "守衛", "女巫", "獵人", "白狼王", "狼人", "平民"] },    
+    { id: "lastday_8", name: "8人 末日狂徒", category: 'fun', playerCount: 6, deck: ["預言家", "守衛", "獵人", "狼人", "狼人", "狼人", "平民", "平民"] },       
+    { id: "standard_9", name: "9人 標準局", category: 'standard', playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
+    { id: "standard_10", name: "10人 標準局", category: 'standard', playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "standard_12", name: "12人 標準局", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "wk_grd_12", name: "12人 狼王守衛", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "gh_gra_12", name: "12人 石像鬼守墓人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守墓人", "石像鬼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
+    { id: "wwk_kn_12", name: "12人 白狼王騎士", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "騎士", "守衛", "白狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "inw_cl_12", name: "12人 隱狼烏鴉", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "烏鴉", "隱狼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }    
 ];
 
 const ROLE_DICTIONARY = {
