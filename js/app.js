@@ -7,30 +7,51 @@ document.addEventListener('DOMContentLoaded', () => {
     const boardContainer = document.getElementById('board-template-container');
     const hiddenSelectBoard = document.getElementById('select-board-template');
     const deckPreview = document.getElementById('template-deck-preview');
+    const categoryTabs = document.querySelectorAll('#template-category-tabs .toggle-option');
 
     if (boardContainer && hiddenSelectBoard && typeof BOARD_TEMPLATES !== 'undefined') {
-        boardContainer.innerHTML = ''; 
-        BOARD_TEMPLATES.forEach((tpl, index) => {
-            const btn = document.createElement('button');
-            btn.className = 'template-btn';
-            if (index === 0) btn.classList.add('active'); // 預設選中第一個
-            btn.textContent = tpl.name;
-            
-            btn.addEventListener('click', () => {
-                // 1. 移除所有按鈕的 active 狀態，只為當前點擊的按鈕加上
-                boardContainer.querySelectorAll('.template-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                
-                // 2. 將選中的 ID 寫入隱藏輸入框，並更新卡牌預覽
-                hiddenSelectBoard.value = tpl.id;
-                deckPreview.innerHTML = `<strong>配置內容：</strong><br>${tpl.deck.join('、')}`;
-            });
-            boardContainer.appendChild(btn);
-        });
         
-        // 觸發第一次預設選項的資料寫入
-        hiddenSelectBoard.value = BOARD_TEMPLATES[0].id;
-        deckPreview.innerHTML = `<strong>配置內容：</strong><br>${BOARD_TEMPLATES[0].deck.join('、')}`;
+        // [乾淨架構] 抽離渲染函數，根據傳入的 category 過濾版型
+        const renderTemplatesByCategory = (category) => {
+            boardContainer.innerHTML = ''; 
+            const filteredTemplates = BOARD_TEMPLATES.filter(t => t.category === category || !t.category);
+            
+            if (filteredTemplates.length === 0) {
+                boardContainer.innerHTML = '<div style="color:#777; font-size:14px; padding:10px;">此分類尚無版型</div>';
+                return;
+            }
+
+            filteredTemplates.forEach((tpl, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'template-btn';
+                if (index === 0) btn.classList.add('active'); // 預設選中該分類的第一個
+                btn.textContent = tpl.name;
+                
+                btn.addEventListener('click', () => {
+                    boardContainer.querySelectorAll('.template-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    hiddenSelectBoard.value = tpl.id;
+                    deckPreview.innerHTML = `<strong>配置內容：</strong><br>${tpl.deck.join('、')}`;
+                });
+                boardContainer.appendChild(btn);
+            });
+            
+            // 切換分類時，強制作業系統選中該分類的第一個版型 (防止資料不同步 Bug)
+            hiddenSelectBoard.value = filteredTemplates[0].id;
+            deckPreview.innerHTML = `<strong>配置內容：</strong><br>${filteredTemplates[0].deck.join('、')}`;
+        };
+
+        // 綁定標籤切換事件
+        categoryTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                categoryTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                renderTemplatesByCategory(tab.getAttribute('data-category'));
+            });
+        });
+
+        // 初始化：預設渲染「快速場 (quick)」
+        renderTemplatesByCategory('quick');
     }
 
     // === 升級後：規則滑動開關邏輯 ===
