@@ -137,7 +137,8 @@ function setupEngineFlowControllers() {
         engineContext.nightCount++;
         engineContext.nightTags = { killed: [], poisoned: [], witchUsedSaveTonight: false };
         engineContext.wolfPreviews = {};
-        engineContext.cursedSeat = null;
+        engineContext.cursedSeat = null; 
+        engineContext.fearedSeat = null;
         engineContext.players.forEach(p => p.data.latestCheckResult = null);
         
         const alive = engineContext.getAlivePlayers();
@@ -365,18 +366,21 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         
         if (myRoleInPhase) {
             const plugin = RoleRegistry.plugins[myRoleInPhase.roleName];
-            // [權限守衛] 使用 hasAction 攔截不需要行動的面板 (解決石像鬼問題)
-            const canAct = plugin.hasAction ? plugin.hasAction(ctx, player.seatNumber) : true;
+            let canAct = plugin.hasAction ? plugin.hasAction(ctx, player.seatNumber) : true;
+            canAct = ctx.applyFilter('NIGHT_ACTION_PERMISSION', canAct, { context: ctx, player });
             
             if (canAct) {
                 actionPanel.show = true;
                 actionPanel.deadline = ctx.deadline;
-                actionPanel.type = plugin.actionType;
+                
+                actionPanel.type = typeof plugin.actionType === 'function' ? plugin.actionType(ctx) : plugin.actionType;
+                const isAttacker = typeof plugin.isAttacker === 'function' ? plugin.isAttacker(ctx) : plugin.isAttacker;
+
                 actionPanel.selectableSeats = plugin.getSelectableSeats(ctx, player.seatNumber);
                 actionPanel.buttons = plugin.getButtons(ctx, player.seatNumber);
                 actionPanel.passTags = plugin.getPassTags ? plugin.getPassTags(ctx, player.seatNumber) : [];
                 
-                if (RoleRegistry.plugins[myRoleInPhase.roleName]?.isAttacker) {
+                if (isAttacker) {
                     const myPreview = ctx.wolfPreviews[player.peerId];
                     if (myPreview && myPreview.target !== 'pass') actionPanel.preSelectedTarget = parseInt(myPreview.target);
                 } else {
@@ -384,7 +388,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                 }
 
                 if (hasActed) {
-                    actionPanel.prompt = (RoleRegistry.plugins[myRoleInPhase.roleName]?.isAttacker) ? "等待隊友決定。" : "行動已送出。";
+                    actionPanel.prompt = isAttacker ? "等待隊友決定。" : "行動已送出。";
                     actionPanel.buttons = []; actionPanel.deadline = null;
                 } else {
                     actionPanel.prompt = plugin.getPrompt(ctx, player.seatNumber);
