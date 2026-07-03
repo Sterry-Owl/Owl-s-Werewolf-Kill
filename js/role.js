@@ -95,13 +95,6 @@ RoleRegistry.register("狼人", {
     getPrompt: () => "選擇今晚的襲擊目標 (或選擇跳過以空刀)",
     getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
     getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
-    getPassTags: (ctx, mySeat) => {
-        let tags = [];
-        Object.values(ctx.wolfPreviews || {}).forEach(preview => {
-            if (String(preview.target) === 'pass' && preview.seat !== mySeat) tags.push(`${preview.seat}號`);
-        });
-        return tags;
-    },
     resolveNightAction: (ctx, actions) => {
         let validTargets = actions.filter(act => act.actionId !== 'pass' && act.targets.length > 0).map(act => act.targets[0]);
         if (validTargets.length === 0) return "空刀";
@@ -212,13 +205,6 @@ RoleRegistry.register("狼王", {
     getPrompt: () => "選擇今晚的襲擊目標 (或跳過以空刀)",
     getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
     getButtons: () => [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
-    getPassTags: (ctx, mySeat) => {
-        let tags = [];
-        Object.values(ctx.wolfPreviews || {}).forEach(preview => {
-            if (String(preview.target) === 'pass' && preview.seat !== mySeat) tags.push(`${preview.seat}號`);
-        });
-        return tags;
-    },
     resolveNightAction: (ctx, actions) => {
         let validTargets = actions.filter(act => act.actionId !== 'pass' && act.targets.length > 0).map(act => act.targets[0]);
         if (validTargets.length === 0) return "【空刀】";
@@ -353,30 +339,34 @@ RoleRegistry.register("石像鬼", {
     isAttacker: false,    
     nightPhase: ["first_half", "midnight"], 
     actionType: "dynamic_buttons",
-    getPrompt: (ctx, mySeat) => {
+    
+    // [新增] 行動權限合約：午夜階段若有狼同伴存活，則不需要行動
+    hasAction: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex];
-        if (step.phaseId === 'first_half') return "選擇今晚的揭示目標\n將揭示真實身分";
+        if (step.phaseId === 'first_half') return true;
         
         const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
-        if (otherWolves.length > 0) return "尚有狼人隊友存活。";
-        return "已無狼人隊友存活\n請選擇本夜襲擊目標。";
+        return otherWolves.length === 0; 
     },
+    
+    getPrompt: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex];
+        if (step.phaseId === 'first_half') return "選擇今晚的揭示目標";
+        return "已無其他狼人存活，請選擇襲擊目標。";
+    },
+    
     getSelectableSeats: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex];
         if (step.phaseId === 'first_half') return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
-        
-        const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
-        if (otherWolves.length > 0) return [];
         return ctx.getAlivePlayers().map(p => p.seatNumber);
     },
+    
     getButtons: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex];
-        if (step.phaseId === 'first_half') return [{ id: 'check', text: '揭示', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
-        
-        const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
-        if (otherWolves.length > 0) return [{ id: 'pass', text: '下一步', requiresTarget: false }];
+        if (step.phaseId === 'first_half') return [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
         return [{ id: 'kill', text: '襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
     },
+    
     resolveNightAction: (ctx, actions) => {
         const act = actions[0];
         if (!act || act.actionId === 'pass') return "跳過行動";
@@ -389,7 +379,7 @@ RoleRegistry.register("石像鬼", {
             act.player.data.seerRecords = act.player.data.seerRecords || {};
             act.player.data.seerRecords[target] = tPlayer.role; 
             act.player.data.latestCheckResult = { seat: target, alignment: tPlayer.role };
-            act.player.data.tempPrivateMessage = `${target}號玩家是【${tPlayer.role}】。`;
+            act.player.data.tempPrivateMessage = `${target}號玩家的身分是【${tPlayer.role}】。`;
             return `查驗: ${target}號`;
             
         } else if (step.phaseId === 'midnight' && act.actionId === 'kill') {
