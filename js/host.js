@@ -137,6 +137,7 @@ function setupEngineFlowControllers() {
         engineContext.nightCount++;
         engineContext.nightTags = { killed: [], poisoned: [], witchUsedSaveTonight: false };
         engineContext.wolfPreviews = {};
+        engineContext.cursedSeat = null;
         engineContext.players.forEach(p => p.data.latestCheckResult = null);
         
         const alive = engineContext.getAlivePlayers();
