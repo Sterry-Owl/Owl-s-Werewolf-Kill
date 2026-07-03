@@ -73,4 +73,6 @@ const ROLE_DICTIONARY = {
     "守衛": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚守護的目標" },
     "白狼王": { faction: "wolf", type: "wolf", nightPhase: "midnight", actionType: "consensus",prompt: "選擇今晚的襲擊目標 (或跳過以空刀)" },
     "騎士": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "天黑請閉眼" }
+    "守墓人": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "請確認資訊" },
+    "石像鬼": { faction: "wolf", type: "wolf", nightPhase: ["first_half", "midnight"], actionType: "dynamic_buttons", prompt: "石像鬼請行動" }
 };
