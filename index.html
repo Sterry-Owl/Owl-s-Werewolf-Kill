@@ -37,48 +37,50 @@
             <div id="host-status-log" class="system-log">等待遊戲開始...</div>
             
             <div id="host-setup-panel" class="section">
-                <h3>選擇遊戲版型</h3>
-                <select id="select-board-template"></select>
-                <p id="template-deck-preview" style="font-size: 14px; color: #aaa;"></p>
-                
-                <h3 style="margin-top:20px; border-bottom: 1px solid #444; padding-bottom: 10px;">遊戲規則設定</h3>
-                <div style="margin-bottom: 10px;">
-                    <label>女巫自救：</label>
-                    <select id="rule-witch-save">
-                        <option value="first_night">僅首夜可以自救</option>
-                        <option value="always">每晚皆可自救</option>
-                        <option value="never">全程不可自救</option>
-                    </select>
-                </div>
-                
-                <div style="margin-bottom: 10px;">
-                    <label>勝利條件：</label>
-                    <select id="rule-win-condition">
-                        <option value="kill_side">屠邊 (神職全滅 或 平民全滅)</option>
-                        <option value="kill_all">屠城 (好人陣營全滅)</option>
-                    </select>
-                </div>
-                
-                <div style="margin-bottom: 10px;">
-                    <label>放逐平票處置：</label>
-                    <select id="rule-tie-resolution">
-                        <option value="pk">PK 發言與投票</option>
-                        <option value="peace">直接平安日 (無人出局)</option>
-                    </select>
-                </div>
+        <!-- 版型選擇 -->
+        <h3 style="margin-bottom: 10px;">選擇遊戲版型</h3>
+        <div id="board-template-container" class="template-grid"></div>
+        <input type="hidden" id="select-board-template" value="">
 
-                <!-- [新增] 警長機制設定 -->
-                <div style="margin-bottom: 20px;">
-                    <label>警長機制：</label>
-                    <select id="rule-sheriff">
-                        <option value="enabled">開啟警長 (首日競選)</option>
-                        <option value="disabled">無警長</option>
-                    </select>
-                </div>
+        <div id="template-deck-preview" style="margin-bottom: 20px; font-size: 14px; color: #aaa;"></div>
 
-                <button id="btn-start-game" class="btn-success" style="width:100%; padding: 15px; font-size: 16px;">確認配置並發牌</button>
-            </div>
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
+        <h3 style="margin-bottom: 15px; font-size: 16px; color: #fff;">遊戲規則設定</h3>
 
+        <!-- 規則一：女巫自救 -->
+        <label>女巫自救：</label>
+        <div class="toggle-group" data-target="rule-witch-save">
+            <div class="toggle-option active" data-value="first_night" style="--active-bg: #fff3b0; --active-color: #000;">僅首夜可以自救</div>
+            <div class="toggle-option" data-value="never" style="--active-bg: #ffaa5e; --active-color: #000;">全程不可自救</div>
+        </div>
+        <input type="hidden" id="rule-witch-save" value="first_night">
+
+        <!-- 規則二：勝利條件 -->
+        <label>勝利條件：</label>
+        <div class="toggle-group" data-target="rule-win-condition">
+            <div class="toggle-option active" data-value="kill_side" style="--active-bg: var(--accent-red); --active-color: #fff;">屠邊 (神職全滅 或 平民全滅)</div>
+            <div class="toggle-option" data-value="kill_all" style="--active-bg: #991524; --active-color: #fff;">屠城 (好人陣營全滅)</div>
+        </div>
+        <input type="hidden" id="rule-win-condition" value="kill_side">
+
+        <!-- 規則三：放逐平票處置 -->
+        <label>放逐平票處置：</label>
+        <div class="toggle-group" data-target="rule-tie-resolution">
+            <div class="toggle-option active" data-value="pk" style="--active-bg: var(--accent-blue); --active-color: #fff;">PK 發言與投票</div>
+            <div class="toggle-option" data-value="peace" style="--active-bg: #555; --active-color: #fff;">平票無人出局</div>
+        </div>
+        <input type="hidden" id="rule-tie-resolution" value="pk">
+
+        <!-- 規則四：警長機制 -->
+        <label>警長機制：</label>
+        <div class="toggle-group" data-target="rule-sheriff">
+            <div class="toggle-option active" data-value="enabled" style="--active-bg: var(--sheriff-gold); --active-color: #000;">開啟警長 (首日競選)</div>
+            <div class="toggle-option" data-value="disabled" style="--active-bg: #555; --active-color: #fff;">關閉警長</div>
+        </div>
+        <input type="hidden" id="rule-sheriff" value="enabled">
+
+        <button id="btn-start-game" class="btn-success" style="width: 100%; margin-top: 10px;">確認配置並發牌</button>
+    </div>
             <div id="host-control-panel" class="hidden">
                 <div id="host-night-panel" class="section hidden">
                     <h3>夜間行動進度</h3>
