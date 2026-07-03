@@ -272,7 +272,7 @@ RoleRegistry.register("白狼王", {
                 if (ctx.sheriff.electionDay > 2) ctx.sheriff.badgeLost = true;
             }
 
-            ctx.systemLog = `${player.seatNumber} 號玩家(白狼王)自爆，\n並帶走了 ${targetSeat} 號玩家！天黑請閉眼。`;
+            ctx.systemLog = `${player.seatNumber} 號玩家是白狼王\n他擊殺了 ${targetSeat} 號玩家，天黑請閉眼。`;
             Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
 
             Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
@@ -292,7 +292,7 @@ RoleRegistry.register("騎士", {
         resolve: (ctx, player, targetSeat) => {
             const targetPlayer = ctx.getPlayer(targetSeat);
             player.isRevealed = true; // 騎士翻牌自證
-            ctx.systemLog = `【突發事件】\n${player.seatNumber} 號玩家(騎士)發起決鬥，\n目標是 ${targetSeat} 號玩家！`;
+            ctx.systemLog = `${player.seatNumber} 號玩家是騎士，向${targetSeat} 號玩家發起決鬥。`;
             Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
             const isWolf = ROLE_DICTIONARY[targetPlayer.role]?.faction === 'wolf';
             if (isWolf) {
@@ -331,19 +331,18 @@ RoleRegistry.register("守墓人", {
     canSelfExplode: false,
     nightPhase: "second_half",   
     actionType: "single_select", 
-    // [淨化] 拔除副作用，getPrompt 現在只是一面倒影，負責渲染文字
     getPrompt: (ctx) => {
         if (ctx.votedOutToday) {
             const target = ctx.getPlayer(ctx.votedOutToday);
             const isWolf = ROLE_DICTIONARY[target.role]?.faction === 'wolf';
             const alignment = isWolf ? '狼人' : '好人';
 
-            return `昨天白天被放逐的 ${ctx.votedOutToday} 號玩家是【${alignment}】。\n請點擊「了解」結束回合。`;
+            return `昨日${ctx.votedOutToday} 號被放逐\n他是【${alignment}】。`;
         }
-        return "昨天白天沒有人被放逐。\n請點擊「了解」結束回合。";
+        return "昨日無人被放逐。";
     },
-    getSelectableSeats: () => [], // 不需選人
-    getButtons: () => [{ id: 'confirm', text: '了解', requiresTarget: false }],
+    getSelectableSeats: () => [],
+    getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: false }],
     resolveNightAction: () => "確認資訊"
 });
 
@@ -356,11 +355,11 @@ RoleRegistry.register("石像鬼", {
     actionType: "dynamic_buttons",
     getPrompt: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex];
-        if (step.phaseId === 'first_half') return "選擇今晚的查驗目標\n(將得知該玩家具體身分)";
+        if (step.phaseId === 'first_half') return "選擇今晚的揭示目標\n將揭示真實身分";
         
         const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
-        if (otherWolves.length > 0) return "狼同伴存活，無法操刀。";
-        return "狼同伴已全數陣亡，請選擇襲擊目標。";
+        if (otherWolves.length > 0) return "尚有狼人隊友存活。";
+        return "已無狼人隊友存活\n請選擇本夜襲擊目標。";
     },
     getSelectableSeats: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex];
@@ -372,10 +371,10 @@ RoleRegistry.register("石像鬼", {
     },
     getButtons: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex];
-        if (step.phaseId === 'first_half') return [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
+        if (step.phaseId === 'first_half') return [{ id: 'check', text: '揭示', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
         
         const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
-        if (otherWolves.length > 0) return [{ id: 'pass', text: '跳過 (狼同伴操刀)', requiresTarget: false }];
+        if (otherWolves.length > 0) return [{ id: 'pass', text: '下一步', requiresTarget: false }];
         return [{ id: 'kill', text: '襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
     },
     resolveNightAction: (ctx, actions) => {
@@ -390,7 +389,7 @@ RoleRegistry.register("石像鬼", {
             act.player.data.seerRecords = act.player.data.seerRecords || {};
             act.player.data.seerRecords[target] = tPlayer.role; 
             act.player.data.latestCheckResult = { seat: target, alignment: tPlayer.role };
-            act.player.data.tempPrivateMessage = `${target}號玩家的身分是【${tPlayer.role}】。`;
+            act.player.data.tempPrivateMessage = `${target}號玩家是【${tPlayer.role}】。`;
             return `查驗: ${target}號`;
             
         } else if (step.phaseId === 'midnight' && act.actionId === 'kill') {
