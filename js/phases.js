@@ -301,9 +301,9 @@ stateMachine.registerPhase('HUNTER_ACTION', {
 
         if (!isTie && finalTarget) {
             const tPlayer = ctx.getPlayer(finalTarget);
-            // [關鍵修復] 傳入 ctx
             tPlayer.kill('voted', ctx); 
-            ctx.lastWordsTargets = [finalTarget]; 
+            ctx.lastWordsTargets = [finalTarget];
+            ctx.votedOutToday = finalTarget;
         }
         
         ctx.currentVoteResultString = `${header}\n${resultLines.join('\n')}`;
