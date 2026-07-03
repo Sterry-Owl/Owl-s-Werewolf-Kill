@@ -180,10 +180,16 @@ RoleRegistry.register("預言家", {
             const isWolf = (tPlayer.role && ROLE_DICTIONARY[tPlayer.role]?.faction === 'wolf');
             let alignment = isWolf ? "狼人" : "好人";
             
-            // [乾淨架構] 讀取目標角色的自定義標籤，判斷是否覆寫查驗結果 (如：隱狼)
+            // [乾淨架構] 支援靜態與動態的偽裝標籤判讀
             const pluginDef = RoleRegistry.plugins[tPlayer.role];
-            if (pluginDef && pluginDef.seenBySeerAsGood) {
-                alignment = "好人";
+            if (pluginDef) {
+                const isCamouflaged = typeof pluginDef.seenBySeerAsGood === 'function' 
+                    ? pluginDef.seenBySeerAsGood(ctx, target) 
+                    : pluginDef.seenBySeerAsGood;
+                
+                if (isCamouflaged) {
+                    alignment = "好人";
+                }
             }
             act.player.data.seerRecords = act.player.data.seerRecords || {};
             act.player.data.seerRecords[target] = alignment;
@@ -399,7 +405,10 @@ RoleRegistry.register("隱狼", {
     canSeeWolves: true,
     seenAsWolf: false,
     isAttacker: false,
-    seenBySeerAsGood: true, // [屬性標籤] 完美騙過預言家
+    seenBySeerAsGood: (ctx, mySeat) => {
+        const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
+        return otherWolves.length > 0;
+    },
     nightPhase: "midnight",      
     actionType: "single_select", 
     
