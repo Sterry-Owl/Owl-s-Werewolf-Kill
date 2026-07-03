@@ -29,7 +29,21 @@ initPassives: function(ctx) {
             return finalKilled;
         });
     }
+    Engine.EventBus.on('START_NIGHT', () => {
+        if (ctx.votedOutToday) {
+            const target = ctx.getPlayer(ctx.votedOutToday);
+            const isWolf = ROLE_DICTIONARY[target.role]?.faction === 'wolf';
+            const alignment = isWolf ? '狼人' : '好人';
 
+            ctx.players.forEach(p => {
+                if (p.role === '守墓人' && !p.isDead) {
+                    p.data.seerRecords = p.data.seerRecords || {};
+                    p.data.seerRecords[ctx.votedOutToday] = alignment;
+                    p.data.latestCheckResult = { seat: ctx.votedOutToday, alignment: alignment };
+                }
+            });
+        }
+    });
     Engine.EventBus.on('PLAYER_DIED', ({ context, player, reason }) => {
         if (player.role === '獵人' && reason !== 'poisoned') {
             context.pendingHunter = player.seatNumber; 
@@ -317,16 +331,12 @@ RoleRegistry.register("守墓人", {
     canSelfExplode: false,
     nightPhase: "second_half",   
     actionType: "single_select", 
-    getPrompt: (ctx, mySeat) => {
-        const player = ctx.getPlayer(mySeat);
+    // [淨化] 拔除副作用，getPrompt 現在只是一面倒影，負責渲染文字
+    getPrompt: (ctx) => {
         if (ctx.votedOutToday) {
             const target = ctx.getPlayer(ctx.votedOutToday);
             const isWolf = ROLE_DICTIONARY[target.role]?.faction === 'wolf';
             const alignment = isWolf ? '狼人' : '好人';
-            
-            player.data.seerRecords = player.data.seerRecords || {};
-            player.data.seerRecords[ctx.votedOutToday] = alignment;
-            player.data.latestCheckResult = { seat: ctx.votedOutToday, alignment: alignment };
 
             return `昨天白天被放逐的 ${ctx.votedOutToday} 號玩家是【${alignment}】。\n請點擊「了解」結束回合。`;
         }
