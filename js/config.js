@@ -54,7 +54,7 @@ const BOARD_TEMPLATES = [
     { id: "test_3-6", name: "6人 白狼王騎士(測試)", playerCount: 6, deck: ["預言家", "騎士", "白狼王", "狼人", "平民", "平民"] },
     { id: "test_4-6", name: "6人 石像鬼守墓人(測試)", playerCount: 6, deck: ["預言家", "守墓人", "石像鬼", "狼人", "平民", "平民"] },  
     { id: "survivortwo_7", name: "7人 生還者(雙狼王)", playerCount: 6, deck: ["預言家", "守衛", "女巫", "獵人", "狼王", "狼王", "平民"] },
-    { id: "survivortwo_7", name: "7人 生還者(標準)", playerCount: 6, deck: ["預言家", "守衛", "女巫", "獵人", "白狼王", "狼人", "平民"] },    
+    { id: "survivorstd_7", name: "7人 生還者(標準)", playerCount: 6, deck: ["預言家", "守衛", "女巫", "獵人", "白狼王", "狼人", "平民"] },    
     { id: "lastday_8", name: "8人 末日狂徒", playerCount: 6, deck: ["預言家", "守衛", "獵人", "狼人", "狼人", "狼人", "平民", "平民"] },       
     { id: "standard_9", name: "9人 標準局", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "standard_10", name: "10人 標準局", playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
