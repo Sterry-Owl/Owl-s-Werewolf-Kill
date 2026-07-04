@@ -191,32 +191,26 @@ function setupEngineFlowControllers() {
     Engine.EventBus.on('DAWN_ANNOUNCE', () => {
         engineContext.deadThisNight = [];
         engineContext.hunterDiedThisNight = false;
-
-        // [新架構] 收集黑夜標籤，準備交給過濾器運算
         const calculation = {
             killed: [...engineContext.nightTags.killed],
             poisoned: [...engineContext.nightTags.poisoned],
             saved: engineContext.witchState?.savedSeat ? [engineContext.witchState.savedSeat] : [],
-            guarded: engineContext.guardedSeat ? [engineContext.guardedSeat] : []
+            guarded: engineContext.guardedSeat ? [engineContext.guardedSeat] : [],
+            dreamed: engineContext.dreamedSeat ? [engineContext.dreamedSeat] : [],
+            lastDreamed: engineContext.lastDreamedSeat ? [engineContext.lastDreamedSeat] : []
         };
 
-        // 呼叫過濾器，由 role.js 裡的守衛/女巫插件去算「同守同救」
-        const finalKilledList = engineContext.applyFilter('DAWN_DEATH_EVALUATION', calculation);
-
-        // 最終死亡判定執行
+        const deathMap = engineContext.applyFilter('DAWN_DEATH_EVALUATION', calculation);
         engineContext.players.forEach(p => {
             if (p.isDead) return;
             
-            const isKilled = finalKilledList.includes(p.seatNumber);
-            const isPoisoned = engineContext.nightTags.poisoned.includes(p.seatNumber); // 毒藥強制致死，不進入守衛過濾
-
-            if (isKilled || isPoisoned) {
-                p.kill(isPoisoned ? 'poisoned' : 'killed', engineContext);
+            const reason = deathMap[p.seatNumber];
+            if (reason) {
+                p.kill(reason, engineContext);
                 engineContext.deadThisNight.push(p.seatNumber);
             }
         });
-        
-        // 清理昨晚標籤
+
         engineContext.nightTags.killed = [];
         engineContext.nightTags.poisoned = [];
         engineContext.guardedSeat = null; 
