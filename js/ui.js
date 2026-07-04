@@ -201,6 +201,7 @@ const UI = {
                 if (p.sideTag === '銀水') colorClass = 'tag-silver';
                 else if (p.sideTag === '好人') colorClass = 'tag-gold';
                 else if (p.sideTag === '狼人') colorClass = 'tag-red';
+                else if (p.sideTag === '暗戀對象') colorClass = 'tag-pink';
 
                 tagsHtml += `<div class="side-tag ${alignClass} ${colorClass}">${p.sideTag}</div>`;
             }
