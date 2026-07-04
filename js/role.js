@@ -604,17 +604,15 @@ RoleRegistry.register("攝夢人", {
     }
 });
 RoleRegistry.register("暗戀者", {
-    faction: "good",       // 系統底層將其視為好人/平民
+    faction: "good",
     type: "villager",      
     nightPhase: "first_half", 
     actionType: "single_select",
-    
-    // [生命週期控管] 只有第一天晚上會提示選擇，之後皆為安眠狀態
+
     getPrompt: (ctx) => (ctx.dayCount === 1 && !ctx.crushTarget) 
         ? "選擇你的暗戀對象 (僅首夜可使用，不可選擇自己)" 
         : "你已經有暗戀對象了，今晚好好休息。",
-    
-    // [狀態過濾] 非首夜回傳空陣列，引擎會自動跳過此角色
+
     getSelectableSeats: (ctx, mySeat) => {
         if (ctx.dayCount === 1 && !ctx.crushTarget) {
             return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
@@ -630,7 +628,6 @@ RoleRegistry.register("暗戀者", {
     },
     
     resolveNightAction: (ctx, actions, mySeat) => {
-        // 安全防護：避免斷線重連或異常封包導致重複暗戀
         if (ctx.dayCount > 1 || ctx.crushTarget) return "【無效行動】";
         
         let target;
@@ -639,13 +636,11 @@ RoleRegistry.register("暗戀者", {
         if (act && act.targets && act.targets.length > 0) {
             target = act.targets[0];
         } else {
-            // [逾時防護] 強制隨機指派，保證暗戀者必定擁有目標
             const selectable = ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
             if (selectable.length > 0) target = selectable[Math.floor(Math.random() * selectable.length)];
         }
         
         if (target) {
-            // [單一真相來源] 將暗戀關係寫入全域上下文
             ctx.crushTarget = parseInt(target);
             ctx.admirerSeat = mySeat; 
             return `【暗戀: ${target}號】`;
