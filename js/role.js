@@ -44,10 +44,11 @@ initPassives: function(ctx) {
         }
     });
     Engine.EventBus.on('PLAYER_DIED', ({ context, player, reason }) => {
-        if (player.role === '獵人' && reason !== 'poisoned') {
+        const canShootReasons = ['killed', 'voted', 'shot'];
+        if (player.role === '獵人' && canShootReasons.includes(reason)) {
             context.pendingHunter = player.seatNumber; 
         }
-        if (player.role === '狼王' && reason !== 'poisoned' && reason !== 'explode' && reason !== 'dueled') {
+        if (player.role === '狼王' && canShootReasons.includes(reason)) {
             context.pendingWolfKing = player.seatNumber;
         }
 
