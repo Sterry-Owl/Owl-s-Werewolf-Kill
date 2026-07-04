@@ -139,6 +139,8 @@ function setupEngineFlowControllers() {
         engineContext.wolfPreviews = {};
         engineContext.cursedSeat = null; 
         engineContext.fearedSeat = null;
+        engineContext.lastDreamedSeat = engineContext.dreamedSeat || null;
+        engineContext.dreamedSeat = null;
         engineContext.players.forEach(p => p.data.latestCheckResult = null);
         
         const alive = engineContext.getAlivePlayers();
