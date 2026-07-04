@@ -11,17 +11,33 @@ initPassives: function(ctx) {
     // [新增] 註冊天亮結算的過濾器邏輯
     if (ctx) {
         ctx.addFilter('DAWN_DEATH_EVALUATION', (calc) => {
-            let finalKilled = [];
-            calc.killed.forEach(targetSeat => {
-                const isGuarded = calc.guarded.includes(targetSeat);
-                const isSaved = calc.saved.includes(targetSeat);
+            let deathMap = {};
+            let allTargets = new Set([...calc.killed, ...calc.poisoned, ...calc.dreamed]);
 
-                // 邏輯合併：同守同救或皆未發生時，目標死亡
-                if ((isGuarded && isSaved) || (!isGuarded && !isSaved)) {
-                    finalKilled.push(targetSeat);
+            allTargets.forEach(targetSeat => {
+                if (calc.dreamed.includes(targetSeat)) {
+                    if (calc.lastDreamed.includes(targetSeat)) deathMap[targetSeat] = 'doubledreamed';
+                    return; 
+                }
+                if (calc.poisoned.includes(targetSeat)) {
+                    deathMap[targetSeat] = 'poisoned';
+                    return; 
+                }
+                if (calc.killed.includes(targetSeat)) {
+                    const isGuarded = calc.guarded.includes(targetSeat);
+                    const isSaved = calc.saved.includes(targetSeat);
+                    if ((isGuarded && isSaved) || (!isGuarded && !isSaved)) {
+                        deathMap[targetSeat] = 'killed'; 
+                    }
                 }
             });
-            return finalKilled;
+            const dwPlayer = ctx.players.find(p => p.role === '攝夢人' && !p.isDead);
+            if (dwPlayer && deathMap[dwPlayer.seatNumber]) {
+                if (ctx.dreamedSeat) {
+                    deathMap[ctx.dreamedSeat] = 'doubledreamed'; 
+                }
+            }
+            return deathMap;
         });
         ctx.addFilter('NIGHT_ACTION_PERMISSION', (canAct, args) => {
             if (args.context.fearedSeat === args.player.seatNumber) return false;
@@ -553,5 +569,37 @@ RoleRegistry.register("狼美人", {
             ctx.charmedSeat = target; // 覆寫魅惑標籤
             return `【魅惑: ${target}號】`;
         }
+    }
+});
+RoleRegistry.register("攝夢人", {
+    canSelfExplode: false,
+    nightPhase: "second_half", 
+    actionType: "single_select",
+    getPrompt: () => "選擇今晚的攝夢目標 (不可選擇自己，不可跳過)",
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+    getButtons: () => [{ id: 'dream', text: '攝夢', requiresTarget: true }], 
+    resolveNightAction: (ctx, actions) => {
+        let target;
+        const act = actions.find(a => a.actionId !== 'pass');
+        
+        if (act && act.targets && act.targets.length > 0) {
+            target = act.targets[0];
+        } else {
+            // [逾時防護] 若時間耗盡，系統自動代發的空操作將被攔截，改為亂數指派
+            const swPlayer = ctx.players.find(p => p.role === '攝夢人' && !p.isDead);
+            if (!swPlayer) return "【無效行動，隨機選擇】";
+            
+            const selectable = ctx.getAlivePlayers().filter(p => p.seatNumber !== swPlayer.seatNumber).map(p => p.seatNumber);
+            if (selectable.length > 0) {
+                target = selectable[Math.floor(Math.random() * selectable.length)];
+            }
+        }
+        
+        if (target) {
+            ctx.dreamedSeat = parseInt(target);
+            return `【攝夢: ${target}號】`;
+        }
+        
+        return "【行動失敗】";
     }
 });
