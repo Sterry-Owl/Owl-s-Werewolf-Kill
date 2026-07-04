@@ -329,8 +329,8 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         
         if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber]; 
         else if (player.role === '女巫' && ctx.witchState?.savedSeat === p.seatNumber) sideTag = "銀水"; 
+        else if (player.role === '暗戀者' && ctx.crushTarget === p.seatNumber) sideTag = "暗戀對象";
 
-        // [正確的位置] 狼人互相看到的預覽標籤 (石像鬼看不見)
         if (ctx.phase === 'NIGHT_ACTION' && RoleRegistry.plugins[player.role]?.canSeeWolves) {
             Object.values(ctx.wolfPreviews || {}).forEach(preview => {
                 if (String(preview.target) === String(p.seatNumber) && preview.seat !== player.seatNumber) {
