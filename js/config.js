@@ -57,6 +57,7 @@ const BOARD_TEMPLATES = [
     { id: "test-5_6", name: "6人 隱狼烏鴉(測試)", category: 'test', playerCount: 6, deck: ["預言家", "烏鴉", "隱狼", "狼人", "平民", "平民"] },
     { id: "test-7_6", name: "6人 狼美人騎士(測試)", category: 'test', playerCount: 6, deck: ["預言家", "騎士", "狼美人", "狼人", "平民", "平民"] },
     { id: "test-8_6", name: "6人 夢魘攝夢人(測試)", category: 'test', playerCount: 6, deck: ["女巫", "攝夢人", "噩夢之影", "狼人", "平民", "平民"] },
+    { id: "test-9_6", name: "6人 暗戀者(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "平民", "暗戀者"] },
     { id: "survivortwo_7", name: "7人 生還者(雙狼王測試)", category: 'test', playerCount: 7, deck: ["預言家", "守衛", "女巫", "獵人", "狼王", "狼王", "平民"] },
     { id: "survivorstd_7", name: "7人 生還者(標準)", category: 'fun', playerCount: 7, deck: ["預言家", "守衛", "女巫", "獵人", "白狼王", "狼人", "平民"] },
     { id: "noeye_8", name: "8人 無目之夜", category: 'fun', playerCount: 8, deck: ["預言家", "女巫", "獵人", "平民", "平民", "狼人", "隱狼", "石像鬼"] },
@@ -65,6 +66,7 @@ const BOARD_TEMPLATES = [
     { id: "standard_10", name: "10人 標準局", category: 'standard', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "inw_cl_10", name: "10人 隱狼烏鴉", category: 'standard', playerCount: 10, deck: ["預言家", "女巫", "烏鴉", "隱狼", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wwk_kn_10", name: "10人 白狼王騎士", category: 'standard', playerCount: 10, deck: ["預言家", "女巫", "騎士", "白狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "crush_10", name: "10人 暗戀者", category: 'standard', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "暗戀者"] },
     { id: "lastday_11", name: "11人 末日狂徒", category: 'fun', playerCount: 11, deck: ["預言家", "守墓人", "騎士", "守衛", "石像鬼", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "standard_12", name: "12人 標準局", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_grd_12", name: "12人 狼王守衛", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
@@ -77,6 +79,7 @@ const BOARD_TEMPLATES = [
 
 const ROLE_DICTIONARY = {
     "平民": { faction: "good", type: "villager", nightPhase: "none", actionType: "none", prompt: "" },
+    "暗戀者": { faction: "good", type: "villager", nightPhase: "none", actionType: "none", prompt: "選擇你的暗戀對象" },
     "獵人": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "" },
     "白痴": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "" },
     "狼人": { faction: "wolf", type: "wolf", nightPhase: "midnight", actionType: "consensus", prompt: "選擇今晚的襲擊目標\n(或跳過以空刀)" },
