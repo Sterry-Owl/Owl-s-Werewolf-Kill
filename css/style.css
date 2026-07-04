@@ -209,8 +209,29 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 
 .player-seat:hover:not(.locked):not(.dead) .seat-img-wrapper { border-color: var(--accent-blue); }
-.player-seat.dead { opacity: 0.4; filter: grayscale(100%); cursor: not-allowed; }
-.player-seat.dead::after { content: '✖'; position: absolute; font-size: 32px; color: var(--accent-red); z-index: 10; top: -5px; left: 50%; transform: translateX(-50%); }
+/* 1. 取消父容器的濾鏡與透明度，阻斷子元素(紅色叉號)的灰階繼承 */
+.player-seat.dead { 
+    cursor: not-allowed; 
+}
+
+/* 2. 將灰階與透明度精確限制在頭像容器上 */
+.player-seat.dead .seat-img-wrapper { 
+    opacity: 0.4; 
+    filter: grayscale(100%); 
+}
+
+/* 3. 叉號獨立定位於父層，根據 seat-img-wrapper 的 42px 高度，設定 top: 21px 達成絕對幾何中心 */
+.player-seat.dead::after { 
+    content: '✖'; 
+    position: absolute; 
+    font-size: 32px; 
+    color: var(--accent-red); 
+    z-index: 20; 
+    top: 21px; 
+    left: 50%; 
+    transform: translate(-50%, -50%); 
+    pointer-events: none; 
+}
 
 .player-name { margin-top: 4px; font-size: 11px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); white-space: nowrap; text-align: center; overflow: hidden; text-overflow: ellipsis; width: 60px; }
 
