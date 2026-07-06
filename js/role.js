@@ -190,32 +190,63 @@ RoleRegistry.register("女巫", {
     }
 });
 
+function resolveSeerCheck(ctx, target, isShadow) {
+    const tPlayer = ctx.getPlayer(target);
+    const isWolf = (tPlayer.role && ROLE_DICTIONARY[tPlayer.role]?.faction === 'wolf');
+    let trueAlignment = isWolf ? "狼人" : "好人";
+    
+    // 繼承隱狼等偽裝標籤的判定
+    const pluginDef = RoleRegistry.plugins[tPlayer.role];
+    if (pluginDef) {
+        const isCamouflaged = typeof pluginDef.seenBySeerAsGood === 'function' 
+            ? pluginDef.seenBySeerAsGood(ctx, target) 
+            : pluginDef.seenBySeerAsGood;
+        if (isCamouflaged) trueAlignment = "好人";
+    }
+
+    // 若為燈影預言家 (isShadow = true)，直接將最終結果反轉
+    return isShadow ? (trueAlignment === "狼人" ? "好人" : "狼人") : trueAlignment;
+}
+
 RoleRegistry.register("預言家", {
     canSelfExplode: false,
     nightPhase: "second_half",   
     actionType: "single_select",
     getPrompt: () => "選擇今晚的查驗目標",
-    getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
+    // [機制更新] 過濾 mySeat，不可查驗自己
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
         const act = actions[0];
         if (!act) return "【跳過行動】";
         const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
         if (act.actionId === 'confirm' && target) {
-            const tPlayer = ctx.getPlayer(target);
-            const isWolf = (tPlayer.role && ROLE_DICTIONARY[tPlayer.role]?.faction === 'wolf');
-            let alignment = isWolf ? "狼人" : "好人";
-            
-            const pluginDef = RoleRegistry.plugins[tPlayer.role];
-            if (pluginDef) {
-                const isCamouflaged = typeof pluginDef.seenBySeerAsGood === 'function' 
-                    ? pluginDef.seenBySeerAsGood(ctx, target) 
-                    : pluginDef.seenBySeerAsGood;
-                
-                if (isCamouflaged) {
-                    alignment = "好人";
-                }
-            }
+            const alignment = resolveSeerCheck(ctx, target, false); // 傳入 false 代表真預言家
+            act.player.data.seerRecords = act.player.data.seerRecords || {};
+            act.player.data.seerRecords[target] = alignment;
+            act.player.data.latestCheckResult = { seat: target, alignment: alignment };
+            act.player.data.tempPrivateMessage = `${target}號玩家是【${alignment}】。`;
+            return `查驗: ${target}號`;
+        }
+        return "跳過行動";
+    }
+});
+
+// [新增角色] 燈影預言家
+RoleRegistry.register("燈影預言家", {
+    canSelfExplode: false,
+    nightPhase: "second_half",   
+    actionType: "single_select",
+    getPrompt: () => "選擇今晚的查驗目標",
+    // [機制更新] 同樣不可查驗自己
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+    getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act) return "【跳過行動】";
+        const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
+        if (act.actionId === 'confirm' && target) {
+            const alignment = resolveSeerCheck(ctx, target, true); // 傳入 true 代表燈影預言家，結果將反轉
             act.player.data.seerRecords = act.player.data.seerRecords || {};
             act.player.data.seerRecords[target] = alignment;
             act.player.data.latestCheckResult = { seat: target, alignment: alignment };
