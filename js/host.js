@@ -463,6 +463,11 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     // ==========================================
     // 3. 打包回傳封包給前端渲染
     // ==========================================
+    const roleCounts = {};
+    ctx.players.forEach(p => { 
+        if (p.role) roleCounts[p.role] = (roleCounts[p.role] || 0) + 1; 
+    });
+    const deckArr = Object.entries(roleCounts).map(([r, c]) => `${r} x${c}`);
     return {
         boardName: ctx.boardName, phase: ctx.phase, 
         nightStepIndex: ctx.currentNightStepIndex,
