@@ -43,7 +43,56 @@ const UI = {
             }
             boardNameEl.textContent = state.boardName || '';
         }
+        const roleNameEl = document.getElementById('player-role-name');
+        let detailsBtn = document.getElementById('btn-board-details');
+        let detailsPanel = document.getElementById('board-details-panel');
 
+        // 1. 初始化 DOM 結構與事件 (保證生命週期內只執行一次)
+        if (roleNameEl && !detailsBtn) {
+            const parent = roleNameEl.parentElement;
+            if (parent) {
+                parent.innerHTML = ''; // 清空原本的 "身分：XXX"
+                
+                // 建立按鈕
+                detailsBtn = document.createElement('span');
+                detailsBtn.id = 'btn-board-details';
+                detailsBtn.className = 'btn-board-details';
+                detailsBtn.textContent = '版型詳情 ℹ️';
+                parent.appendChild(detailsBtn);
+
+                // 建立面板
+                detailsPanel = document.createElement('div');
+                detailsPanel.id = 'board-details-panel';
+                detailsPanel.className = 'board-details-panel';
+                document.body.appendChild(detailsPanel);
+
+                // 綁定事件 (僅綁定一次，防止 Memory Leak)
+                detailsBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    detailsPanel.style.display = detailsPanel.style.display === 'none' ? 'block' : 'none';
+                });
+                document.addEventListener('click', (e) => {
+                    if (e.target.id !== 'btn-board-details' && !detailsPanel.contains(e.target)) {
+                        detailsPanel.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        // 2. 僅更新資料內容 (每次狀態同步時觸發，不破壞 DOM)
+        if (detailsPanel && state.boardDetails) {
+            const rules = state.boardDetails.rules;
+            const wMap = { 'first_night': '僅首夜可自救', 'never': '全程不可自救', 'always': '全程可自救' };
+            const winMap = { 'kill_side': '屠邊', 'kill_all': '屠城' };
+            const tieMap = { 'pk': 'PK發言', 'vote': '直接出局' };
+            const sMap = { 'enabled': '開啟', 'disabled': '關閉' };
+            
+            const ruleStr = Object.keys(rules).length > 0 
+                ? `女巫解藥：${wMap[rules.witchSave] || rules.witchSave}\n平票處理：${tieMap[rules.tieResolution] || rules.tieResolution}\n警長機制：${sMap[rules.sheriff] || rules.sheriff}\n勝利條件：${winMap[rules.winCondition] || rules.winCondition}`
+                : `設定載入中...`;
+
+            detailsPanel.textContent = `【版型配置】\n${state.boardDetails.deckString}\n\n【房間規則】\n${ruleStr}`;
+        }
         const btnExplode = document.getElementById('btn-self-explode');
         if (btnExplode) {
             btnExplode.textContent = ''; 
