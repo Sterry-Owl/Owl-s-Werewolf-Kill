@@ -114,9 +114,11 @@ RoleRegistry.register("狼人", {
     nightPhase: "midnight",      
     actionType: "consensus",     
     getPrompt: () => "選擇今晚的襲擊目標 (或選擇跳過以空刀)",
-    getSelectableSeats: (ctx) => ctx.getAlivePlayers()
-        .filter(p => !RoleRegistry.plugins[p.role]?.immuneToWolfKill)
-        .map(p => p.seatNumber),
+    getSelectableSeats: (ctx, mySeat) => {
+        return ctx.getAlivePlayers()
+            .filter(p => !RoleRegistry.plugins[p.role]?.immuneToWolfBite)
+            .map(p => p.seatNumber);
+    },
     getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
         let validTargets = actions.filter(act => act.actionId !== 'pass' && act.targets.length > 0).map(act => act.targets[0]);
@@ -194,6 +196,7 @@ RoleRegistry.register("預言家", {
     canSelfExplode: false,
     nightPhase: "second_half",   
     actionType: "single_select",
+    isSeer: true,
     getPrompt: () => "選擇今晚的查驗目標",
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
@@ -227,6 +230,7 @@ RoleRegistry.register("燈影預言家", {
     canSelfExplode: false,
     nightPhase: "second_half",   
     actionType: "single_select",
+    isSeer: true,
     getPrompt: () => "選擇今晚的查驗目標",
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
@@ -510,6 +514,7 @@ RoleRegistry.register("噩夢之影", {
     canSelfExplode: true,
     canSeeWolves: true,
     seenAsWolf: true,
+    immuneToWolfBite: true
     
     nightPhase: ["first_half", "midnight"], 
 
@@ -680,4 +685,17 @@ RoleRegistry.register("暗戀者", {
         
         return "【行動失敗】";
     }
+});
+RoleRegistry.register("惡靈騎士", {
+    canSelfExplode: false, 
+    canSeeWolves: true,
+    seenAsWolf: true,
+    isAttacker: true,
+    immuneToWolfBite: true, 
+    nightPhase: "midnight",      
+    actionType: "consensus",     
+    getPrompt: () => "選擇今晚的襲擊目標\n(或跳過以空刀)",
+    getSelectableSeats: RoleRegistry.plugins["狼人"].getSelectableSeats,
+    getButtons: RoleRegistry.plugins["狼人"].getButtons,
+    resolveNightAction: RoleRegistry.plugins["狼人"].resolveNightAction
 });
