@@ -80,6 +80,7 @@ const BOARD_TEMPLATES = [
 const ROLE_DICTIONARY = {
     "平民": { faction: "good", type: "villager", nightPhase: "none", actionType: "none", prompt: "" },
     "暗戀者": { faction: "good", type: "villager", nightPhase: "none", actionType: "none", prompt: "選擇你的暗戀對象" },
+    "燈影預言家": { faction: "good", type: "villager", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚的查驗目標" },
     "獵人": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "" },
     "白痴": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "" },
     "狼人": { faction: "wolf", type: "wolf", nightPhase: "midnight", actionType: "consensus", prompt: "選擇今晚的襲擊目標\n(或跳過以空刀)" },
