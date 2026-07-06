@@ -137,8 +137,11 @@ function setupEngineFlowControllers() {
         engineContext.nightCount++;
         engineContext.nightTags = { killed: [], poisoned: [], witchUsedSaveTonight: false };
         engineContext.wolfPreviews = {};
-        engineContext.cursedSeat = null; 
+        engineContext.cursedSeat = null;
+        engineContext.lastFearedSeat = engineContext.fearedSeat || null;
         engineContext.fearedSeat = null;
+        engineContext.lastCharmedSeat = engineContext.charmedSeat || null;
+        engineContext.charmedSeat = null;
         engineContext.lastDreamedSeat = engineContext.dreamedSeat || null;
         engineContext.dreamedSeat = null;
         engineContext.players.forEach(p => p.data.latestCheckResult = null);
