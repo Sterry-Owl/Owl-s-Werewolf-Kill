@@ -546,7 +546,7 @@ RoleRegistry.register("噩夢之影", {
     canSelfExplode: true,
     canSeeWolves: true,
     seenAsWolf: true,
-    immuneToWolfBite: true
+    immuneToWolfBite: true,
     
     nightPhase: ["first_half", "midnight"], 
 
@@ -596,7 +596,7 @@ RoleRegistry.register("狼美人", {
     canSelfExplode: false, 
     canSeeWolves: true,
     seenAsWolf: true,
-    immuneToWolfKill: true,
+    immuneToWolfBite: true,
     nightPhase: ["midnight", "second_half"], 
     
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
