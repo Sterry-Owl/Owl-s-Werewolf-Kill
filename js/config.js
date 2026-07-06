@@ -101,5 +101,6 @@ const ROLE_DICTIONARY = {
     "烏鴉": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚的咒詛對象" },
     "噩夢之影": { faction: "wolf", type: "wolf", nightPhase: ["first_half", "midnight"], actionType: "dynamic_buttons", prompt: "噩夢之影請行動" },
     "狼美人": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "dynamic_buttons", prompt: "狼美人請行動" },
-    "攝夢人": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚的攝夢目標" }
+    "攝夢人": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚的攝夢目標" },
+    "惡靈騎士": { faction: "wolf", type: "wolf", nightPhase: "midnight", actionType: "consensus", prompt: "選擇今晚的襲擊目標" },
 };
