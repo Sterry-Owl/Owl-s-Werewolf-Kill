@@ -479,7 +479,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
 }
 
 function getPhaseMessageForPlayer(phase) {
-    const dict = { 'NIGHT_TRANSITION': "天黑請閉眼...", 'NIGHT_ACTION': "夜間行動中...", 'SHERIFF_CANDIDACY': "登記上警意願...", 'SHERIFF_SPEECH': "警長發言中...", 'SHERIFF_VOTING': "警長投票...", 'SHERIFF_TRANSFER': "移交警徽中...", 'DAY_DISCUSSION': "白天發言階段。", 'DAY_VOTING': "放逐投票...", 'PK_SPEECH': "PK 發言...", 'PK_VOTING': "PK 投票...", 'VOTE_RESULT_DISPLAY': "展示投票結果...", 'LAST_WORDS': "遺言發表。", 'HUNTER_ACTION': "系統結算中...", 'WOLFKING_ACTION': "系統結算中...", 'GAME_OVER': "遊戲結束。" };
+    const dict = { 'NIGHT_TRANSITION': "天黑請閉眼...", 'NIGHT_ACTION': "夜間行動中...", 'SHERIFF_CANDIDACY': "登記上警意願...", 'SHERIFF_SPEECH': "警長發言中...", 'SHERIFF_VOTING': "警長投票...", 'SHERIFF_TRANSFER': "移交警徽中...", 'DAY_DISCUSSION': "白天發言階段。", 'DAY_VOTING': "放逐投票...", 'PK_SPEECH': "PK 發言...", 'PK_VOTING': "PK 投票...", 'VOTE_RESULT_DISPLAY': "展示投票結果...", 'LAST_WORDS': "遺言發表。", 'HUNTER_ACTION': "系統結算中...", 'WOLFKING_ACTION': "系統結算中...", 'GAME_OVER': engineContext ? engineContext.systemLog : "遊戲結束。"};
     return dict[phase] || "等待中...";
 }
 
