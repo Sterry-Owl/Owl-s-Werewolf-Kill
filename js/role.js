@@ -496,7 +496,9 @@ RoleRegistry.register("噩夢之影", {
         if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
             return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
         }
-        return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber); 
+        return ctx.getAlivePlayers()
+            .filter(p => p.seatNumber !== mySeat && p.seatNumber !== ctx.lastFearedSeat) 
+            .map(p => p.seatNumber); 
     },
     
     getButtons: (ctx, mySeat) => {
@@ -540,11 +542,12 @@ RoleRegistry.register("狼美人", {
     },
     
     getSelectableSeats: (ctx, mySeat) => {
-        // [乾淨架構：委派模式] 午夜選人邏輯，外包給普通狼人
         if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
             return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
         }
-        return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber); 
+        return ctx.getAlivePlayers()
+            .filter(p => p.seatNumber !== mySeat && p.seatNumber !== ctx.lastCharmedSeat) 
+            .map(p => p.seatNumber); 
     },
     
     getButtons: (ctx, mySeat) => {
