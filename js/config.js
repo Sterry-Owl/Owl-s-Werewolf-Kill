@@ -50,7 +50,10 @@ const PACKET_TYPE = {
 const BOARD_TEMPLATES = [
     { id: "quick-1_6", name: "6人 獵人局", category: 'quick', playerCount: 6, deck: ["預言家", "獵人", "狼人", "狼人", "平民", "平民"] },
     { id: "quick-2_6", name: "6人 女巫局", category: 'quick', playerCount: 6, deck: ["預言家", "女巫", "狼王", "狼人", "平民", "平民"] },
-    { id: "quick-3_6", name: "6人 守衛局", category: 'quick', playerCount: 6, deck: ["預言家", "守衛", "狼人", "狼人", "平民", "平民"] },    
+    { id: "quick-3_6", name: "6人 守衛局", category: 'quick', playerCount: 6, deck: ["預言家", "守衛", "狼人", "狼人", "平民", "平民"] },
+    { id: "gungun_6", name: "6人 獵殺潛狼", category: 'fun', playerCount: 6, deck: ["獵人", "獵人", "獵人", "獵人", "狼人", "狼人"] },
+    { id: "gungun_8", name: "8人 獵殺潛狼", category: 'fun', playerCount: 6, deck: ["獵人", "獵人", "獵人", "獵人", "獵人", "狼人", "狼人", "狼人"] },
+    { id: "gungun_10", name: "10人 獵殺潛狼", category: 'fun', playerCount: 6, deck: ["獵人", "獵人", "獵人", "獵人", "獵人", "獵人", "狼人", "狼人", "狼人"] },
     { id: "test-2_6", name: "6人 狼王守衛(測試)", category: 'test', playerCount: 6, deck: ["預言家", "守衛", "狼王", "狼人", "平民", "平民"] },
     { id: "test-3_6", name: "6人 白狼王騎士(測試)", category: 'test', playerCount: 6, deck: ["預言家", "騎士", "白狼王", "狼人", "平民", "平民"] },
     { id: "test-4_6", name: "6人 石像鬼守墓人(測試)", category: 'test', playerCount: 6, deck: ["預言家", "守墓人", "石像鬼", "狼人", "平民", "平民"] },
