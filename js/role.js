@@ -623,14 +623,14 @@ RoleRegistry.register("暗戀者", {
     },
     
     getButtons: (ctx) => {
-        if (ctx.dayCount === 1 && !ctx.crushTarget) {
+        if (ctx.nightCount === 1 && !ctx.crushTarget) {
             return [{ id: 'crush', text: '暗戀', requiresTarget: true }];
         }
         return [{ id: 'pass', text: '確認', requiresTarget: false }];
     },
     
     resolveNightAction: (ctx, actions, mySeat) => {
-        if (ctx.dayCount > 1 || ctx.crushTarget) return "【無效行動】";
+        if (ctx.nightCount > 1 || ctx.crushTarget) return "【無效行動】";
         
         let target;
         const act = actions.find(a => a.actionId === 'crush');
