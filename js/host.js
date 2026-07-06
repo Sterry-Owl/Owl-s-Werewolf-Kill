@@ -194,7 +194,7 @@ function setupEngineFlowControllers() {
     });
 
     Engine.EventBus.on('DAWN_ANNOUNCE', () => {
-        engineContext.deadThisNight = [];
+        const deadBefore = engineContext.players.filter(p => p.isDead).map(p => p.seatNumber);
         engineContext.hunterDiedThisNight = false;
         const calculation = {
             killed: [...engineContext.nightTags.killed],
@@ -206,15 +206,18 @@ function setupEngineFlowControllers() {
         };
 
         const deathMap = engineContext.applyFilter('DAWN_DEATH_EVALUATION', calculation);
+        
+        // [乾淨架構 2] 觸發死亡：若發生殉情，連鎖事件會在此迴圈執行期間同步改變目標狀態
         engineContext.players.forEach(p => {
-            if (p.isDead) return;
-            
-            const reason = deathMap[p.seatNumber];
-            if (reason) {
-                p.kill(reason, engineContext);
-                engineContext.deadThisNight.push(p.seatNumber);
+            if (!p.isDead && deathMap[p.seatNumber]) {
+                p.kill(deathMap[p.seatNumber], engineContext);
             }
         });
+
+        // [乾淨架構 3] 狀態比對：自動收集本次結算中所有轉為死亡的玩家（精準涵蓋被刀、被毒、殉情等所有死因）
+        engineContext.deadThisNight = engineContext.players
+            .filter(p => p.isDead && !deadBefore.includes(p.seatNumber))
+            .map(p => p.seatNumber);
 
         engineContext.nightTags.killed = [];
         engineContext.nightTags.poisoned = [];
