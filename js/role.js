@@ -8,7 +8,6 @@ window.RoleRegistry = {
     register: function(roleName, config) { this.plugins[roleName] = config; },
 
 initPassives: function(ctx) {
-    // [新增] 註冊天亮結算的過濾器邏輯
     if (ctx) {
         ctx.addFilter('DAWN_DEATH_EVALUATION', (calc) => {
             let deathMap = {};
@@ -612,12 +611,12 @@ RoleRegistry.register("暗戀者", {
     nightPhase: "first_half", 
     actionType: "single_select",
 
-    getPrompt: (ctx) => (ctx.dayCount === 1 && !ctx.crushTarget) 
+    getPrompt: (ctx) => (ctx.nightCount === 1 && !ctx.crushTarget) 
         ? "選擇你的暗戀對象 (僅首夜可使用，不可選擇自己)" 
         : "你已經有暗戀對象了，今晚好好休息。",
 
     getSelectableSeats: (ctx, mySeat) => {
-        if (ctx.dayCount === 1 && !ctx.crushTarget) {
+        if (ctx.nightCount === 1 && !ctx.crushTarget) {
             return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
         }
         return [];
