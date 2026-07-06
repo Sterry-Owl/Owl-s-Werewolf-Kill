@@ -69,14 +69,14 @@ initPassives: function(ctx) {
 
         if (player.role === '白痴' && reason === 'voted') {
             player.isRevealed = true;
-            Engine.EventBus.emit('BROADCAST_MESSAGE', `${player.seatNumber} 號玩家為白痴，進行翻牌。\n(已喪失投票與被指定權力，須移交警徽，但保留發言權)`);
+            Engine.EventBus.emit('BROADCAST_MESSAGE', `${player.seatNumber} 號玩家為白痴，進行翻牌。\n(視為已出局，但保留發言權)`);
         }
         if (player.role === '狼美人' && reason !== 'dueled') {
             if (context.charmedSeat) {
                 const target = context.getPlayer(context.charmedSeat);
                 if (target && !target.isDead) {
                     context.systemLog += `\n狼美人死亡，觸發殉情機制，帶走了 ${target.seatNumber} 號。`;
-                    Engine.EventBus.emit('BROADCAST_MESSAGE', `【突發事件】狼美人倒牌，魅惑鏈生效，${target.seatNumber} 號玩家隨之殉情！`);
+                    Engine.EventBus.emit('BROADCAST_MESSAGE', `【突發事件】狼美人倒牌，魅惑生效，${target.seatNumber} 號玩家隨之殉情！`);
                     target.kill('charmed', context);
                 }
             }
@@ -97,9 +97,9 @@ initPassives: function(ctx) {
         if (['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING'].includes(context.phase)) {
             context.sheriff.electionDay++;
             if (context.sheriff.electionDay > 2) context.sheriff.badgeLost = true;
-            context.systemLog = `${player.seatNumber} 號玩家自爆，\n警長選舉被中斷。`;
+            context.systemLog = `${player.seatNumber} 號玩家自爆\n警長選舉被中斷。`;
         } else {
-            context.systemLog = `${player.seatNumber} 號玩家選擇自爆，天黑請閉眼。`;
+            context.systemLog = `${player.seatNumber} 號玩家自爆\n天黑請閉眼。`;
         }
 
         Engine.EventBus.emit('CHECK_WIN_CONDITION', context);
@@ -174,9 +174,9 @@ RoleRegistry.register("女巫", {
                 ctx.nightTags.killed = []; 
                 ctx.nightTags.witchUsedSaveTonight = true;
                 ctx.witchState.antidoteUsed = true;
-                return "生，還是死，這是一個問題。";
+                return "使用解藥";
             }
-            return "生，還是死，這是一個問題。";
+            return "使用解藥";
         } else if (act.actionId === 'poison' && !ctx.witchState.poisonUsed && !ctx.nightTags?.witchUsedSaveTonight) {
         if (!ctx.witchState.antidoteUsed && ctx.nightTags?.killed?.length > 0 && target === ctx.nightTags.killed[0]) {
             return "解藥尚未使用時，不可毒殺被襲擊者。";
@@ -184,9 +184,9 @@ RoleRegistry.register("女巫", {
             if (target) {
                 ctx.nightTags.poisoned.push(target);
                 ctx.witchState.poisonUsed = true;
-                return `也許${target}號玩家的生命，就到此為止了。`;
+                return `毒殺${target}號玩家`;
             }
-            return "暫時，放過你們一天。";
+            return "跳過行動";
         }
         return "跳過行動";
     }
@@ -208,7 +208,6 @@ RoleRegistry.register("預言家", {
             const isWolf = (tPlayer.role && ROLE_DICTIONARY[tPlayer.role]?.faction === 'wolf');
             let alignment = isWolf ? "狼人" : "好人";
             
-            // [乾淨架構] 支援靜態與動態的偽裝標籤判讀
             const pluginDef = RoleRegistry.plugins[tPlayer.role];
             if (pluginDef) {
                 const isCamouflaged = typeof pluginDef.seenBySeerAsGood === 'function' 
