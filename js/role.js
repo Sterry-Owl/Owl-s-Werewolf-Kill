@@ -36,6 +36,38 @@ initPassives: function(ctx) {
                     deathMap[ctx.dreamedSeat] = 'doubledreamed'; 
                 }
             }
+            const gk = ctx.players.find(p => p.role === '惡靈騎士' && !p.isDead);
+                if (gk) {
+                    if (deathMap[gk.seatNumber]) {
+                        delete deathMap[gk.seatNumber];
+                    }
+                    if (!gk.data.hasReflected) {
+                        let hasTriggeredThisNight = false;
+                        ctx.players.forEach(p => {
+                            if (!p.isDead && p.data.latestCheckResult && p.data.latestCheckResult.seat === gk.seatNumber) {
+                                if (RoleRegistry.plugins[p.role]?.isSeer) { 
+                                    deathMap[p.seatNumber] = 'reflected'; 
+                                    ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：惡靈騎士反傷發動，擊殺 ${p.seatNumber} 號${p.role})`;
+                                    hasTriggeredThisNight = true;
+                                }
+                            }
+                        });
+                        if (!hasTriggeredThisNight) {
+                            const poisonedList = calc.poisoned || [];
+                            if (poisonedList.includes(gk.seatNumber)) {
+                                const witch = ctx.players.find(p => p.role === '女巫' && !p.isDead);
+                                if (witch) {
+                                    deathMap[witch.seatNumber] = 'reflected';
+                                    ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：惡靈騎士反傷發動，擊殺 ${witch.seatNumber} 號女巫)`;
+                                    hasTriggeredThisNight = true;
+                                }
+                            }
+                        }
+                        if (hasTriggeredThisNight) {
+                            gk.data.hasReflected = true;
+                        }
+                    }
+                }
             return deathMap;
         });
         ctx.addFilter('NIGHT_ACTION_PERMISSION', (canAct, args) => {
