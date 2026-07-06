@@ -75,8 +75,6 @@ initPassives: function(ctx) {
             if (context.charmedSeat) {
                 const target = context.getPlayer(context.charmedSeat);
                 if (target && !target.isDead) {
-                    context.systemLog += `\n狼美人死亡，觸發殉情機制，帶走了 ${target.seatNumber} 號。`;
-                    Engine.EventBus.emit('BROADCAST_MESSAGE', `【突發事件】狼美人倒牌，魅惑生效，${target.seatNumber} 號玩家隨之殉情！`);
                     target.kill('charmed', context);
                 }
             }
