@@ -27,9 +27,7 @@ const UI = {
 
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = [], showVoteHistory = false) {
         document.getElementById('player-seat-number').textContent = state.mySeat || '-';
-        if (state.myRole) {
-            document.getElementById('player-role-name').textContent = state.myRole;
-        }
+
 
         let headerEl = document.querySelector('.app-header');
         if (headerEl) {
