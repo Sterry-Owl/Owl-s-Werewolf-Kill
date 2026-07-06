@@ -132,8 +132,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .floating-btn:active { transform: scale(0.9); }
 .floating-btn.red { left: 15px; background-image: url('../img/btn-explode.png'); }
 .floating-btn.yellow { right: 15px; background-image: url('../img/btn-history.png'); }
-/* [新增] 退水按鈕 (藍色)，放在票型紀錄上方 */
-.floating-btn.blue { right: 15px; bottom: 85px; background-image: url('../img/btn-bailout.png'); }
+.floating-btn.blue { right: 85px; bottom: 20px; background-image: url('../img/btn-bailout.png'); }
 
 /* ==================================================== */
 /* 座位與標籤重構 */
