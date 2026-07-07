@@ -731,3 +731,35 @@ RoleRegistry.register("惡靈騎士", {
     getButtons: RoleRegistry.plugins["狼人"].getButtons,
     resolveNightAction: RoleRegistry.plugins["狼人"].resolveNightAction
 });
+
+RoleRegistry.register("魔鏡少女", {
+    canSelfExplode: false,
+    nightPhase: "second_half",
+    actionType: "single_select",
+    isSeer: true, // [特徵標籤] 具備查驗能力，自動適配惡靈騎士等被動反傷過濾器
+    getPrompt: () => "選擇今晚的查驗目標 (系統將顯示具體身分)",
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+    getButtons: () => [
+        { id: 'confirm', text: '確認', requiresTarget: true }, 
+        { id: 'pass', text: '跳過', requiresTarget: false }
+    ],
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act) return "【跳過行動】";
+        const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
+        
+        if (act.actionId === 'confirm' && target) {
+            const tPlayer = ctx.getPlayer(target);
+            const exactRole = tPlayer.role; // 核心機制：取得目標的具體身分字串，而非陣營
+            
+            // 寫入玩家私有狀態，供前端介面與系統日誌讀取
+            act.player.data.seerRecords = act.player.data.seerRecords || {};
+            act.player.data.seerRecords[target] = exactRole;
+            act.player.data.latestCheckResult = { seat: target, alignment: exactRole };
+            act.player.data.tempPrivateMessage = `${target}號玩家的具體身分為【${exactRole}】。`;
+            
+            return `查驗: ${target}號`;
+        }
+        return "跳過行動";
+    }
+});
