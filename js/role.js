@@ -801,7 +801,7 @@ RoleRegistry.register("機械狼", {
         const p = ctx.getPlayer(mySeat);
         const state = p.data.machineState || 0;
 
-        if (step === 'first_half') return state === 0;
+        if (step === 'first_half') return state === 0; 
         if (step === 'midnight') {
             const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
             return otherWolves.length === 0;
@@ -823,13 +823,13 @@ RoleRegistry.register("機械狼", {
 
     getPrompt: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
-        if (step === 'midnight') return "狼同伴已陣亡，請參與午夜襲擊";
-        if (step === 'first_half') return "選擇一名玩家進行學習 (將獲得其技能並掩護自身身分)";
+        if (step === 'midnight') return "其餘狼人均已出局\n請選擇襲擊目標";
+        if (step === 'first_half') return "選擇一名玩家進行學習\n（獲得其技能，並改變自己被查驗的結果）";
         
         const role = ctx.getPlayer(mySeat).data.learnedRole;
         if (['魔鏡少女', '預言家', '燈影預言家'].includes(role)) return `【技能: ${role}】選擇查驗目標`;
         if (role === '女巫') return "【技能: 毒藥】選擇毒殺目標";
-        if (role === '守衛') return "【技能: 守護】選擇守護目標 (可防刀/毒，可連守)";
+        if (role === '守衛') return "【技能: 守護】選擇強化守護目標";
         if (role === '狼人') return "【技能: 雙刀】選擇額外襲擊目標";
         return "等待中...";
     },
@@ -847,7 +847,7 @@ RoleRegistry.register("機械狼", {
         const role = ctx.getPlayer(mySeat).data.learnedRole;
         if (['魔鏡少女', '預言家', '燈影預言家'].includes(role)) return [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
         if (role === '女巫') return [{ id: 'poison', text: '毒殺', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
-        if (role === '守衛') return [{ id: 'guard', text: '守護', requiresTarget: true }, { id: 'pass', text: '空守', requiresTarget: false }];
+        if (role === '守衛') return [{ id: 'guard', text: '強化守護', requiresTarget: true }, { id: 'pass', text: '空守', requiresTarget: false }];
         if (role === '狼人') return [{ id: 'kill', text: '額外襲擊', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
         return [];
     },
@@ -874,7 +874,11 @@ RoleRegistry.register("機械狼", {
             const tPlayer = ctx.getPlayer(target);
             p.data.learnedRole = tPlayer.role;
             p.data.camouflageRole = tPlayer.role; 
-            p.data.learnedSeat = parseInt(target); // [核心修正 1] 寫入目標座位號，供 UI 標籤對比
+            
+            // [修正 3] 寫入通用視圖標籤，解耦 host.js
+            p.data.customTopTags = p.data.customTopTags || {};
+            p.data.customTopTags[target] = tPlayer.role; 
+
             p.data.machineState = 1;              
             p.data.learnedThisNight = true;       
             return `【學習: ${target}號 (${tPlayer.role})】`;
