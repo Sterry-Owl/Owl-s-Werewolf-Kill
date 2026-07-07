@@ -332,6 +332,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         
         if (ctx.phase === 'GAME_OVER' || p.isRevealed) topTag = p.role;
         else if (RoleRegistry.plugins[player.role]?.canSeeWolves && RoleRegistry.plugins[p.role]?.seenAsWolf) topTag = p.role;
+        else if (player.data.customTopTags && player.data.customTopTags[p.seatNumber]) topTag = player.data.customTopTags[p.seatNumber];
         if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber]; 
         else if (player.role === '女巫' && ctx.witchState?.savedSeat === p.seatNumber) sideTag = "銀水"; 
         else if (player.role === '暗戀者' && ctx.crushTarget === p.seatNumber) sideTag = "暗戀對象";
