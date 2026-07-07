@@ -215,8 +215,7 @@ RoleRegistry.register("女巫", {
         const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
         if (act.actionId === 'save' && !ctx.witchState.antidoteUsed) {
             if (ctx.nightTags?.killed?.length > 0) {
-                ctx.witchState.savedSeat = ctx.nightTags.killed[0];
-                ctx.nightTags.killed = []; 
+                ctx.witchState.savedSeat = ctx.nightTags.killed[0]; 
                 ctx.nightTags.witchUsedSaveTonight = true;
                 ctx.witchState.antidoteUsed = true;
                 return "使用解藥";
@@ -757,7 +756,7 @@ RoleRegistry.register("魔鏡少女", {
     canSelfExplode: false,
     nightPhase: "second_half",
     actionType: "single_select",
-    isSeer: true, // [特徵標籤] 具備查驗能力，自動適配惡靈騎士等被動反傷過濾器
+    isSeer: true, 
     getPrompt: () => "選擇今晚的查驗目標 (系統將顯示具體身分)",
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [
@@ -789,7 +788,7 @@ RoleRegistry.register("機械狼", {
     canSelfExplode: false,
     canSeeWolves: false, 
     seenAsWolf: false,
-    nightPhase: ["midnight", "second_half"],
+    nightPhase: ["first_half", "midnight", "second_half"],
     
     isAttacker: (ctx, mySeat) => {
         if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId !== 'midnight') return false;
@@ -802,12 +801,12 @@ RoleRegistry.register("機械狼", {
         const p = ctx.getPlayer(mySeat);
         const state = p.data.machineState || 0;
 
+        if (step === 'first_half') return state === 0;
         if (step === 'midnight') {
             const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
             return otherWolves.length === 0;
         }
         if (step === 'second_half') {
-            if (state === 0) return true; 
             if (state === 1 && !p.data.learnedThisNight) {
                 const role = p.data.learnedRole;
                 if (['魔鏡少女', '預言家', '燈影預言家', '女巫', '守衛'].includes(role)) return true;
@@ -825,9 +824,7 @@ RoleRegistry.register("機械狼", {
     getPrompt: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         if (step === 'midnight') return "狼同伴已陣亡，請參與午夜襲擊";
-        
-        const state = ctx.getPlayer(mySeat).data.machineState || 0;
-        if (state === 0) return "選擇一名玩家進行學習 (將獲得其技能並掩護自身身分)";
+        if (step === 'first_half') return "選擇一名玩家進行學習 (將獲得其技能並掩護自身身分)";
         
         const role = ctx.getPlayer(mySeat).data.learnedRole;
         if (['魔鏡少女', '預言家', '燈影預言家'].includes(role)) return `【技能: ${role}】選擇查驗目標`;
@@ -845,9 +842,7 @@ RoleRegistry.register("機械狼", {
     getButtons: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         if (step === 'midnight') return [{ id: 'kill', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
-        
-        const state = ctx.getPlayer(mySeat).data.machineState || 0;
-        if (state === 0) return [{ id: 'learn', text: '學習', requiresTarget: true }];
+        if (step === 'first_half') return [{ id: 'learn', text: '學習', requiresTarget: true }];
         
         const role = ctx.getPlayer(mySeat).data.learnedRole;
         if (['魔鏡少女', '預言家', '燈影預言家'].includes(role)) return [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
@@ -875,16 +870,17 @@ RoleRegistry.register("機械狼", {
         const target = act.targets[0];
         const state = p.data.machineState || 0;
 
-        if (state === 0 && act.actionId === 'learn') {
+        if (step === 'first_half' && state === 0 && act.actionId === 'learn') {
             const tPlayer = ctx.getPlayer(target);
             p.data.learnedRole = tPlayer.role;
             p.data.camouflageRole = tPlayer.role; 
+            p.data.learnedSeat = parseInt(target); // [核心修正 1] 寫入目標座位號，供 UI 標籤對比
             p.data.machineState = 1;              
             p.data.learnedThisNight = true;       
             return `【學習: ${target}號 (${tPlayer.role})】`;
         }
 
-        if (state === 1) {
+        if (step === 'second_half' && state === 1) {
             const role = p.data.learnedRole;
             
             if (act.actionId === 'check') {
