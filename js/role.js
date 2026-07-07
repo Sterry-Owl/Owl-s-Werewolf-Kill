@@ -85,19 +85,13 @@ initPassives: function(ctx) {
         });
     }
     Engine.EventBus.on('START_NIGHT', () => {
-        if (ctx.votedOutToday) {
-            const target = ctx.getPlayer(ctx.votedOutToday);
-            const isWolf = ROLE_DICTIONARY[target.role]?.faction === 'wolf';
-            const alignment = isWolf ? '狼人' : '好人';
-
-            ctx.players.forEach(p => {
-                if (p.role === '守墓人' && !p.isDead) {
-                    p.data.seerRecords = p.data.seerRecords || {};
-                    p.data.seerRecords[ctx.votedOutToday] = alignment;
-                    p.data.latestCheckResult = { seat: ctx.votedOutToday, alignment: alignment };
-                }
-            });
-        }
+        // [終極乾淨架構] 觸發各角色專屬的入夜生命週期 (onNightStart)
+        ctx.players.forEach(p => {
+            const plugin = RoleRegistry.plugins[p.role];
+            if (plugin && typeof plugin.onNightStart === 'function') {
+                plugin.onNightStart(ctx, p);
+            }
+        });
     });
     Engine.EventBus.on('PLAYER_DIED', ({ context, player, reason }) => {
         const canShootReasons = ['killed', 'voted', 'shot'];
@@ -432,7 +426,18 @@ RoleRegistry.register("騎士", {
 RoleRegistry.register("守墓人", {
     canSelfExplode: false,
     nightPhase: "second_half",   
-    actionType: "single_select", 
+    actionType: "single_select",
+    onNightStart: (ctx, player) => {
+        if (ctx.votedOutToday && !player.isDead) {
+            const target = ctx.getPlayer(ctx.votedOutToday);
+            const isWolf = ROLE_DICTIONARY[target.role]?.faction === 'wolf';
+            const alignment = isWolf ? '狼人' : '好人';
+
+            player.data.seerRecords = player.data.seerRecords || {};
+            player.data.seerRecords[ctx.votedOutToday] = alignment;
+            player.data.latestCheckResult = { seat: ctx.votedOutToday, alignment: alignment };
+        }
+    },
     getPrompt: (ctx) => {
         if (ctx.votedOutToday) {
             const target = ctx.getPlayer(ctx.votedOutToday);
@@ -789,7 +794,10 @@ RoleRegistry.register("機械狼", {
     canSeeWolves: false, 
     seenAsWolf: false,
     nightPhase: ["first_half", "midnight", "second_half"],
-    
+    onNightStart: (ctx, player) => {
+        player.data.learnedThisNight = false;
+        player.data.mwGuardedSeat = null;
+    },
     isAttacker: (ctx, mySeat) => {
         if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId !== 'midnight') return false;
         const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
