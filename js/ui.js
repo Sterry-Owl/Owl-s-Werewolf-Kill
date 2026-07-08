@@ -424,48 +424,48 @@ const UI = {
             grid.appendChild(seat);
         });
     }
-    openWolfChatModal: function(state) {
-        const modal = document.getElementById('wolf-chat-modal');
-        const logsContainer = document.getElementById('wolf-chat-logs');
-        const inputField = document.getElementById('wolf-chat-input');
-        const btnSend = document.getElementById('btn-wolf-chat-send');
-        const lockNotice = document.getElementById('wolf-chat-lock-notice');
-        const closeBtn = document.getElementById('close-wolf-chat-btn');
+};
+UI.openWolfChatModal = function(state) {
+    const modal = document.getElementById('wolf-chat-modal');
+    const logsContainer = document.getElementById('wolf-chat-logs');
+    const inputField = document.getElementById('wolf-chat-input');
+    const btnSend = document.getElementById('btn-wolf-chat-send');
+    const lockNotice = document.getElementById('wolf-chat-lock-notice');
+    const closeBtn = document.getElementById('close-wolf-chat-btn');
 
-        if (!modal) return;
+    if (!modal) return;
 
-        closeBtn.onclick = () => modal.style.display = 'none';
+    closeBtn.onclick = () => modal.style.display = 'none';
 
-        // 讀寫分離：完全根據後端計算好的 state.isMidnight 決定是否鎖定輸入框
-        if (state.isMidnight) {
-            inputField.disabled = false;
-            btnSend.disabled = false;
-            lockNotice.style.display = 'none';
-            
-            btnSend.onclick = () => {
-                const text = inputField.value.trim();
-                if (!text) return;
-                // 觸發全域自訂事件，交由網路層送出封包 (視圖層不插手網路邏輯)
-                window.dispatchEvent(new CustomEvent('WOLF_CHAT_OUTGOING', { detail: text }));
-                inputField.value = '';
-            };
-        } else {
-            inputField.disabled = true;
-            btnSend.disabled = true;
-            btnSend.onclick = null;
-            lockNotice.style.display = 'block';
-        }
-
-        // 渲染歷史紀錄
-        const history = state.wolfChatHistory || [];
-        logsContainer.innerHTML = history.map(log => {
-            return `<div style="margin-bottom: 6px;">
-                        <span style="color: #ff8888; font-weight: bold;">[${log.seatNumber}號]</span> 
-                        <span style="color: #fff;">${log.text}</span>
-                    </div>`;
-        }).join('');
-
-        modal.style.display = 'block';
-        setTimeout(() => logsContainer.scrollTop = logsContainer.scrollHeight, 10);
+    // 讀寫分離控制
+    if (state.isMidnight) {
+        inputField.disabled = false;
+        btnSend.disabled = false;
+        lockNotice.style.display = 'none';
+        
+        btnSend.onclick = () => {
+            const text = inputField.value.trim();
+            if (!text) return;
+            // 觸發全域事件交由網路層處理
+            window.dispatchEvent(new CustomEvent('WOLF_CHAT_OUTGOING', { detail: text }));
+            inputField.value = '';
+        };
+    } else {
+        inputField.disabled = true;
+        btnSend.disabled = true;
+        btnSend.onclick = null;
+        lockNotice.style.display = 'block';
     }
+
+    // 渲染歷史紀錄
+    const history = state.wolfChatHistory || [];
+    logsContainer.innerHTML = history.map(log => {
+        return `<div style="margin-bottom: 6px;">
+                    <span style="color: #ff8888; font-weight: bold;">[${log.seatNumber}號]</span> 
+                    <span style="color: #fff;">${log.text}</span>
+                </div>`;
+    }).join('');
+
+    modal.style.display = 'block';
+    setTimeout(() => logsContainer.scrollTop = logsContainer.scrollHeight, 10);
 };
