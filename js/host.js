@@ -196,6 +196,10 @@ function setupEngineFlowControllers() {
         if (engineContext.currentNightStepIndex >= engineContext.nightSequence.length) {
             Engine.EventBus.emit('PROCESS_DAWN');
         } else {
+            // [乾淨架構] 寫入環境變數，由 DTO 傳遞動態時長 (毫秒)
+            const currentStep = engineContext.nightSequence[engineContext.currentNightStepIndex];
+            engineContext.dynamicNightDuration = (currentStep.phaseId === 'midnight') ? 45000 : 20000;
+            
             stateMachine.transitionTo('NIGHT_ACTION');
         }
     });
