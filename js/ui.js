@@ -94,6 +94,7 @@ const UI = {
             detailsPanel.textContent = `【版型配置】\n${state.boardDetails.deckString}\n\n【房間規則】\n${ruleStr}`;
         }
         const btnExplode = document.getElementById('btn-self-explode');
+        const btnWolfChat = document.getElementById('btn-wolf-chat');
         if (btnExplode) {
             btnExplode.textContent = ''; 
             if (state.allowSelfExplode) btnExplode.classList.remove('hidden');
