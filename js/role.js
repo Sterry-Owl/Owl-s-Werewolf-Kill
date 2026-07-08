@@ -114,6 +114,7 @@ RoleRegistry.register("狼人", {
     canSeeWolves: true,
     seenAsWolf: true,
     isAttacker: true,
+    hasWolfChatAccess: true,
     nightPhase: "midnight",      
     actionType: "consensus",     
     getPrompt: () => "選擇今晚的襲擊目標 (或選擇跳過以空刀)",
@@ -282,6 +283,7 @@ RoleRegistry.register("狼王", {
     canSeeWolves: true,
     seenAsWolf: true,
     isAttacker: true,
+    hasWolfChatAccess: true,
     nightPhase: "midnight",      
     actionType: "consensus",     
     getPrompt: () => "選擇今晚的襲擊目標 (或跳過以空刀)",
@@ -312,7 +314,10 @@ RoleRegistry.register("守衛", {
 });
 RoleRegistry.register("白狼王", {
     canSelfExplode: false, 
-    canSeeWolves: true, seenAsWolf: true, isAttacker: true,
+    canSeeWolves: true,
+    seenAsWolf: true,
+    isAttacker: true,
+    hasWolfChatAccess: true,
     nightPhase: "midnight", actionType: "consensus",     
     getPrompt: () => "選擇今晚的襲擊目標 (或跳過以空刀)",
     getSelectableSeats: RoleRegistry.plugins["狼人"].getSelectableSeats,
@@ -537,7 +542,7 @@ RoleRegistry.register("噩夢之影", {
     canSeeWolves: true,
     seenAsWolf: true,
     immuneToWolfBite: true,
-    
+    hasWolfChatAccess: true,
     nightPhase: ["first_half", "midnight"], 
 
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half' ? 'single_select' : 'consensus',
@@ -587,6 +592,7 @@ RoleRegistry.register("狼美人", {
     canSeeWolves: true,
     seenAsWolf: true,
     immuneToWolfBite: true,
+    hasWolfChatAccess: true,
     nightPhase: ["midnight", "second_half"], 
     
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
@@ -722,6 +728,7 @@ RoleRegistry.register("惡靈騎士", {
     canSeeWolves: true,
     seenAsWolf: true,
     isAttacker: true,
+    hasWolfChatAccess: true,
     immuneToWolfBite: true, 
     nightPhase: "midnight",      
     actionType: "consensus",     
