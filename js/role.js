@@ -966,7 +966,7 @@ RoleRegistry.register("奇蹟商人", {
         return !ctx.getPlayer(mySeat).data.hasTraded; 
     },
 
-    getPrompt: () => "選擇交易對象 (限用一次)\n若贈與狼人將遭到反噬死亡",
+    getPrompt: () => "選擇交易對象（限用一次）\n若贈與狼人將遭到反噬死亡",
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [
         { id: 'give_check', text: '贈與查驗', requiresTarget: true },
@@ -991,7 +991,7 @@ RoleRegistry.register("奇蹟商人", {
         if (isWolf) {
             ctx.nightTags = ctx.nightTags || {};
             ctx.nightTags.merchantBackfire = p.seatNumber;
-            return `【交易失敗：目標為狼人，即將反噬】`;
+            return `【交易失敗：目標為狼人，反噬】`;
         }
 
         const skillMap = { 'give_check': '查驗', 'give_poison': '毒藥', 'give_guard': '守護' };
@@ -1035,7 +1035,7 @@ RoleRegistry.register("幸運兒", {
 
     getPrompt: (ctx, mySeat) => {
         const skill = ctx.getPlayer(mySeat).data.grantedSkill;
-        return `你收到了奇蹟商人的餽贈！\n【技能: ${skill}】請選擇目標 (或跳過保留至明晚)`;
+        return `你收到了奇蹟商人贈與的${skill}\n請選擇目標或跳過`;
     },
 
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
