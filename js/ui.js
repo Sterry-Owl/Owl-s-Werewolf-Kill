@@ -350,6 +350,19 @@ const UI = {
             if(promptEl) promptEl.textContent = state.message || '等待系統指示...';
             if(btnContainer) btnContainer.innerHTML = '';
         }
+
+        const chatModal = document.getElementById('wolf-chat-modal');
+        const chatLogs = document.getElementById('wolf-chat-logs');
+        if (chatModal && !chatModal.classList.contains('hidden') && chatLogs) {
+            const history = state.wolfChatHistory || [];
+            chatLogs.innerHTML = history.map(log => {
+                return `<div style="margin-bottom: 6px;">
+                            <span style="color: #ff8888; font-weight: bold;">[${log.seatNumber}號]</span> 
+                            <span style="color: #fff;">${log.text}</span>
+                        </div>`;
+            }).join('');
+            chatLogs.scrollTop = chatLogs.scrollHeight;
+        }
     },
 
     renderHostView: function(state, onHostAction) {
@@ -451,10 +464,16 @@ UI.openWolfChatModal = function(state) {
         btnSend.disabled = false;
         lockNotice.style.display = 'none';
         
+        inputField.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                btnSend.click();
+            }
+        };
+
         btnSend.onclick = () => {
             const text = inputField.value.trim();
             if (!text) return;
-            // 觸發全域事件交由網路層處理
             window.dispatchEvent(new CustomEvent('WOLF_CHAT_OUTGOING', { detail: text }));
             inputField.value = '';
         };
@@ -465,7 +484,6 @@ UI.openWolfChatModal = function(state) {
         lockNotice.style.display = 'block';
     }
 
-    // 渲染歷史紀錄
     const history = state.wolfChatHistory || [];
     logsContainer.innerHTML = history.map(log => {
         return `<div style="margin-bottom: 6px;">
@@ -474,7 +492,6 @@ UI.openWolfChatModal = function(state) {
                 </div>`;
     }).join('');
 
-    // [修正] 開啟視窗時：強制拔除隱藏類別，避免被 !important 覆蓋
     modal.style.display = 'block';
     modal.classList.remove('hidden');
     
