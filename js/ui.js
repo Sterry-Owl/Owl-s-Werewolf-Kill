@@ -434,11 +434,18 @@ UI.openWolfChatModal = function(state) {
     const lockNotice = document.getElementById('wolf-chat-lock-notice');
     const closeBtn = document.getElementById('close-wolf-chat-btn');
 
-    if (!modal) return;
+    if (!modal) {
+        console.error("無法開啟：找不到通訊視窗的 DOM 節點");
+        return;
+    }
 
-    closeBtn.onclick = () => modal.style.display = 'none';
+    // [修正] 關閉視窗時：同時寫入行內樣式與 CSS 類別
+    closeBtn.onclick = () => {
+        modal.style.display = 'none';
+        modal.classList.add('hidden');
+    };
 
-    // 讀寫分離控制
+    // 讀寫分離控制 (依賴 DTO)
     if (state.isMidnight) {
         inputField.disabled = false;
         btnSend.disabled = false;
@@ -467,6 +474,9 @@ UI.openWolfChatModal = function(state) {
                 </div>`;
     }).join('');
 
+    // [修正] 開啟視窗時：強制拔除隱藏類別，避免被 !important 覆蓋
     modal.style.display = 'block';
+    modal.classList.remove('hidden');
+    
     setTimeout(() => logsContainer.scrollTop = logsContainer.scrollHeight, 10);
 };
