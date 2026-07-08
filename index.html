@@ -140,6 +140,7 @@
                 </div>
                 
                 <button id="btn-self-explode" class="floating-btn red hidden"></button>
+                <button id="btn-wolf-chat" class="floating-btn purple hidden" style="background-image: url('./img/btn-chat.png');"></button>
                 <button id="btn-day-skill" class="floating-btn hidden" style="left: 15px;"></button>
                 <button id="btn-bailout" class="floating-btn blue hidden"></button> 
                 <button id="btn-vote-history" class="floating-btn yellow hidden"></button>
@@ -148,7 +149,18 @@
                     <div id="local-day-skill-targets" class="action-buttons-row" style="margin-top: 15px; margin-bottom: 15px; max-height: 200px; overflow-y: auto;"></div>
                     <button id="btn-cancel-day-skill" class="btn-secondary" style="width: 100%;">取消</button>
                 </div>
-
+                <div id="wolf-chat-modal" class="modal hidden" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; width: 90%; max-width: 400px; background: #222; border: 2px solid #555; border-radius: 8px; padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h3 style="margin: 0; color: #fff;">狼人夜間溝通</h3>
+                        <span id="close-wolf-chat-btn" style="color: #aaa; font-size: 24px; cursor: pointer;">&times;</span>
+                    </div>
+                    <div id="wolf-chat-logs" style="height: 200px; overflow-y: auto; background: #111; padding: 10px; margin-bottom: 10px; border-radius: 4px; font-family: monospace;"></div>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="wolf-chat-input" placeholder="午夜階段可發送訊息..." style="flex: 1; padding: 8px; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px;" />
+                        <button id="btn-wolf-chat-send" class="btn-primary" style="padding: 8px 15px;">發送</button>
+                    </div>
+                    <div id="wolf-chat-lock-notice" style="color: #ff4d4d; font-size: 12px; margin-top: 5px; display: none;">⚠️ 目前非午夜階段，僅供讀取歷史紀錄。</div>
+                </div>
             </div>
     </div>
     
