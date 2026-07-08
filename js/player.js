@@ -141,3 +141,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+window.addEventListener('WOLF_CHAT_OUTGOING', (e) => {
+    if (hostConnection) { 
+        hostConnection.send({
+            type: 'WOLF_CHAT_SEND',
+            payload: { text: e.detail }
+        });
+    }
+});
