@@ -949,24 +949,29 @@ RoleRegistry.register("奇蹟商人", {
     actionType: "single_select",
 
     onNightStart: (ctx, player) => {
-        let secondHalf = ctx.nightSequence.find(seq => seq.phaseId === 'second_half');
-        if (secondHalf && !secondHalf.roles.find(r => r.roleName === '幸運兒')) {
-            secondHalf.roles.push({ roleName: '幸運兒', roleDef: RoleRegistry.plugins['幸運兒'], activePlayers: [], resultLog: "" });
+        const luckyPlayers = ctx.getAlivePlayers().filter(p => p.data.grantedSkill && !p.data.grantedSkillUsed);
+        if (luckyPlayers.length > 0) {
+            let luckyPhase = ctx.nightSequence.find(seq => seq.phaseId === 'lucky_action');
+            if (!luckyPhase) {
+                ctx.nightSequence.push({
+                    phaseId: 'lucky_action', phaseName: '幸運兒行動',
+                    roles: [{ roleName: '幸運兒', roleDef: RoleRegistry.plugins['幸運兒'], activePlayers: luckyPlayers, resultLog: "" }]
+                });
+            } else {
+                luckyPhase.roles[0].activePlayers = luckyPlayers;
+            }
         }
     },
-
     onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
         if (ctx.nightTags?.merchantBackfire === player.seatNumber) {
             deathMap[player.seatNumber] = 'skill_backfire';
             ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：奇蹟商人交易給狼人，遭到反噬死亡)`;
         }
     },
-
     hasAction: (ctx, mySeat) => {
         return !ctx.getPlayer(mySeat).data.hasTraded; 
     },
-
-    getPrompt: () => "選擇交易對象（限用一次）\n若贈與狼人將遭到反噬死亡",
+    getPrompt: () => "選擇交易對象 (限用一次)\n若贈與狼人將遭到反噬死亡",
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [
         { id: 'give_check', text: '贈與查驗', requiresTarget: true },
@@ -991,7 +996,7 @@ RoleRegistry.register("奇蹟商人", {
         if (isWolf) {
             ctx.nightTags = ctx.nightTags || {};
             ctx.nightTags.merchantBackfire = p.seatNumber;
-            return `【交易失敗：目標為狼人，反噬】`;
+            return `【交易失敗：目標為狼人，即將反噬】`;
         }
 
         const skillMap = { 'give_check': '查驗', 'give_poison': '毒藥', 'give_guard': '守護' };
@@ -1002,13 +1007,17 @@ RoleRegistry.register("奇蹟商人", {
         if (!tPlayer.data.virtualRoles.includes('幸運兒')) {
             tPlayer.data.virtualRoles.push('幸運兒');
         }
-
-        let secondHalf = ctx.nightSequence.find(seq => seq.phaseId === 'second_half');
-        if (secondHalf) {
-            let luckyRole = secondHalf.roles.find(r => r.roleName === '幸運兒');
+        let luckyPhase = ctx.nightSequence.find(seq => seq.phaseId === 'lucky_action');
+        if (luckyPhase) {
+            let luckyRole = luckyPhase.roles.find(r => r.roleName === '幸運兒');
             if (luckyRole && !luckyRole.activePlayers.some(ap => ap.seatNumber === tPlayer.seatNumber)) {
                 luckyRole.activePlayers.push(tPlayer);
             }
+        } else {
+            ctx.nightSequence.push({
+                phaseId: 'lucky_action', phaseName: '幸運兒行動',
+                roles: [{ roleName: '幸運兒', roleDef: RoleRegistry.plugins['幸運兒'], activePlayers: [tPlayer], resultLog: "" }]
+            });
         }
 
         return `【交易成功：贈與 ${tPlayer.data.grantedSkill} 給 ${target}號】`;
