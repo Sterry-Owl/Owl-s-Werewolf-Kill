@@ -50,7 +50,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 
 .app-body { 
     flex: 1; display: flex; flex-direction: row; padding: 5px; gap: 8px; 
-    background: #2b3a42; 
+    background: #262847; 
     overflow: hidden; position: relative;
 }
 
