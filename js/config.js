@@ -64,7 +64,7 @@ const BOARD_TEMPLATES = [
     { id: "test-10_6", name: "6人 燈影預言家(測試)", category: 'test', playerCount: 6, deck: ["預言家", "騎士", "狼王", "狼人", "燈影預言家", "平民"] },
     { id: "test-11_6", name: "6人 惡靈騎士(測試)", category: 'test', playerCount: 6, deck: ["女巫", "預言家", "惡靈騎士", "狼人", "平民", "平民"] },
     { id: "test-12_6", name: "6人 機械狼(測試)", category: 'test', playerCount: 6, deck: ["女巫", "魔鏡少女", "守衛", "獵人", "狼人", "機械狼"] },
-    { id: "test-12_6", name: "6人 奇蹟商人(測試)", category: 'test', playerCount: 6, deck: ["女巫", "預言家", "守衛", "奇蹟商人", "狼王", "惡靈騎士"] },
+    { id: "test-13_6", name: "6人 奇蹟商人(測試)", category: 'test', playerCount: 6, deck: ["女巫", "預言家", "守衛", "奇蹟商人", "狼王", "惡靈騎士"] },
     { id: "survivortwo_7", name: "7人 生還者(雙狼王測試)", category: 'test', playerCount: 7, deck: ["預言家", "守衛", "女巫", "獵人", "狼王", "狼王", "平民"] },
     { id: "survivorstd_7", name: "7人 生還者(標準)", category: 'fun', playerCount: 7, deck: ["預言家", "守衛", "女巫", "獵人", "白狼王", "狼人", "平民"] },
     { id: "noeye_8", name: "8人 無目之夜", category: 'fun', playerCount: 8, deck: ["預言家", "女巫", "獵人", "平民", "平民", "狼人", "隱狼", "石像鬼"] },
@@ -86,7 +86,7 @@ const BOARD_TEMPLATES = [
     { id: "evkn_12", name: "12人 惡靈騎士", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "惡靈騎士", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "mir_mw_12", name: "12人 魔鏡機械狼", category: 'standard', playerCount: 12, deck: ["魔鏡少女", "女巫", "獵人", "守衛", "機械狼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
     { id: "lightseer_12", name: "12人 燈影預言家", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "騎士", "守墓人", "狼王", "狼人", "狼人", "狼人", "燈影預言家", "平民", "平民", "平民"] },
-    { id: "lightseer_12", name: "12人 狼王惡靈+奇蹟商人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "奇蹟商人", "狼王", "惡靈騎士", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "mirc_12", name: "12人 狼王惡靈+奇蹟商人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "奇蹟商人", "狼王", "惡靈騎士", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
 ];
 
 const ROLE_DICTIONARY = {
