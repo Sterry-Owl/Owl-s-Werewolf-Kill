@@ -41,9 +41,8 @@ window.PhaseRegistry = {
                 });
                 
                 ctx.systemLog = `正在等待【${currentPhase.phaseName}】行動...`;
-                
                 if (ctx.expectedActionCount <= 0) self.resolveNightStep(ctx);
-                else self.sm.setTimer(30000); 
+                else self.sm.setTimer(ctx.dynamicNightDuration || 30000); 
             },
             onAction: (ctx, player, actionId, targets) => {
                 if (ctx.currentStepActions.some(act => act.player.seatNumber === player.seatNumber)) return;
