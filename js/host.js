@@ -101,6 +101,25 @@ function handleIncomingPacket(peerId, data) {
             syncStateToAll();
         }
     }
+    else if (data.type === 'WOLF_CHAT_SEND') {
+        const player = engineContext.getPlayerByPeer(peerId);
+        const plugin = RoleRegistry.plugins[player?.role];
+        const currentStep = engineContext.nightSequence?.[engineContext.currentNightStepIndex];
+        
+        // 驗證：玩家活著 + 具備通訊特權 + 當前微觀階段為午夜
+        if (player && !player.isDead && plugin?.hasWolfChatAccess && currentStep?.phaseId === 'midnight') {
+            const msgText = data.payload.text?.trim();
+            if (msgText) {
+                engineContext.wolfChatHistory = engineContext.wolfChatHistory || [];
+                engineContext.wolfChatHistory.push({
+                    seatNumber: player.seatNumber,
+                    text: msgText,
+                    timestamp: Date.now()
+                });
+                syncStateToAll(); // 廣播使介面即時更新
+            }
+        }
+    }    
     else if (data.type === 'DAY_SKILL_SUBMIT') { // 注意：前端發送封包時 type 需對應
         const player = engineContext.getPlayerByPeer(peerId);
         const plugin = RoleRegistry.plugins[player?.role];
@@ -137,6 +156,7 @@ function setupEngineFlowControllers() {
         engineContext.nightCount++;
         engineContext.nightTags = { killed: [], poisoned: [], witchUsedSaveTonight: false };
         engineContext.wolfPreviews = {};
+        engineContext.wolfChatHistory = [];
         engineContext.cursedSeat = null;
         engineContext.lastFearedSeat = engineContext.fearedSeat || null;
         engineContext.fearedSeat = null;
@@ -468,6 +488,9 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         if (p.role) roleCounts[p.role] = (roleCounts[p.role] || 0) + 1; 
     });
     const deckArr = Object.entries(roleCounts).map(([r, c]) => `${r} x${c}`);
+    const currentStep = ctx.nightSequence?.[ctx.currentNightStepIndex];
+    const isMidnight = (currentStep?.phaseId === 'midnight');
+    const canUseWolfChat = !player.isDead && ctx.phase === 'NIGHT_ACTION' && RoleRegistry.plugins[player.role]?.hasWolfChatAccess === true;
     return {
         boardName: ctx.boardName, phase: ctx.phase, 
         nightStepIndex: ctx.currentNightStepIndex,
@@ -475,6 +498,9 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         message: personalMessage, players: mappedPlayers, actionPanel, latestCheckResult: player.data.latestCheckResult || null,
         voteHistory: ctx.voteHistory, 
         allowSelfExplode: !player.isDead && isDayPhase && RoleRegistry.plugins[player.role]?.canSelfExplode,
+        canUseWolfChat: canUseWolfChat,
+        isMidnight: isMidnight,
+        wolfChatHistory: canUseWolfChat ? (ctx.wolfChatHistory || []) : [],
         daySkill: (!player.isDead && isDayPhase && RoleRegistry.plugins[player.role]?.daySkill) ? {
             id: RoleRegistry.plugins[player.role].daySkill.id,
             buttonText: RoleRegistry.plugins[player.role].daySkill.buttonText,
