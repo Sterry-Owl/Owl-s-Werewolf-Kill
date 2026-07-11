@@ -7,8 +7,7 @@ window.RoleRegistry = {
     plugins: {},
     register: function(roleName, config) { this.plugins[roleName] = config; },
 
-initPassives: function(ctx) {
-   initPassives: function(ctx) {
+    initPassives: function(ctx) {
     if (ctx) {
         // [新增] 核心輔助函式：查詢當前號碼是否被魔術師交換
         ctx.getActualTarget = function(seat) {
