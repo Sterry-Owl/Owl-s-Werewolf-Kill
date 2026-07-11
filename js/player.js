@@ -10,7 +10,12 @@ let currentActionTarget = [];
 let localState = {}; 
 
 window.initPlayer = function(roomId, playerName) {
-    playerPeer = new Peer(PEER_CONFIG);
+    // [關鍵升級] 本地端動態生成唯一 ID，徹底繞過 PeerJS 伺服器的派發延遲與擁塞
+    const localGeneratedId = 'player_' + Math.random().toString(36).substring(2, 10);
+    
+    // 將自己生成的 ID 強制塞入，這樣就能瞬間啟動連線，不再掛起
+    playerPeer = new Peer(localGeneratedId, PEER_CONFIG);
+    
     playerPeer.on('open', (id) => {
         hostConnection = playerPeer.connect(roomId);
         hostConnection.on('open', () => {
@@ -18,7 +23,11 @@ window.initPlayer = function(roomId, playerName) {
         });
         setupPlayerConnectionListeners(hostConnection);
     });
-    playerPeer.on('error', () => { alert('無法連線至房間，請確認代碼是否正確。'); });
+    
+    playerPeer.on('error', (err) => { 
+        console.error("連線錯誤:", err);
+        alert('無法連線至房間，請確認房號是否正確，或檢查網路狀態。'); 
+    });
 };
 
 function setupPlayerConnectionListeners(conn) {
