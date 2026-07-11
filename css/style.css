@@ -49,6 +49,12 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 
 .app-body { 
+    /* [關鍵修復] 恢復被刪除的 Flex 屬性，確保左中右三區塊橫向並列 */
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
     background-image: url('../img/bg-player.png'); 
     background-size: cover;         
     background-position: center;   
