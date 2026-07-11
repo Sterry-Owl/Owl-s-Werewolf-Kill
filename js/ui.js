@@ -23,6 +23,10 @@ const UI = {
         document.querySelectorAll('.player-seat').forEach(s => {
             s.style.pointerEvents = 'none';
         });
+        
+        // [新增] 送出行動後，瞬間隱藏號碼槽，絕不殘留
+        const slotsContainer = document.getElementById('target-slots-container');
+        if (slotsContainer) slotsContainer.classList.add('hidden');
     },
 
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = [], showVoteHistory = false) {
@@ -159,56 +163,73 @@ const UI = {
             }
         }
 
-        const previewEl = document.getElementById('target-preview-circle');
-        const previewImg = document.getElementById('target-preview-img');
-        let previewLabel = document.getElementById('target-preview-label');
+        // ===============================================
+        // [升級] 動態號碼槽生成系統 (Dynamic Target Slots)
+        // ===============================================
+        const slotsContainer = document.getElementById('target-slots-container');
+        if (slotsContainer) {
+            slotsContainer.innerHTML = ''; // 每次渲染前清空
+            
+            // 只有在行動面板開啟時才顯示槽位
+            if (state.actionPanel && state.actionPanel.show) {
+                slotsContainer.classList.remove('hidden');
 
-        let showCenterSeat = null;
-        let showCenterAlignment = null;
-
-        if (selectedTargets.length > 0) {
-            showCenterSeat = selectedTargets[0];
-            const tData = state.players.find(p => p.seatNumber === showCenterSeat);
-            if (tData && tData.sideTag) showCenterAlignment = tData.sideTag;
-        } else if (state.actionPanel && state.actionPanel.preSelectedTarget) {
-            showCenterSeat = state.actionPanel.preSelectedTarget;
-            showCenterAlignment = "刀口";
-        } else if (state.latestCheckResult) {
-            showCenterSeat = state.latestCheckResult.seat;
-            showCenterAlignment = state.latestCheckResult.alignment;
-        }
-
-        if (showCenterSeat) {
-            if (previewEl) previewEl.classList.remove('hidden');
-            if (previewImg) previewImg.src = `./img/seat_${showCenterSeat}.png`;
-
-            if (previewLabel) {
-                if (showCenterAlignment) {
-                    previewLabel.textContent = showCenterAlignment;
-                    if (showCenterAlignment === '狼人' || showCenterAlignment === '刀口') {
-                        previewLabel.style.background = 'var(--accent-red)';
-                        previewLabel.style.color = '#fff';
-                    } else if (showCenterAlignment === '銀水') {
-                        previewLabel.style.background = '#bfbfbf';
-                        previewLabel.style.color = '#000';
-                    } else if (showCenterAlignment === '好人') {
-                        previewLabel.style.background = '#ffdb4d';
-                        previewLabel.style.color = '#000';
-                    } else if (showCenterAlignment === '警長') {
-                        // [新增] 警長的預覽顏色
-                        previewLabel.style.background = 'var(--sheriff-gold)';
-                        previewLabel.style.color = '#000';
-                    } else {
-                        previewLabel.style.background = 'var(--accent-blue)';
-                        previewLabel.style.color = '#fff';
+                const createSlot = (seatNum, labelText, specialClass) => {
+                    const slot = document.createElement('div');
+                    slot.className = 'target-slot' + (seatNum ? ' filled' : '');
+                    
+                    if (seatNum) {
+                        const img = document.createElement('img');
+                        img.src = `./img/seat_${seatNum}.png`;
+                        img.onerror = function() { this.style.display='none'; };
+                        slot.appendChild(img);
                     }
-                    previewLabel.classList.remove('hidden');
+                    
+                    if (labelText) {
+                        const label = document.createElement('div');
+                        label.className = 'target-slot-label';
+                        if (specialClass) label.classList.add(specialClass);
+                        label.textContent = labelText;
+                        slot.appendChild(label);
+                    }
+                    slotsContainer.appendChild(slot);
+                };
+
+                if (state.myRole === '女巫') {
+                    // 女巫專屬：雙槽 (解藥與毒藥)
+                    const victim = state.actionPanel.preSelectedTarget;
+                    createSlot(victim, victim ? '解藥 (刀口)' : '解藥 (空)', 'antidote');
+                    
+                    const poisonTarget = selectedTargets.length > 0 ? selectedTargets[0] : null;
+                    createSlot(poisonTarget, poisonTarget ? '毒藥' : '選擇毒藥目標', 'poison');
+
+                } else if (state.actionPanel.type === 'double_select') {
+                    // 魔術師專屬：雙槽
+                    createSlot(selectedTargets[0] || null, '目標 1', '');
+                    createSlot(selectedTargets[1] || null, '目標 2', '');
+
                 } else {
-                    previewLabel.classList.add('hidden');
+                    // 常規單槽 (預言家、狼人、放逐投票等)
+                    const target = selectedTargets.length > 0 ? selectedTargets[0] : null;
+                    let alignmentLabel = target ? '目標' : '請選擇';
+                    let specialClass = '';
+                    
+                    if (target) {
+                        const tData = state.players.find(p => p.seatNumber === target);
+                        if (tData && tData.sideTag) {
+                            alignmentLabel = tData.sideTag;
+                            if (alignmentLabel === '狼人') specialClass = 'wolf';
+                            else if (alignmentLabel === '好人') specialClass = 'good';
+                            else if (alignmentLabel === '警長') specialClass = 'sheriff';
+                            else if (alignmentLabel === '銀水') specialClass = 'silver';
+                        }
+                    }
+                    createSlot(target, alignmentLabel, specialClass);
                 }
+            } else {
+                // 行動階段結束，徹底隱藏容器
+                slotsContainer.classList.add('hidden');
             }
-        } else {
-            if (previewEl) previewEl.classList.add('hidden');
         }
 
         const leftSeats = document.getElementById('left-seats');
