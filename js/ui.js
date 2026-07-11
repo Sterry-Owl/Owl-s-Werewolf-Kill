@@ -17,16 +17,18 @@ const UI = {
         if(promptEl) {
             promptEl.innerHTML = '行動已送出，等待系統結算...';
         }
-        
-        clearInterval(UI.countdownInterval); 
-
+        clearInterval(UI.countdownInterval);
         document.querySelectorAll('.player-seat').forEach(s => {
             s.style.pointerEvents = 'none';
         });
-        
-        // [新增] 送出行動後，瞬間隱藏號碼槽，絕不殘留
         const slotsContainer = document.getElementById('target-slots-container');
-        if (slotsContainer) slotsContainer.classList.add('hidden');
+        if (slotsContainer) {
+            setTimeout(() => {
+                if (promptEl && promptEl.innerHTML.includes('等待系統結算')) {
+                    slotsContainer.classList.add('hidden');
+                }
+            }, 1500);
+        }
     },
 
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = [], showVoteHistory = false) {
