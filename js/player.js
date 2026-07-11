@@ -48,7 +48,20 @@ function handleSeatSelect(seatNumber) {
         currentActionTarget = [seatNumber];
     } else if (localState.actionPanel.type === 'consensus') {
         currentActionTarget = [seatNumber];
-        hostConnection.send({ type: PACKET_TYPE.WOLF_PREVIEW, payload: { target: seatNumber } });
+        if (hostConnection) hostConnection.send({ type: PACKET_TYPE.WOLF_PREVIEW, payload: { target: seatNumber } });
+    } else if (localState.actionPanel.type === 'double_select') {
+        // [乾淨擴充] 支援魔術師的雙目標選擇邏輯
+        const idx = currentActionTarget.indexOf(seatNumber);
+        if (idx > -1) {
+            currentActionTarget.splice(idx, 1); // 再次點擊即取消選取
+        } else {
+            if (currentActionTarget.length < 2) {
+                currentActionTarget.push(seatNumber);
+            } else {
+                currentActionTarget.shift(); // 踢除最舊的，加入最新的，確保最多只有兩個
+                currentActionTarget.push(seatNumber);
+            }
+        }
     } else {
         currentActionTarget = [seatNumber];
     }
