@@ -8,8 +8,26 @@ window.RoleRegistry = {
     register: function(roleName, config) { this.plugins[roleName] = config; },
 
 initPassives: function(ctx) {
+   initPassives: function(ctx) {
     if (ctx) {
+        // [新增] 核心輔助函式：查詢當前號碼是否被魔術師交換
+        ctx.getActualTarget = function(seat) {
+            if (this.magicianSwap) {
+                if (parseInt(seat) === this.magicianSwap[0]) return this.magicianSwap[1];
+                if (parseInt(seat) === this.magicianSwap[1]) return this.magicianSwap[0];
+            }
+            return parseInt(seat);
+        };
+
         ctx.addFilter('DAWN_DEATH_EVALUATION', (calc) => {
+            // [攔截器] 在天亮結算前，將狼刀與毒藥、解藥目標進行全域映射置換
+            if (ctx.magicianSwap) {
+                const swapMap = (arr) => arr.map(seat => ctx.getActualTarget(seat));
+                calc.killed = swapMap(calc.killed);
+                calc.poisoned = swapMap(calc.poisoned);
+                calc.saved = swapMap(calc.saved);
+            }
+
             let deathMap = {};
             let allTargets = new Set([...calc.killed, ...calc.poisoned, ...calc.dreamed]);
 
@@ -45,11 +63,21 @@ initPassives: function(ctx) {
             return deathMap;
         });
         ctx.addFilter('NIGHT_ACTION_PERMISSION', (canAct, args) => {
+            const feared = args.context.fearedSeat;
+            const actualFeared = args.context.getActualTarget ? args.context.getActualTarget(feared) : feared;
             if (args.context.fearedSeat === args.player.seatNumber) return false;
             return canAct;
         });
     }
     Engine.EventBus.on('START_NIGHT', () => {
+        if (ctx) {
+            ctx.magicianSwap = null; // 每晚重置魔術狀態
+            // 確保魔術師排在前半夜首位發動
+            const firstHalf = ctx.nightSequence.find(s => s.phaseId === 'first_half');
+            if (firstHalf) {
+                firstHalf.roles.sort((a, b) => a.roleName === '魔術師' ? -1 : (b.roleName === '魔術師' ? 1 : 0));
+            }
+        }
         ctx.players.forEach(p => {
             const plugin = RoleRegistry.plugins[p.role];
             if (plugin && typeof plugin.onNightStart === 'function') {
@@ -209,6 +237,7 @@ RoleRegistry.register("預言家", {
         if (!act) return "【跳過行動】";
         const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
         if (act.actionId === 'confirm' && target) {
+            const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
             const tPlayer = ctx.getPlayer(target);
             // 優先讀取掩護身分 (供機械狼偽裝使用)
             const checkRole = tPlayer.data.camouflageRole || tPlayer.role; 
@@ -1102,5 +1131,35 @@ RoleRegistry.register("幸運兒", {
             p.data.luckyGuardedSeat = parseInt(target); 
             return `【守護: ${target}號】`;
         }
+    }
+});
+RoleRegistry.register("魔術師", {
+    canSelfExplode: false,
+    nightPhase: "first_half",
+    actionType: "double_select",
+    onNightStart: (ctx, player) => {
+        player.data.usedMagicianTargets = player.data.usedMagicianTargets || [];
+    },
+    getPrompt: () => "選擇兩位玩家進行魔術交換\n(每個號碼全局只能被你選擇一次)",
+    getSelectableSeats: (ctx, mySeat) => {
+        const used = ctx.getPlayer(mySeat).data.usedMagicianTargets || [];
+        // 過濾掉曾經選過的號碼，確保不重複
+        return ctx.getAlivePlayers().filter(p => !used.includes(p.seatNumber)).map(p => p.seatNumber);
+    },
+    getButtons: () => [
+        { id: 'swap', text: '確認交換', requiresTarget: true },
+        { id: 'pass', text: '跳過', requiresTarget: false }
+    ],
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || act.actionId === 'pass' || !act.targets || act.targets.length < 2) return "【跳過行動】";
+
+        const t1 = parseInt(act.targets[0]);
+        const t2 = parseInt(act.targets[1]);
+        
+        ctx.magicianSwap = [t1, t2];
+        act.player.data.usedMagicianTargets.push(t1, t2);
+
+        return `【交換: ${t1}號 與 ${t2}號】`;
     }
 });
