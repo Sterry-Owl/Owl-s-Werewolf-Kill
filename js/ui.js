@@ -337,8 +337,13 @@ const UI = {
                             btn.className = 'btn-primary';
                         }
 
-                        if (bInfo.requiresTarget && selectedTargets.length === 0) {
-                            btn.disabled = true;
+                        if (bInfo.requiresTarget) {
+                            // [乾淨擴充] 針對雙選模式，必須選滿2人才能解鎖確認按鈕
+                            if (state.actionPanel.type === 'double_select' && selectedTargets.length < 2) {
+                                btn.disabled = true;
+                            } else if (state.actionPanel.type !== 'double_select' && selectedTargets.length === 0) {
+                                btn.disabled = true;
+                            }
                         }
 
                         btn.onclick = () => onActionSubmit(bInfo.id);
