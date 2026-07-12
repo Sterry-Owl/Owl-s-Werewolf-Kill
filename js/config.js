@@ -75,6 +75,7 @@ const BOARD_TEMPLATES = [
     { id: "standard_10", name: "10人 標準局", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "inw_cl_10", name: "10人 隱狼烏鴉", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "烏鴉", "隱狼", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wwk_kn_10", name: "10人 白狼王騎士", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "騎士", "白狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "gh_gra_10", name: "10人 石像鬼守墓人", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "守墓人", "石像鬼", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "crush_10", name: "10人 暗戀者", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "暗戀者"] },
     { id: "lastday_11", name: "11人 末日狂徒", category: 'fun', playerCount: 11, deck: ["預言家", "守墓人", "騎士", "守衛", "石像鬼", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "standard_12", name: "12人 標準局", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
