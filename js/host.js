@@ -370,6 +370,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
 
         return { 
             seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, 
+            deathReason: p.deathReason,
             topTag, sideTag, wolfPreviewTags, isWolfSelected: wolfPreviewTags.length > 0,
             isCandidate: isSheriffPhase && (ctx.sheriff.candidates || []).includes(p.seatNumber), 
             hasWithdrawn: isSheriffPhase && (ctx.sheriff.withdrawn || []).includes(p.seatNumber),
