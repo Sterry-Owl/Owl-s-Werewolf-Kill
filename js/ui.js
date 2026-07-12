@@ -243,7 +243,13 @@ const UI = {
         state.players.forEach((p) => {
             const seat = document.createElement('div');
             seat.className = 'player-seat';
-            if (p.isDead) seat.classList.add('dead');
+            
+            if (p.isDead) {
+                seat.classList.add('dead');
+                if (p.deathReason) {
+                    seat.setAttribute('data-death-reason', p.deathReason);
+                }
+            }
             
             if (p.isWolfSelected) seat.classList.add('wolf-selected');
             
