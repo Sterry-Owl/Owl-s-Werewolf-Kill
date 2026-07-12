@@ -128,21 +128,20 @@ stateMachine.registerPhase('HUNTER_ACTION', {
             allowDeadAction: true, 
             onEnter: (ctx) => { ctx.systemLog = "等待獵人開槍..."; },
             onAction: (ctx, player, actionId, targets) => {
-                if (player.seatNumber !== ctx.activeShooter) return; // [修正] 安全鎖：不相干的人亂點按鈕直接無視
+                if (player.seatNumber !== ctx.activeShooter) return; 
                 
                 const target = targets.length > 0 ? targets[0] : null;
                 if (actionId === 'shoot' && target) {
                     const tPlayer = ctx.getPlayer(target);
                     if (tPlayer) tPlayer.kill('shot', ctx); 
-                    ctx.systemLog = `獵人開槍帶走了 ${target} 號玩家。`;
-                    Engine.EventBus.emit('BROADCAST_MESSAGE', `【突發事件】一聲槍響，${target} 號玩家被帶走。`);
+                    const msg = `${player.seatNumber}號玩家發動技能擊殺了${target}號玩家`;
+                    ctx.systemLog = msg;
+                    Engine.EventBus.emit('BROADCAST_MESSAGE', msg);
                 } else {
                     ctx.systemLog = `獵人選擇不開槍/無技能。`;
                 }
                 
-                ctx.activeShooter = null; // [新增] 開槍完畢，解除鎖定
-                
-                // [關鍵修正] 開槍殺人後，必須立刻檢查遊戲是否達到屠邊條件！
+                ctx.activeShooter = null; 
                 Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
                 if (ctx.phase !== 'GAME_OVER') {
                     Engine.EventBus.emit('RESUME_ROUTINE');
@@ -160,8 +159,9 @@ stateMachine.registerPhase('HUNTER_ACTION', {
                 if (actionId === 'shoot' && target) {
                     const tPlayer = ctx.getPlayer(target);
                     if (tPlayer) tPlayer.kill('shot', ctx); 
-                    ctx.systemLog = `狼王開槍帶走了 ${target} 號玩家。`;
-                    Engine.EventBus.emit('BROADCAST_MESSAGE', `【突發事件】一聲槍響，${target} 號玩家被帶走。`);
+                    const msg = `${player.seatNumber}號玩家發動技能擊殺了${target}號玩家`;
+                    ctx.systemLog = msg;
+                    Engine.EventBus.emit('BROADCAST_MESSAGE', msg);
                 } else {
                     ctx.systemLog = `狼王選擇不開槍。`;
                 }
