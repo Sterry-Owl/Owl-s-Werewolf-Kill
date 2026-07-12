@@ -258,15 +258,28 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 
 /* 3. 叉號獨立定位於父層，根據 seat-img-wrapper 的 42px 高度，設定 top: 21px 達成絕對幾何中心 */
 .player-seat.dead::after { 
-    content: '✖'; 
+    content: ''; /* 必須為空，改用背景圖 */
     position: absolute; 
-    font-size: 32px; 
-    color: var(--accent-red); 
+    width: 36px; /* 稍微比頭像 42px 大一點點，讓筆觸有溢出的視覺張力 */
+    height: 36px; 
     z-index: 20; 
     top: 21px; 
     left: 50%; 
     transform: translate(-50%, -50%); 
     pointer-events: none; 
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+/* [新增] 分支 A：放逐出局 (判斷 data 屬性是否為 voted) */
+.player-seat.dead[data-death-reason="voted"]::after {
+    background-image: url('../img/pic-out.png');
+}
+
+/* [新增] 分支 B：其他所有死因 (被刀、被毒、預設值等) */
+.player-seat.dead:not([data-death-reason="voted"])::after {
+    background-image: url('../img/pic-killed.png');
 }
 
 .player-name { margin-top: 4px; font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); white-space: nowrap; text-align: center; overflow: hidden; text-overflow: ellipsis; width: 60px; }
