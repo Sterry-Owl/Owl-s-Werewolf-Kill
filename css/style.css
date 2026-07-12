@@ -260,7 +260,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .player-seat.dead::after { 
     content: ''; /* 必須為空，改用背景圖 */
     position: absolute; 
-    width: 36px; /* 稍微比頭像 42px 大一點點，讓筆觸有溢出的視覺張力 */
+    width: 40px; /* 稍微比頭像 42px 大一點點，讓筆觸有溢出的視覺張力 */
     height: 36px; 
     z-index: 20; 
     top: 21px; 
