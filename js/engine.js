@@ -62,6 +62,18 @@ class GameContext {
         this.destinationPhase = 'DAY_DISCUSSION'; 
         this.filters = {};
     }
+    getNextAliveSeat(startSeat, direction) {
+        let current = startSeat;
+        const totalSeats = this.players.length;
+        for (let i = 0; i < totalSeats; i++) {
+            current += direction;
+            if (current > totalSeats) current = 1;
+            if (current < 1) current = totalSeats;
+            const p = this.getPlayer(current);
+            if (p && !p.isDead) return current;
+        }
+        return startSeat; // 防呆預設值
+    }
     addPlayer(peerId, name) { const p = new PlayerModel(this.players.length + 1, peerId, name); this.players.push(p); return p; }
     getPlayer(seat) { return this.players.find(p => p.seatNumber === seat); }
     getPlayerByPeer(peerId) { return this.players.find(p => p.peerId === peerId); }
