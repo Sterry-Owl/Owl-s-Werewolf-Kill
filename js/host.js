@@ -254,6 +254,42 @@ function setupEngineFlowControllers() {
         const msg = dead.length > 0 ? `昨晚，${dead.join(' 號、')} 號玩家死亡。` : `昨晚是平安夜。`;
         engineContext.systemLog = msg;
         Engine.EventBus.emit('BROADCAST_MESSAGE', msg);
+        
+        // ===============================================
+        // [新增] 白天發言順序與動態文本計算
+        // ===============================================
+        let promptLine1 = "";
+        let promptLine2 = "";
+        
+        if (dead.length === 0) {
+            promptLine1 = "昨晚是平安夜";
+            const aliveSeats = engineContext.getAlivePlayers().map(p => p.seatNumber);
+            const u = aliveSeats[Math.floor(Math.random() * aliveSeats.length)];
+            const T = Math.random() < 0.5 ? '順' : '逆';
+            if (engineContext.sheriff.seat && !engineContext.getPlayer(engineContext.sheriff.seat).isDead) {
+                promptLine2 = "請警長決定發言順序";
+            } else {
+                promptLine2 = `請從 ${u} 號開始${T}序發言`;
+            }
+        } else {
+            // 排序確保 A 是死者中號碼最小的
+            const sortedDead = [...dead].sort((a, b) => a - b);
+            promptLine1 = `昨晚 ${sortedDead.join(' 號、')} 號玩家死亡`;
+            
+            const A = sortedDead[0];
+            const direction = Math.random() < 0.5 ? 1 : -1;
+            const T = direction === 1 ? '順' : '逆';
+            const u = engineContext.getNextAliveSeat(A, direction); // 呼叫剛才寫的演算法
+            
+            if (engineContext.sheriff.seat && !engineContext.getPlayer(engineContext.sheriff.seat).isDead) {
+                promptLine2 = "請警長決定發言順序";
+            } else {
+                promptLine2 = `請從 ${u} 號開始${T}序發言`;
+            }
+        }
+        engineContext.dayDiscussionPrompt = `${promptLine1}\n${promptLine2}`;
+        // ===============================================
+
         engineContext.isPK = false;
         
         engineContext.routineOrigin = 'MORNING'; 
@@ -380,7 +416,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     });
 
     let actionPanel = { show: false, type: 'none', prompt: '', selectableSeats: [], buttons: [], submitPacketType: PACKET_TYPE.ACTION_SUBMIT };
-    let personalMessage = getPhaseMessageForPlayer(ctx.phase);
+    let personalMessage = getPhaseMessageForPlayer(ctx.phase, ctx); // [修改] 將 ctx 傳遞進去
 
     // ==========================================
     // 2. 處理玩家本人的行動面板 (Action Panel)
@@ -516,11 +552,26 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     };
 }
 
-function getPhaseMessageForPlayer(phase) {
-    const dict = { 'NIGHT_TRANSITION': "天黑請閉眼...", 'NIGHT_ACTION': "夜間行動中...", 'SHERIFF_CANDIDACY': "登記上警意願...", 'SHERIFF_SPEECH': "警長發言中...", 'SHERIFF_VOTING': "警長投票...", 'SHERIFF_TRANSFER': "移交警徽中...", 'DAY_DISCUSSION': "白天發言階段。", 'DAY_VOTING': "放逐投票...", 'PK_SPEECH': "PK 發言...", 'PK_VOTING': "PK 投票...", 'VOTE_RESULT_DISPLAY': "展示投票結果...", 'LAST_WORDS': "遺言發表。", 'HUNTER_ACTION': "系統結算中...", 'WOLFKING_ACTION': "系統結算中...", 'GAME_OVER': engineContext ? engineContext.systemLog : "遊戲結束。"};
+function getPhaseMessageForPlayer(phase, ctx) { // [修改] 接收 ctx
+    const dict = { 
+        'NIGHT_TRANSITION': "天黑請閉眼...", 
+        'NIGHT_ACTION': "夜間行動中...", 
+        'SHERIFF_CANDIDACY': "登記上警意願...", 
+        'SHERIFF_SPEECH': "警長發言中...", 
+        'SHERIFF_VOTING': "警長投票...", 
+        'SHERIFF_TRANSFER': "移交警徽中...", 
+        'DAY_DISCUSSION': ctx ? (ctx.dayDiscussionPrompt || "白天發言階段。") : "白天發言階段。", // [修改] 讀取動態字串
+        'DAY_VOTING': "放逐投票...", 
+        'PK_SPEECH': "PK 發言...", 
+        'PK_VOTING': "PK 投票...", 
+        'VOTE_RESULT_DISPLAY': "展示投票結果...", 
+        'LAST_WORDS': "遺言發表。", 
+        'HUNTER_ACTION': "系統結算中...", 
+        'WOLFKING_ACTION': "系統結算中...", 
+        'GAME_OVER': engineContext ? engineContext.systemLog : "遊戲結束。"
+    };
     return dict[phase] || "等待中...";
 }
-
 function getDayBtnText(phase) {
     const dict = { 'SHERIFF_CANDIDACY': "強制結束上警登記 (防卡死)", 'SHERIFF_VOTING': "強制結算警長投票 (防卡死)", 'SHERIFF_SPEECH': "發起警長投票", 'DAY_DISCUSSION': "發起放逐投票", 'PK_SPEECH': "發起 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入遺言發表階段", 'LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍...", 'WOLFKING_ACTION': "等待狼王開槍..." };
     return dict[phase] || "投票/行動進行中...";
