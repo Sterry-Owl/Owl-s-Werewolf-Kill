@@ -68,7 +68,7 @@ const BOARD_TEMPLATES = [
     { id: "test-13_6", name: "6人 奇蹟商人(測試)", category: 'test', playerCount: 6, deck: ["女巫", "預言家", "守衛", "奇蹟商人", "狼王", "惡靈騎士"] },
     { id: "survivortwo_7", name: "7人 生還者(雙狼王測試)", category: 'test', playerCount: 7, deck: ["預言家", "守衛", "女巫", "獵人", "狼王", "狼王", "平民"] },
     { id: "survivorstd_7", name: "7人 生還者(標準)", category: 'fun', playerCount: 7, deck: ["預言家", "守衛", "女巫", "獵人", "白狼王", "狼人", "平民"] },
-    { id: "noeye_8", name: "8人 無目之夜", category: 'fun', playerCount: 8, deck: ["預言家", "女巫", "獵人", "平民", "平民", "狼人", "隱狼", "石像鬼"] },
+    { id: "noeye_8", name: "8人 偽標準", category: 'fun', playerCount: 8, deck: ["預言家", "女巫", "獵人", "平民", "平民", "狼人", "狼人", "狼人"] },
     { id: "lastday_8", name: "8人 末日狂徒", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "獵人", "狼人", "狼人", "狼人", "平民", "平民"] },
     { id: "evening_8", name: "8人 諸神黃昏", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "獵人", "女巫", "白痴", "惡靈騎士", "狼王", "白狼王"] },     
     { id: "standard_9", name: "9人 標準局", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
