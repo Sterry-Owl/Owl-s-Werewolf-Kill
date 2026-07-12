@@ -23,14 +23,15 @@ class PlayerModel {
         this.name = name;
         this.role = null;
         this.isDead = false;
+        this.deathReason = null; 
         this.isRevealed = false;
         this.tags = new Set(); 
         this.data = {};        
     }
-    // [關鍵修復] 要求傳入 context，並打包進事件中傳給插件
     kill(reason, context) {
         if (this.isDead) return false;
         this.isDead = true;
+        this.deathReason = reason; 
         GameEvent.emit('PLAYER_DIED', { context: context, player: this, reason: reason });
         return true;
     }
@@ -41,7 +42,6 @@ class PlayerModel {
 }
 
 class GameContext {
-    // ... 內部保持不變，直接保留您原本檔案的 GameContext 內容 ...
     constructor() {
         this.players = [];
         this.rules = {};
