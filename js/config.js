@@ -11,13 +11,15 @@ const PEER_CONFIG = {
                 urls: [
                     'turn:global.relay.metered.com:80',
                     'turn:global.relay.metered.com:80?transport=tcp',
-                    'turn:global.relay.metered.com:443?transport=tls'
+                    'turn:global.relay.metered.com:443',
+                    'turns:global.relay.metered.com:443?transport=tcp'
                 ],
                 username: 'a89975f53fd97193003482df',
                 credential: 'ShgDnEoNfkoSF2fh'
             }
         ] 
     } 
+};
 };
 
 // 狀態機列舉 (State Machine Enums)
