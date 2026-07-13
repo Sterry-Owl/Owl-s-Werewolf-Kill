@@ -2,15 +2,32 @@
 // v3.8.0 系統靜態常數與設定檔 (Static Config)
 // ==========================================
 
+const GAME_PREFIX = "TWG_WOLF_V4_";
+
 const PEER_CONFIG = { 
     config: { 
         'iceServers': [
-            { url: 'stun:stun.l.google.com:19302' }, 
-            { url: 'stun:stun1.l.google.com:19302' }
+            // [高內聚] STUN 伺服器群：共用無憑證環境
+            { 
+                urls: [
+                    'stun:stun.l.google.com:19302',
+                    'stun:stun1.l.google.com:19302'
+                ] 
+            },
+            // [高內聚] TURN 伺服器群：多協定路由共用同一組身分驗證，絕不重複宣告
+            {
+                urls: [
+                    'turn:global.relay.metered.com:80',
+                    'turn:global.relay.metered.com:80?transport=tcp',
+                    'turn:global.relay.metered.com:443',
+                    'turns:global.relay.metered.com:443?transport=tcp'
+                ],
+                username: 'a89975f53fd97193003482df',
+                credential: 'ShgDnEoNfkoSF2fh'
+            }
         ] 
     } 
 };
-
 // 狀態機列舉 (State Machine Enums)
 const GAME_PHASE = {
     LOBBY: 'LOBBY',
@@ -48,7 +65,7 @@ const PACKET_TYPE = {
 };
 
 const BOARD_TEMPLATES = [
-    { id: "quick-1_6", name: "6人 獵人局", category: 'funn', playerCount: 6, deck: ["預言家", "獵人", "狼人", "狼人", "平民", "平民"] },
+    { id: "quick-1_6", name: "6人 獵人局", category: 'fun', playerCount: 6, deck: ["預言家", "獵人", "狼人", "狼人", "平民", "平民"] },
     { id: "quick-2_6", name: "6人 女巫局", category: 'fun', playerCount: 6, deck: ["預言家", "女巫", "狼王", "狼人", "平民", "平民"] },
     { id: "quick-3_6", name: "6人 守衛局", category: 'fun', playerCount: 6, deck: ["預言家", "守衛", "狼人", "狼人", "平民", "平民"] },
     { id: "gungun_6", name: "6人 獵殺潛狼", category: 'fun', playerCount: 6, deck: ["獵人", "獵人", "獵人", "獵人", "狼人", "狼人"] },
@@ -117,5 +134,5 @@ const ROLE_DICTIONARY = {
     "魔鏡少女": { faction: "good", type: "god", nightPhase: "secon_half", actionType: "single_select", prompt: "選擇今晚的查驗目標" },
     "機械狼": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "dynamic", prompt: "機械狼請行動" },
     "奇蹟商人": { faction: "good", type: "god", nightPhase: "first_half", actionType: "dynamic", prompt: "奇蹟商人請行動" },
-    "魔術師": { faction: "good", type: "god", nightPhase: "first_half", actionType: "double_select", prompt: "女巫請行動" },
+    "魔術師": { faction: "good", type: "god", nightPhase: "first_half", actionType: "double_select", prompt: "魔術師請行動" },
 };
