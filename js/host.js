@@ -27,7 +27,10 @@ window.initHost = function(roomId) {
     engineContext.systemLog = '⏳ 正在與連線伺服器建立通道，請稍候...';
     syncStateToAll();
 
-    hostPeer = new Peer(roomId, PEER_CONFIG);
+    // [高內聚] 在網路層動態組合前綴，向公共伺服器宣告獨一無二的 ID
+    const actualHostId = (typeof GAME_PREFIX !== 'undefined' ? GAME_PREFIX : '') + roomId;
+    
+    hostPeer = new Peer(actualHostId, PEER_CONFIG);
     hostPeer.on('open', (id) => {
         engineContext.systemLog = '✅ 房間建立成功！請等待玩家加入...';
         syncStateToAll();
