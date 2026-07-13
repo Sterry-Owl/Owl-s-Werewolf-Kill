@@ -17,7 +17,10 @@ window.initPlayer = function(roomId, playerName) {
     playerPeer = new Peer(localGeneratedId, PEER_CONFIG);
     
     playerPeer.on('open', (id) => {
-        hostConnection = playerPeer.connect(roomId);
+        // [嚴謹架構] 保持與房主端絕對一致的尋址演算法 (低耦合通訊)
+        const targetHostId = `${GAME_PREFIX}${roomId}`;
+        hostConnection = playerPeer.connect(targetHostId);
+        
         hostConnection.on('open', () => {
             hostConnection.send({ type: PACKET_TYPE.JOIN_ROOM, payload: { name: playerName } });
         });
