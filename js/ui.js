@@ -59,18 +59,22 @@ const UI = {
             if (parent) {
                 parent.innerHTML = ''; // 清空原本的 "身分：XXX"
                 
-                // 建立按鈕
                 detailsBtn = document.createElement('span');
                 detailsBtn.id = 'btn-board-details';
                 detailsBtn.className = 'btn-board-details';
                 detailsBtn.textContent = '版型詳情 ℹ️';
                 parent.appendChild(detailsBtn);
 
-                // 建立面板
                 detailsPanel = document.createElement('div');
                 detailsPanel.id = 'board-details-panel';
                 detailsPanel.className = 'board-details-panel';
-                document.body.appendChild(detailsPanel);
+                
+                const appContainer = document.querySelector('.player-app-container');
+                if (appContainer) {
+                    appContainer.appendChild(detailsPanel);
+                } else {
+                    document.body.appendChild(detailsPanel);
+                }
 
                 // 綁定事件 (僅綁定一次，防止 Memory Leak)
                 detailsBtn.addEventListener('click', (e) => {
