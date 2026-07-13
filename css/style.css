@@ -360,18 +360,17 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .board-details-panel { 
     display: none; 
     position: absolute; 
-    top: 60px; /* 置中偏上方 */
-    left: 50%;
-    transform: translateX(-50%);
+    top: 48px; 
+    left: 0;
+    width: 100%;
     background: rgba(20, 20, 20, 0.95); 
-    border: 2px solid var(--accent-blue); 
-    padding: 5px; 
-    border-radius: 8px; 
-    color: #fff; 
+    border: none;
+    border-bottom: 2px solid var(--accent-blue);
+    padding: 0; 
+    border-radius: 0; 
+    
     z-index: 999; 
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7); 
-    width: 85%; /* 適應手機螢幕寬度 */
-    max-width: 350px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9); 
 }
 
 .board-details-panel img {
