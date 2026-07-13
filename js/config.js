@@ -5,8 +5,17 @@
 const PEER_CONFIG = { 
     config: { 
         'iceServers': [
-            { url: 'stun:stun.l.google.com:19302' }, 
-            { url: 'stun:stun1.l.google.com:19302' }
+            { urls: 'stun:stun.l.google.com:19302' }, 
+            { urls: 'stun:stun1.l.google.com:19302' },
+            {
+                urls: [
+                    'turn:global.relay.metered.com:80',
+                    'turn:global.relay.metered.com:80?transport=tcp',
+                    'turn:global.relay.metered.com:443?transport=tls'
+                ],
+                username: 'a89975f53fd97193003482df',
+                credential: 'ShgDnEoNfkoSF2fh'
+            }
         ] 
     } 
 };
