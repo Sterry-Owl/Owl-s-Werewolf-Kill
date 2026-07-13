@@ -86,18 +86,18 @@ const UI = {
         }
 
         // 2. 僅更新資料內容 (每次狀態同步時觸發，不破壞 DOM)
-        if (detailsPanel && state.boardDetails) {
-            const rules = state.boardDetails.rules;
-            const wMap = { 'first_night': '僅首夜可自救', 'never': '全程不可自救', 'always': '全程可自救' };
-            const winMap = { 'kill_side': '屠邊', 'kill_all': '屠城' };
-            const tieMap = { 'pk': 'PK發言', 'vote': '直接出局' };
-            const sMap = { 'enabled': '開啟', 'disabled': '關閉' };
+        if (detailsPanel && state.boardName) {
+            // 讀取面板上目前記錄的版型名稱
+            const currentMountedBoard = detailsPanel.getAttribute('data-current-board');
             
-            const ruleStr = Object.keys(rules).length > 0 
-                ? `女巫解藥：${wMap[rules.witchSave] || rules.witchSave}\n平票處理：${tieMap[rules.tieResolution] || rules.tieResolution}\n警長機制：${sMap[rules.sheriff] || rules.sheriff}\n勝利條件：${winMap[rules.winCondition] || rules.winCondition}`
-                : `設定載入中...`;
-
-            detailsPanel.textContent = `【版型配置】\n${state.boardDetails.deckString}\n\n【房間規則】\n${ruleStr}`;
+            // [純淨架構] 只有當「尚未掛載」或「版型更換」時，才執行 DOM 渲染
+            if (currentMountedBoard !== state.boardName) {
+                // 將最新的版型名稱寫入標籤記憶
+                detailsPanel.setAttribute('data-current-board', state.boardName);
+                
+                // 渲染圖片，並保留 onerror 防呆機制
+                detailsPanel.innerHTML = `<img src="./img/info/${state.boardName}.png" alt="${state.boardName}" style="width:100%; height:auto; display:block; border-radius:4px;" onerror="this.parentElement.innerHTML='<div style=\\'padding:20px; text-align:center; font-size:14px;\\'>找不到對應的版型圖片：<br>${state.boardName}.png</div>';">`;
+            }
         }
         const btnExplode = document.getElementById('btn-self-explode');
         const btnWolfChat = document.getElementById('btn-wolf-chat');
