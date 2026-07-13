@@ -165,6 +165,13 @@ RoleRegistry.register("女巫", {
     canSelfExplode: false,
     nightPhase: "second_half",   
     actionType: "dynamic_buttons",
+
+    onNightStart: (ctx, player) => {
+        if (ctx.witchState) {
+            ctx.witchState.savedSeat = null;
+        }
+    },
+
     getPrompt: (ctx, mySeat) => {
         if (!ctx.witchState) ctx.witchState = {};
         if (ctx.witchState.antidoteUsed) return "解藥已經用盡。\n請選擇要發動的技能：";
