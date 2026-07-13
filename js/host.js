@@ -27,10 +27,11 @@ window.initHost = function(roomId) {
     engineContext.systemLog = '⏳ 正在與連線伺服器建立通道，請稍候...';
     syncStateToAll();
 
-    // [高內聚] 在網路層動態組合前綴，向公共伺服器宣告獨一無二的 ID
-    const actualHostId = (typeof GAME_PREFIX !== 'undefined' ? GAME_PREFIX : '') + roomId;
+    // [嚴謹架構] 貫徹 Fail-Fast 原則並使用 ES6 模板字串。
+    // 透過強制綁定 GAME_PREFIX，達成高內聚的網域隔離。
+    const fullRoomId = `${GAME_PREFIX}${roomId}`;
     
-    hostPeer = new Peer(actualHostId, PEER_CONFIG);
+    hostPeer = new Peer(fullRoomId, PEER_CONFIG);
     hostPeer.on('open', (id) => {
         engineContext.systemLog = '✅ 房間建立成功！請等待玩家加入...';
         syncStateToAll();
