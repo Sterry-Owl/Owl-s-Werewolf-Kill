@@ -301,7 +301,10 @@ function setupEngineFlowControllers() {
         resumeRoutinePhase();
     });
 
-    Engine.EventBus.on('FORCE_ENTER_NIGHT', () => setTimeout(() => Engine.EventBus.emit('START_NIGHT'), 4000));
+    Engine.EventBus.on('FORCE_ENTER_NIGHT', () => {
+        stateMachine.transitionTo('NIGHT_TRANSITION'); 
+        setTimeout(() => Engine.EventBus.emit('START_NIGHT'), 1000); 
+    });
     
     Engine.EventBus.on('CHECK_WIN_CONDITION', (ctx) => {
         if (ctx.phase === 'GAME_OVER') return;
