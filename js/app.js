@@ -108,14 +108,14 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!tpl) return alert('請選擇版型');
 
-        // [新增] 收集主控台的規則設定，包含警長機制
+        // [擴充] 收集主控台的規則設定，包含警長機制與明暗牌設定
         const gameRules = {
             witchSave: document.getElementById('rule-witch-save')?.value || 'first_night',
             winCondition: document.getElementById('rule-win-condition')?.value || 'kill_side',
             tieResolution: document.getElementById('rule-tie-resolution')?.value || 'pk',
-            sheriff: document.getElementById('rule-sheriff')?.value || 'enabled' 
+            sheriff: document.getElementById('rule-sheriff')?.value || 'enabled',
+            deathReveal: document.getElementById('rule-death-reveal')?.value || 'dark' // [新增] 明暗牌規則
         };
-
         if (typeof window.startGame === 'function') {
             window.startGame(tpl.deck, tpl.name, gameRules);
         }
