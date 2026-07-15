@@ -308,9 +308,8 @@ RoleRegistry.register("燈影預言家", {
                 const isCamouflaged = typeof pluginDef.seenBySeerAsGood === 'function' 
                     ? pluginDef.seenBySeerAsGood(ctx, target) 
                     : pluginDef.seenBySeerAsGood;
-                if (isCamouflaged) trueAlignment = "好人"; // 注意: 延續舊有變數名
+                if (isCamouflaged) alignment = "好人"; 
             }
-            // [技能核心] 將查驗結果反轉
             let fakeAlignment = (alignment === "狼人") ? "好人" : "狼人";
 
             act.player.data.seerRecords = act.player.data.seerRecords || {};
