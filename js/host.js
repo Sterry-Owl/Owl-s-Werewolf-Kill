@@ -396,7 +396,8 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     const mappedPlayers = ctx.players.map(p => {
         let topTag = null, sideTag = null, wolfPreviewTags = [];
         
-        if (ctx.phase === 'GAME_OVER' || p.isRevealed) topTag = p.role;
+        // [乾淨擴充] 新增明牌規則攔截：若玩家已死 (p.isDead) 且規則為明牌 ('light')，則將真實身分賦予 topTag
+        if (ctx.phase === 'GAME_OVER' || p.isRevealed || (p.isDead && ctx.rules.deathReveal === 'light')) topTag = p.role;
         else if (RoleRegistry.plugins[player.role]?.canSeeWolves && RoleRegistry.plugins[p.role]?.seenAsWolf) topTag = p.role;
         else if (player.data.customTopTags && player.data.customTopTags[p.seatNumber]) topTag = player.data.customTopTags[p.seatNumber];
         if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber]; 
