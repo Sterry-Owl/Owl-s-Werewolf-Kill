@@ -19,7 +19,13 @@ window.RoleRegistry = {
             };
 
             ctx.addFilter('DAWN_DEATH_EVALUATION', (calc) => {
-                // [攔截器] 在天亮結算前，將狼刀與毒藥、解藥目標進行全域映射置換
+                const sanitize = (arr) => (arr || []).map(x => parseInt(x));
+                calc.killed = sanitize(calc.killed);
+                calc.poisoned = sanitize(calc.poisoned);
+                calc.saved = sanitize(calc.saved);
+                calc.dreamed = sanitize(calc.dreamed);
+                calc.guarded = sanitize(calc.guarded);
+                calc.lastDreamed = sanitize(calc.lastDreamed);
                 if (ctx.magicianSwap) {
                     const swapMap = (arr) => arr.map(seat => ctx.getActualTarget(seat));
                     calc.killed = swapMap(calc.killed);
@@ -152,11 +158,16 @@ RoleRegistry.register("狼人", {
     },
     getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
-        let validTargets = actions.filter(act => act.actionId !== 'pass' && act.targets.length > 0).map(act => act.targets[0]);
+        if (ctx.nightTags.wolfKillResolvedThisTurn) return "已參與狼人陣營襲擊";
+        const allWolfActions = ctx.currentStepActions.filter(act => ROLE_DICTIONARY[act.player.role]?.faction === 'wolf');
+        let validTargets = allWolfActions.filter(act => act.actionId !== 'pass' && act.targets.length > 0).map(act => act.targets[0]);
+        ctx.nightTags.wolfKillResolvedThisTurn = true; 
         if (validTargets.length === 0) return "空刀";
         const finalTarget = validTargets[Math.floor(Math.random() * validTargets.length)];
+        
         if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
         ctx.nightTags.killed.push(parseInt(finalTarget));
+        
         return `襲擊: ${finalTarget}號`;
     }
 });
@@ -219,9 +230,9 @@ RoleRegistry.register("女巫", {
                 return "解藥尚未使用時，不可毒殺被襲擊者。";
             }
             if (target) {
-                ctx.nightTags.poisoned.push(target);
+                ctx.nightTags.poisoned.push(parseInt(target));
                 ctx.witchState.poisonUsed = true;
-                ctx.nightTags.poisonerSeat = act.player.seatNumber; // 記錄真實投毒來源
+                ctx.nightTags.poisonerSeat = act.player.seatNumber;
                 return `毒殺${target}號玩家`;
             }
             return "跳過行動";
@@ -260,9 +271,9 @@ RoleRegistry.register("預言家", {
                 if (isCamouflaged) alignment = "好人";
             }
             act.player.data.seerRecords = act.player.data.seerRecords || {};
-            act.player.data.seerRecords[target] = alignment;
-            act.player.data.latestCheckResult = { seat: target, alignment: alignment };
-            act.player.data.tempPrivateMessage = `${target}號玩家是【${alignment}】。`;
+            act.player.data.seerRecords[target] = alignment; // (燈影為 fakeAlignment)
+            act.player.data.latestCheckResult = { seat: parseInt(target), alignment: alignment, isSeerAction: true }; // (燈影為 fakeAlignment)
+            act.player.data.tempPrivateMessage = `${target}號玩家是【${alignment}】。`; // (燈影為 fakeAlignment)
             return `查驗: ${target}號`;
         }
         return "跳過行動";
@@ -302,9 +313,10 @@ RoleRegistry.register("燈影預言家", {
             let fakeAlignment = (alignment === "狼人") ? "好人" : "狼人";
 
             act.player.data.seerRecords = act.player.data.seerRecords || {};
-            act.player.data.seerRecords[target] = fakeAlignment;
-            act.player.data.latestCheckResult = { seat: target, alignment: fakeAlignment };
-            act.player.data.tempPrivateMessage = `${target}號玩家是【${fakeAlignment}】。`;
+            act.player.data.seerRecords[target] = fakealignment; // (燈影為 fakeAlignment)
+            // [修復] 強制轉為整數，並補上 isSeerAction 標記
+            act.player.data.latestCheckResult = { seat: parseInt(target), alignment: fakealignment, isSeerAction: true }; // (燈影為 fakeAlignment)
+            act.player.data.tempPrivateMessage = `${target}號玩家是【${fakealignment}】。`; // (燈影為 fakeAlignment)
             return `查驗: ${target}號`;
         }
         return "跳過行動";
@@ -810,8 +822,7 @@ RoleRegistry.register("魔鏡少女", {
                 
                 act.player.data.seerRecords = act.player.data.seerRecords || {};
                 act.player.data.seerRecords[target] = exactRole;
-                
-                act.player.data.latestCheckResult = { seat: target, alignment: exactRole };
+                act.player.data.latestCheckResult = { seat: parseInt(target), alignment: exactRole, isSeerAction: true };
                 act.player.data.tempPrivateMessage = `${target}號玩家的具體身分為【${exactRole}】。`;
                 
                 return `查驗: ${target}號`;
