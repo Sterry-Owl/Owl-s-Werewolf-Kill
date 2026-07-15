@@ -100,7 +100,7 @@ const UI = {
                 detailsPanel.setAttribute('data-current-board', state.boardName);
                 
                 // 渲染圖片，並保留 onerror 防呆機制
-                detailsPanel.innerHTML = `<img src="./img/info/${state.boardName}.png" alt="${state.boardName}" style="width:100%; height:auto; display:block; border-radius:4px;" onerror="this.parentElement.innerHTML='<div style=\\'padding:20px; text-align:center; font-size:14px;\\'>找不到對應的版型圖片：<br>${state.boardName}.png</div>';">`;
+                detailsPanel.innerHTML = `<img src="./img/info/${state.boardName}.webp" alt="${state.boardName}" style="width:100%; height:auto; display:block; border-radius:4px;" onerror="this.parentElement.innerHTML='<div style=\\'padding:20px; text-align:center; font-size:14px;\\'>找不到對應的版型圖片：<br>${state.boardName}.webp</div>';">`;
             }
         }
         const btnExplode = document.getElementById('btn-self-explode');
@@ -139,9 +139,9 @@ const UI = {
                 btnDaySkill.classList.remove('hidden');
                 // 動態替換背景圖片：騎士用你上傳的新圖，白狼王用原本的自爆圖
                 if (state.myRole === '騎士') {
-                    btnDaySkill.style.backgroundImage = "url('./img/btn-knight.png')"; // 使用你上傳的騎士技能圖
+                    btnDaySkill.style.backgroundImage = "url('./img/btn-knight.webp')"; // 使用你上傳的騎士技能圖
                 } else {
-                    btnDaySkill.style.backgroundImage = "url('./img/btn-explode.png')"; // 白狼王沿用原本的自爆圖
+                    btnDaySkill.style.backgroundImage = "url('./img/btn-explode.webp')"; // 白狼王沿用原本的自爆圖
                 }
             } else {
                 btnDaySkill.classList.add('hidden');
@@ -163,7 +163,7 @@ const UI = {
             if (cardPanel) cardPanel.style.zIndex = '15'; 
             if (historyPanel) historyPanel.classList.add('hidden');
             if (cardImg && state.myRole) {
-                cardImg.src = `./img/${state.myRole.split('-')[0]}.png`;
+                cardImg.src = `./img/${state.myRole.split('-')[0]}.webp`;
                 cardImg.classList.remove('hidden');
                 cardImg.style.display = 'block';
             }
@@ -186,7 +186,7 @@ const UI = {
                     
                     if (seatNum) {
                         const img = document.createElement('img');
-                        img.src = `./img/seat_${seatNum}.png`;
+                        img.src = `./img/seat_${seatNum}.webp`;
                         img.onerror = function() { this.style.display='none'; };
                         slot.appendChild(img);
                     }
@@ -307,7 +307,7 @@ const UI = {
 
             seat.innerHTML = `
                 <div class="seat-img-wrapper">
-                    <img src="./img/seat_${p.seatNumber}.png" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <img src="./img/seat_${p.seatNumber}.webp" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-size:18px; font-weight:bold; color:#333;">${p.seatNumber}</div>
                     ${tagsHtml}
                 </div>
@@ -469,7 +469,7 @@ const UI = {
             seat.innerHTML = `
                 <div class="role-label" style="background:var(--accent-blue)">${p.role || '未分配'}</div>
                 <div class="seat-img-wrapper" style="width: 56px; height: 56px; border-radius: 50%; border: 3px solid #555; background: #222; position: relative; overflow: hidden;">
-                    <img src="./img/seat_${p.seatNumber}.png" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none';">
+                    <img src="./img/seat_${p.seatNumber}.webp" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none';">
                 </div>
                 <div class="player-name">${p.name || '等待加入'}</div>
             `;
