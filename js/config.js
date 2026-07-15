@@ -131,7 +131,7 @@ const ROLE_DICTIONARY = {
     "狼美人": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "dynamic_buttons", prompt: "狼美人請行動" },
     "攝夢人": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚的攝夢目標" },
     "惡靈騎士": { faction: "wolf", type: "wolf", nightPhase: "midnight", actionType: "consensus", prompt: "選擇今晚的襲擊目標" },
-    "魔鏡少女": { faction: "good", type: "god", nightPhase: "secon_half", actionType: "single_select", prompt: "選擇今晚的查驗目標" },
+    "魔鏡少女": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚的查驗目標" },
     "機械狼": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "dynamic", prompt: "機械狼請行動" },
     "奇蹟商人": { faction: "good", type: "god", nightPhase: "first_half", actionType: "dynamic", prompt: "奇蹟商人請行動" },
     "魔術師": { faction: "good", type: "god", nightPhase: "first_half", actionType: "double_select", prompt: "魔術師請行動" },
