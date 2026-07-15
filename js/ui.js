@@ -151,7 +151,6 @@ const UI = {
         const cardPanel = document.querySelector('.card-panel');
         const cardContainer = document.getElementById('my-card-container'); // [替換] 改為抓取 3D 容器
         const historyPanel = document.getElementById('vote-history-panel');
-        const btnRoleDetails = document.getElementById('btn-role-details'); // [新增] 抓取翻牌按鈕
 
         if (showVoteHistory) {
             if (cardPanel) cardPanel.style.zIndex = '25'; 
@@ -174,7 +173,6 @@ const UI = {
                 document.getElementById('role-desc-content').textContent = def ? def.description : '無技能說明。';
                 
                 cardContainer.classList.remove('hidden');
-                if (btnRoleDetails) btnRoleDetails.classList.remove('hidden'); // 顯示翻牌按鈕
             }
         }
 
