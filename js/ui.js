@@ -272,9 +272,9 @@ const UI = {
             
             if (p.isDead) {
                 seat.classList.add('dead');
-                if (p.deathReason) {
-                    seat.setAttribute('data-death-reason', p.deathReason);
-                }
+                // [資料防護] 歸一化死亡原因。若非放逐或自爆，一律強制轉為 'killed'，確保 CSS 接收明確屬性
+                const reason = (p.deathReason === 'voted' || p.deathReason === 'explode') ? p.deathReason : 'killed';
+                seat.setAttribute('data-death-reason', reason);
             }
             
             if (p.isWolfSelected) seat.classList.add('wolf-selected');
