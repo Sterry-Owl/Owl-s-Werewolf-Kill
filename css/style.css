@@ -323,7 +323,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     padding: 5px;
     margin-bottom: 20px;
     gap: 5px;
-    width: 50%;
+    width: 100%;
     min-width: 280px; 
 }
 .toggle-option {
@@ -447,4 +447,35 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     font-size: 13px;
     line-height: 1.5;
     text-align: justify;
+}.setup-layout {
+    display: flex;
+    flex-direction: row;
+    gap: 30px; /* 左右欄的間距 */
+    align-items: flex-start; /* 確保左右欄內容對齊頂部 */
+}
+
+.setup-left {
+    flex: 1.3; /* 左側版型區稍微寬一點，讓按鈕排版更舒適 */
+    min-width: 0; /* 防止內部網格撐破 Flex 容器 */
+}
+
+.setup-right {
+    flex: 1; /* 右側規則區 */
+    min-width: 0;
+    padding-left: 30px;
+    border-left: 1px solid var(--border-color); /* 原本的水平分隔線改為垂直分隔線 */
+}
+
+/* [防禦性設計] RWD 響應式：當螢幕寬度小於 768px (如直立手機) 時，自動優雅降級為單欄上下排列 */
+@media (max-width: 768px) {
+    .setup-layout {
+        flex-direction: column;
+        gap: 20px;
+    }
+    .setup-right {
+        padding-left: 0;
+        border-left: none;
+        border-top: 1px solid var(--border-color); /* 手機版切換回水平分隔線 */
+        padding-top: 20px;
+    }
 }
