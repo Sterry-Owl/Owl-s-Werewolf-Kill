@@ -7,20 +7,19 @@ const GAME_PREFIX = "TWG_WOLF_V4_";
 const PEER_CONFIG = { 
     config: { 
         'iceServers': [
-            // [高內聚] STUN 伺服器群：共用無憑證環境
             { 
                 urls: [
                     'stun:stun.l.google.com:19302',
                     'stun:stun1.l.google.com:19302'
                 ] 
             },
-            // [高內聚] TURN 伺服器群：多協定路由共用同一組身分驗證，絕不重複宣告
             {
+                // [修正] 將 metered.com 改為官方指定的 metered.ca
                 urls: [
-                    'turn:global.relay.metered.com:80',
-                    'turn:global.relay.metered.com:80?transport=tcp',
-                    'turn:global.relay.metered.com:443',
-                    'turns:global.relay.metered.com:443?transport=tcp'
+                    'turn:global.relay.metered.ca:80',
+                    'turn:global.relay.metered.ca:80?transport=tcp',
+                    'turn:global.relay.metered.ca:443',
+                    'turns:global.relay.metered.ca:443?transport=tcp'
                 ],
                 username: 'a89975f53fd97193003482df',
                 credential: 'ShgDnEoNfkoSF2fh'
