@@ -87,6 +87,15 @@
             <div class="toggle-option" data-value="disabled" style="--active-bg: #69424e; --active-color: #000;">關閉警長</div>
         </div>
         <input type="hidden" id="rule-sheriff" value="enabled">
+        <!-- [新增] 規則五：出局身分揭曉 -->
+        <label>出局身分揭曉：</label>
+        <div class="toggle-group" data-target="rule-death-reveal">
+            <div class="toggle-option active" data-value="dark" style="--active-bg: #96a164; --active-color: #000;">暗牌 (不揭曉)</div>
+            <div class="toggle-option" data-value="light" style="--active-bg: #69424e; --active-color: #000;">明牌 (揭曉身分)</div>
+        </div>
+        <input type="hidden" id="rule-death-reveal" value="dark">
+
+        <button id="btn-start-game" class="btn-success" style="width: 100%; margin-top: 10px;">確認配置並發牌</button>
 
         <button id="btn-start-game" class="btn-success" style="width: 100%; margin-top: 10px;">確認配置並發牌</button>
     </div>
