@@ -149,25 +149,40 @@ const UI = {
             }
         }
         const cardPanel = document.querySelector('.card-panel');
-        const cardContainer = document.getElementById('my-card-container'); // [替換] 改為抓取 3D 容器
+        const cardContainer = document.getElementById('my-card-container');
         const historyPanel = document.getElementById('vote-history-panel');
 
         if (showVoteHistory) {
-            if (cardPanel) cardPanel.style.zIndex = '25'; 
+            // 1. 提高圖層層級
+            if (cardPanel) cardPanel.style.zIndex = '25';
+            
+            // 2. 隱藏角色 3D 卡牌 (刪除引發 ReferenceError 的 btnRoleDetails 邏輯)
             if (cardContainer) cardContainer.classList.add('hidden');
-            if (btnRoleDetails) btnRoleDetails.classList.add('hidden'); // 開啟票型時，隱藏翻牌按鈕
+            
+            // 3. 顯示並渲染票型紀錄
             if (historyPanel) {
                 historyPanel.classList.remove('hidden');
-                historyPanel.innerHTML = state.voteHistory.map(h => `<div style="margin-bottom:8px; border-bottom:1px solid #444; padding-bottom:5px; white-space:pre-wrap;">${h}</div>`).join('');
+                
+                // [防禦性編程] 確保 voteHistory 存在且為陣列，防止報錯導致崩潰
+                const historyData = Array.isArray(state.voteHistory) ? state.voteHistory : [];
+                
+                if (historyData.length > 0) {
+                    historyPanel.innerHTML = historyData.map(h => `<div style="margin-bottom:8px; border-bottom:1px solid #444; padding-bottom:5px; white-space:pre-wrap;">${h}</div>`).join('');
+                } else {
+                    historyPanel.innerHTML = '<div style="color: #aaa; text-align: center; margin-top: 20px;">尚無投票紀錄</div>';
+                }
             }
         } else {
-            if (cardPanel) cardPanel.style.zIndex = '15'; 
+            // 1. 恢復圖層層級
+            if (cardPanel) cardPanel.style.zIndex = '15';
+            
+            // 2. 隱藏票型紀錄
             if (historyPanel) historyPanel.classList.add('hidden');
+            
+            // 3. 顯示並更新角色 3D 卡牌
             if (cardContainer && state.myRole) {
-                // 正面：寫入卡圖 (注意已改為 .webp)
                 document.getElementById('my-card-img').src = `./img/${state.myRole.split('-')[0]}.webp`;
                 
-                // 背面：從 config.js 的字典檔讀取資料並注入，達到完全的 Data-Driven
                 document.getElementById('role-desc-title').textContent = state.myRole;
                 const def = ROLE_DICTIONARY[state.myRole];
                 document.getElementById('role-desc-content').textContent = def ? def.description : '無技能說明。';
