@@ -201,7 +201,7 @@ const UI = {
                     slotsContainer.appendChild(slot);
                 };
 
-                if (state.myRole === '女巫') {
+                if (state.myRole === '女巫' && state.phase === 'NIGHT_ACTION') {
                     // 女巫專屬：雙槽 (解藥與毒藥)
                     const victim = state.actionPanel.preSelectedTarget;
                     createSlot(victim, victim ? '解藥 (刀口)' : '解藥 (空)', 'antidote');
