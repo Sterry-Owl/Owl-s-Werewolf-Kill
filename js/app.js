@@ -74,7 +74,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('btn-create-room')?.addEventListener('click', () => {
-        const roomId = Math.floor(1000 + Math.random() * 9000).toString();
+        const inputEl = document.getElementById('input-host-room-id');
+        let rawId = inputEl ? inputEl.value.trim() : "";
+        let roomId = rawId.replace(/\D/g, '');
+        if (rawId.length > 0 && roomId.length !== 4) {
+            return alert('自訂房號必須是「4 位數的純數字」！\n(或者您可以完全留空，讓系統自動產生)');
+        }
+        if (!roomId) {
+            roomId = Math.floor(1000 + Math.random() * 9000).toString();
+        }
+
         document.getElementById('section-entry').classList.add('hidden');
         document.getElementById('section-host').classList.remove('hidden');
         
@@ -110,5 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof window.startGame === 'function') {
             window.startGame(tpl.deck, tpl.name, gameRules);
         }
+    });
+    document.getElementById('btn-role-details')?.addEventListener('click', () => {
+        document.getElementById('my-card-flipper')?.classList.toggle('flipped');
     });
 });
