@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.startGame(tpl.deck, tpl.name, gameRules);
         }
     });
-    document.getElementById('btn-role-details')?.addEventListener('click', () => {
+    document.getElementById('my-card-container')?.addEventListener('click', () => {
         document.getElementById('my-card-flipper')?.classList.toggle('flipped');
     });
 });
