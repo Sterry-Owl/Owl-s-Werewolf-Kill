@@ -149,12 +149,14 @@ const UI = {
             }
         }
         const cardPanel = document.querySelector('.card-panel');
-        const cardImg = document.getElementById('my-card-img');
+        const cardContainer = document.getElementById('my-card-container'); // [替換] 改為抓取 3D 容器
         const historyPanel = document.getElementById('vote-history-panel');
+        const btnRoleDetails = document.getElementById('btn-role-details'); // [新增] 抓取翻牌按鈕
 
         if (showVoteHistory) {
             if (cardPanel) cardPanel.style.zIndex = '25'; 
-            if (cardImg) cardImg.classList.add('hidden');
+            if (cardContainer) cardContainer.classList.add('hidden');
+            if (btnRoleDetails) btnRoleDetails.classList.add('hidden'); // 開啟票型時，隱藏翻牌按鈕
             if (historyPanel) {
                 historyPanel.classList.remove('hidden');
                 historyPanel.innerHTML = state.voteHistory.map(h => `<div style="margin-bottom:8px; border-bottom:1px solid #444; padding-bottom:5px; white-space:pre-wrap;">${h}</div>`).join('');
@@ -162,10 +164,17 @@ const UI = {
         } else {
             if (cardPanel) cardPanel.style.zIndex = '15'; 
             if (historyPanel) historyPanel.classList.add('hidden');
-            if (cardImg && state.myRole) {
-                cardImg.src = `./img/${state.myRole.split('-')[0]}.webp`;
-                cardImg.classList.remove('hidden');
-                cardImg.style.display = 'block';
+            if (cardContainer && state.myRole) {
+                // 正面：寫入卡圖 (注意已改為 .webp)
+                document.getElementById('my-card-img').src = `./img/${state.myRole.split('-')[0]}.webp`;
+                
+                // 背面：從 config.js 的字典檔讀取資料並注入，達到完全的 Data-Driven
+                document.getElementById('role-desc-title').textContent = state.myRole;
+                const def = ROLE_DICTIONARY[state.myRole];
+                document.getElementById('role-desc-content').textContent = def ? def.description : '無技能說明。';
+                
+                cardContainer.classList.remove('hidden');
+                if (btnRoleDetails) btnRoleDetails.classList.remove('hidden'); // 顯示翻牌按鈕
             }
         }
 
