@@ -220,6 +220,7 @@ RoleRegistry.register("女巫", {
         if (act.actionId === 'save' && !ctx.witchState.antidoteUsed) {
             if (ctx.nightTags?.killed?.length > 0) {
                 ctx.witchState.savedSeat = ctx.nightTags.killed[0]; 
+                ctx.witchState.silverWater = ctx.nightTags.killed[0]; 
                 ctx.nightTags.witchUsedSaveTonight = true;
                 ctx.witchState.antidoteUsed = true;
                 return "使用解藥";
