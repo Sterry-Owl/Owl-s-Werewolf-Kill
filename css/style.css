@@ -167,7 +167,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .floating-btn:active { transform: scale(0.9); }
 .floating-btn.red { left: 15px; background-image: url('../img/btn-explode.webp'); }
 .floating-btn.yellow { right: 15px; background-image: url('../img/btn-history.webp'); }
-.floating-btn.blue { right: 85px; bottom: 20px; background-image: url('../img/btn-bailout.webp'); }
+.floating-btn.blue { right: 70px; bottom: 20px; background-image: url('../img/btn-bailout.webp'); }
 
 /* ==================================================== */
 /* 座位與標籤重構 */
