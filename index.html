@@ -39,66 +39,77 @@
             <h2>主控台 (房間：<span id="display-room-id" style="color: var(--accent-red);"></span>)</h2>
             <div id="host-status-log" class="system-log">等待遊戲開始...</div>
             
-            <div id="host-setup-panel" class="section">
-        <!-- 版型選擇 -->
-        <h3 style="margin-bottom: 10px;">選擇遊戲版型</h3>
-        <div class="toggle-group" id="template-category-tabs" style="margin-bottom: 12px;">
-            <div class="toggle-option active" data-category="test" style="--active-bg: #a88058; --active-color: #fff;">測試場</div>
-            <div class="toggle-option active" data-category="quick" style="--active-bg: #a358a8; --active-color: #fff;">快速場</div>
-            <div class="toggle-option" data-category="fun" style="--active-bg: #6da858; --active-color: #fff;">娛樂場</div>
-            <div class="toggle-option" data-category="standard" style="--active-bg: #588da8; --active-color: #fff;">標準場</div>
-        </div>
-        <div id="board-template-container" class="template-grid"></div>
-        <input type="hidden" id="select-board-template" value="">
+           <div id="host-setup-panel" class="section">
+                
+                <!-- 雙欄佈局容器開始 -->
+                <div class="setup-layout">
+                    
+                    <!-- ================= 左欄：版型選擇 ================= -->
+                    <div class="setup-left">
+                        <h3 style="margin-bottom: 10px;">選擇遊戲版型</h3>
+                        <div class="toggle-group" id="template-category-tabs" style="margin-bottom: 12px;">
+                            <div class="toggle-option active" data-category="test" style="--active-bg: #a88058; --active-color: #fff;">測試場</div>
+                            <div class="toggle-option active" data-category="quick" style="--active-bg: #a358a8; --active-color: #fff;">快速場</div>
+                            <div class="toggle-option" data-category="fun" style="--active-bg: #6da858; --active-color: #fff;">娛樂場</div>
+                            <div class="toggle-option" data-category="standard" style="--active-bg: #588da8; --active-color: #fff;">標準場</div>
+                        </div>
+                        <div id="board-template-container" class="template-grid"></div>
+                        <input type="hidden" id="select-board-template" value="">
 
-        <div id="template-deck-preview" style="margin-bottom: 20px; font-size: 14px; color: #aaa;"></div>
+                        <div id="template-deck-preview" style="margin-bottom: 20px; font-size: 14px; color: #aaa;"></div>
+                    </div>
+                    
+                    <!-- ================= 右欄：規則設定 ================= -->
+                    <div class="setup-right">
+                        <h3 style="margin-bottom: 15px; font-size: 16px; color: #fff;">遊戲規則設定</h3>
 
-        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
-        <h3 style="margin-bottom: 15px; font-size: 16px; color: #fff;">遊戲規則設定</h3>
+                        <!-- 規則一：女巫自救 -->
+                        <label>女巫自救：</label>
+                        <div class="toggle-group" data-target="rule-witch-save">
+                            <div class="toggle-option active" data-value="first_night" style="--active-bg: #96a164; --active-color: #000;">僅首夜可以自救</div>
+                            <div class="toggle-option" data-value="never" style="--active-bg: #69424e; --active-color: #000;">全程不可自救</div>
+                        </div>
+                        <input type="hidden" id="rule-witch-save" value="first_night">
 
-        <!-- 規則一：女巫自救 -->
-        <label>女巫自救：</label>
-        <div class="toggle-group" data-target="rule-witch-save">
-            <div class="toggle-option active" data-value="first_night" style="--active-bg: #96a164; --active-color: #000;">僅首夜可以自救</div>
-            <div class="toggle-option" data-value="never" style="--active-bg: #69424e; --active-color: #000;">全程不可自救</div>
-        </div>
-        <input type="hidden" id="rule-witch-save" value="first_night">
+                        <!-- 規則二：勝利條件 -->
+                        <label>勝利條件：</label>
+                        <div class="toggle-group" data-target="rule-win-condition">
+                            <div class="toggle-option active" data-value="kill_side" style="--active-bg: #96a164; --active-color: #000;">屠邊 (神職全滅 或 平民全滅)</div>
+                            <div class="toggle-option" data-value="kill_all" style="--active-bg: #69424e; --active-color: #000;">屠城 (好人陣營全滅)</div>
+                        </div>
+                        <input type="hidden" id="rule-win-condition" value="kill_side">
 
-        <!-- 規則二：勝利條件 -->
-        <label>勝利條件：</label>
-        <div class="toggle-group" data-target="rule-win-condition">
-            <div class="toggle-option active" data-value="kill_side" style="--active-bg: #96a164; --active-color: #000;">屠邊 (神職全滅 或 平民全滅)</div>
-            <div class="toggle-option" data-value="kill_all" style="--active-bg: #69424e; --active-color: #000;">屠城 (好人陣營全滅)</div>
-        </div>
-        <input type="hidden" id="rule-win-condition" value="kill_side">
+                        <!-- 規則三：放逐平票處置 -->
+                        <label>放逐平票處置：</label>
+                        <div class="toggle-group" data-target="rule-tie-resolution">
+                            <div class="toggle-option active" data-value="pk" style="--active-bg: #96a164; --active-color: #000;">PK 發言與投票</div>
+                            <div class="toggle-option" data-value="peace" style="--active-bg: #69424e; --active-color: #000;">平票無人出局</div>
+                        </div>
+                        <input type="hidden" id="rule-tie-resolution" value="pk">
 
-        <!-- 規則三：放逐平票處置 -->
-        <label>放逐平票處置：</label>
-        <div class="toggle-group" data-target="rule-tie-resolution">
-            <div class="toggle-option active" data-value="pk" style="--active-bg: #96a164; --active-color: #000;">PK 發言與投票</div>
-            <div class="toggle-option" data-value="peace" style="--active-bg: #69424e; --active-color: #000;">平票無人出局</div>
-        </div>
-        <input type="hidden" id="rule-tie-resolution" value="pk">
+                        <!-- 規則四：警長機制 -->
+                        <label>警長機制：</label>
+                        <div class="toggle-group" data-target="rule-sheriff">
+                            <div class="toggle-option active" data-value="enabled" style="--active-bg: #96a164; --active-color: #000;">開啟警長 (首日競選)</div>
+                            <div class="toggle-option" data-value="disabled" style="--active-bg: #69424e; --active-color: #000;">關閉警長</div>
+                        </div>
+                        <input type="hidden" id="rule-sheriff" value="enabled">
 
-        <!-- 規則四：警長機制 -->
-        <label>警長機制：</label>
-        <div class="toggle-group" data-target="rule-sheriff">
-            <div class="toggle-option active" data-value="enabled" style="--active-bg: #96a164; --active-color: #000;">開啟警長 (首日競選)</div>
-            <div class="toggle-option" data-value="disabled" style="--active-bg: #69424e; --active-color: #000;">關閉警長</div>
-        </div>
-        <input type="hidden" id="rule-sheriff" value="enabled">
-        <!-- [新增] 規則五：出局身分揭曉 -->
-        <label>出局身分揭曉：</label>
-        <div class="toggle-group" data-target="rule-death-reveal">
-            <div class="toggle-option active" data-value="dark" style="--active-bg: #96a164; --active-color: #000;">暗牌 (不揭曉)</div>
-            <div class="toggle-option" data-value="light" style="--active-bg: #69424e; --active-color: #000;">明牌 (揭曉身分)</div>
-        </div>
-        <input type="hidden" id="rule-death-reveal" value="dark">
+                        <!-- 規則五：出局身分揭曉 -->
+                        <label>出局身分揭曉：</label>
+                        <div class="toggle-group" data-target="rule-death-reveal">
+                            <div class="toggle-option active" data-value="dark" style="--active-bg: #96a164; --active-color: #000;">暗牌 (不揭曉)</div>
+                            <div class="toggle-option" data-value="light" style="--active-bg: #69424e; --active-color: #000;">明牌 (揭曉身分)</div>
+                        </div>
+                        <input type="hidden" id="rule-death-reveal" value="dark">
+                    </div>
+                    
+                </div>
+                <!-- 雙欄佈局容器結束 -->
 
-        <button id="btn-start-game" class="btn-success" style="width: 100%; margin-top: 10px;">確認配置並發牌</button>
-
-        <button id="btn-start-game" class="btn-success" style="width: 100%; margin-top: 10px;">確認配置並發牌</button>
-    </div>
+                <!-- 滿版寬度的確認按鈕 -->
+                <button id="btn-start-game" class="btn-success" style="width: 100%; margin-top: 20px;">確認配置並發牌</button>
+            </div>
             <div id="host-control-panel" class="hidden">
                 <div id="host-night-panel" class="section hidden">
                     <h3>夜間行動進度</h3>
