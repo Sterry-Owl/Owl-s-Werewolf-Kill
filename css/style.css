@@ -318,11 +318,13 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
    ========================================= */
 .toggle-group {
     display: flex;
-    background-color: #1a1a1a; /* 極深色底框 */
+    background-color: #1a1a1a; 
     border-radius: 12px;
     padding: 5px;
     margin-bottom: 20px;
     gap: 5px;
+    width: 50%;
+    min-width: 280px; 
 }
 .toggle-option {
     flex: 1;
