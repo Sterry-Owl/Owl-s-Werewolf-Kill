@@ -19,6 +19,8 @@
             
             <div class="section">
                 <h3>建立遊戲（法官）</h3>
+                <!-- [擴充] HTML5 原生防呆限制 -->
+                <input type="text" id="input-host-room-id" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="輸入4位數房號（空白則隨機生成）">
                 <button id="btn-create-room">建立房間</button>
             </div>
             
@@ -132,7 +134,20 @@
                     <div id="right-seats" class="seat-column"></div>
                     
                     <div class="card-panel">
-                        <img id="my-card-img" class="my-card hidden" src="">
+                        <!-- 3D 翻轉容器 -->
+                        <div id="my-card-container" class="card-container hidden">
+                            <div id="my-card-flipper" class="card-flipper">
+                                <!-- 正面：卡面圖 -->
+                                <div class="card-front">
+                                    <img id="my-card-img" class="my-card" src="">
+                                </div>
+                                <!-- 背面：技能說明 -->
+                                <div class="card-back my-card">
+                                    <div class="role-desc-title" id="role-desc-title"></div>
+                                    <div class="role-desc-content" id="role-desc-content"></div>
+                                </div>
+                            </div>
+                        </div>
                         <div id="vote-history-panel" class="vote-history-panel hidden"></div>
                     </div>
                 </div>
@@ -142,6 +157,7 @@
                 <button id="btn-day-skill" class="floating-btn hidden" style="left: 15px;"></button>
                 <button id="btn-bailout" class="floating-btn blue hidden"></button> 
                 <button id="btn-vote-history" class="floating-btn yellow hidden"></button>
+                <button id="btn-role-details" class="floating-btn hidden" style="background-image: url('./img/btn-study.webp'); right: 15px; bottom: 85px;"></button>
                 <div id="local-day-skill-panel" class="action-panel hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.9);">
                     <div id="local-day-skill-prompt" class="action-prompt">請選擇目標：</div>
                     <div id="local-day-skill-targets" class="action-buttons-row" style="margin-top: 15px; margin-bottom: 15px; max-height: 200px; overflow-y: auto;"></div>
