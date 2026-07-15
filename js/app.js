@@ -49,11 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderTemplatesByCategory(tab.getAttribute('data-category'));
             });
         });
-
-        // 初始化：預設渲染「快速場 (quick)」→我自己改成測試場
-        renderTemplatesByCategory('test');
+        renderTemplatesByCategory('standard');
     }
-
     // === 升級後：規則滑動開關邏輯 ===
     document.querySelectorAll('.toggle-group').forEach(group => {
         const targetId = group.getAttribute('data-target');
