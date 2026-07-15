@@ -99,13 +99,11 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     width: 100%; 
 }
 
-/* 只有在沒有 hidden 標籤 (顯示狀態) 時，才賦予高度與下邊距 */
 .target-slots-container:not(.hidden) {
     min-height: 65px;
     margin-bottom: 12px;
 }
 
-/* [關鍵修復] 強制隱藏，徹底消滅幽靈佔位空間 */
 .target-slots-container.hidden {
     display: none !important;
 }
@@ -258,9 +256,9 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 
 /* 3. 叉號獨立定位於父層，根據 seat-img-wrapper 的 42px 高度，設定 top: 21px 達成絕對幾何中心 */
 .player-seat.dead::after { 
-    content: ''; /* 必須為空，改用背景圖 */
+    content: '';
     position: absolute; 
-    width: 40px; /* 稍微比頭像 42px 大一點點，讓筆觸有溢出的視覺張力 */
+    width: 42px;
     height: 36px; 
     z-index: 20; 
     top: 21px; 
@@ -272,13 +270,15 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     background-position: center;
 }
 
-/* [新增] 分支 A：放逐出局 (判斷 data 屬性是否為 voted) */
 .player-seat.dead[data-death-reason="voted"]::after {
     background-image: url('../img/pic-out.png');
 }
 
-/* [新增] 分支 B：其他所有死因 (被刀、被毒、預設值等) */
-.player-seat.dead:not([data-death-reason="voted"])::after {
+.player-seat.dead[data-death-reason="explode"]::after {
+    background-image: url('../img/pic-explode.webp'); 
+}
+
+.player-seat.dead:not([data-death-reason="voted"]):not([data-death-reason="voted"])::after {
     background-image: url('../img/pic-killed.png');
 }
 
