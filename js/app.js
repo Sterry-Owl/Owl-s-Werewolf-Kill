@@ -99,20 +99,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof window.initPlayer === 'function') window.initPlayer(roomId, name);
     });
 
-    document.getElementById('btn-start-game')?.addEventListener('click', () => {
-        const selectedId = document.getElementById('select-board-template').value;
-        const tpl = BOARD_TEMPLATES.find(t => t.id === selectedId);
-        
-        if (!tpl) return alert('請選擇版型');
+    document.getElementById('btn-start-game').addEventListener('click', () => {
+            const selectedBoardId = document.getElementById('select-board-template').value;
+            const board = BOARD_TEMPLATES.find(t => t.id === selectedBoardId);
+            if (!board) return alert("請先選擇版型！");
 
-        // [擴充] 收集主控台的規則設定，包含警長機制與明暗牌設定
-        const gameRules = {
-            witchSave: document.getElementById('rule-witch-save')?.value || 'first_night',
-            winCondition: document.getElementById('rule-win-condition')?.value || 'kill_side',
-            tieResolution: document.getElementById('rule-tie-resolution')?.value || 'pk',
-            sheriff: document.getElementById('rule-sheriff')?.value || 'enabled',
-            deathReveal: document.getElementById('rule-death-reveal')?.value || 'dark' // [新增] 明暗牌規則
-        };
+            const gameRules = {
+                witchSave: document.getElementById('rule-witch-save').value,
+                winCondition: document.getElementById('rule-win-condition').value,
+                tieResolution: document.getElementById('rule-tie-resolution').value,
+                sheriff: document.getElementById('rule-sheriff').value,
+                deathReveal: document.getElementById('rule-death-reveal').value,
+                // [新增] 讀取隱藏欄位的值 (single 或 double)，對應至 host.js 的判定
+                sheriffExplodeRule: document.getElementById('rule-sheriff-explode').value
+            };
         if (typeof window.startGame === 'function') {
             window.startGame(tpl.deck, tpl.name, gameRules);
         }
