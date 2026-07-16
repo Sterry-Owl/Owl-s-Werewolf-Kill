@@ -13,6 +13,8 @@ window.PhaseRegistry = {
         const dummyPhase = { onEnter: () => {} };
         stateMachine.registerPhase('DAY_DISCUSSION', dummyPhase);
         stateMachine.registerPhase('SHERIFF_SPEECH', dummyPhase);
+        stateMachine.registerPhase('SHERIFF_PK_SPEECH', dummyPhase); // 新增
+        stateMachine.registerPhase('DAY_PK_SPEECH', dummyPhase);     // 更名
         stateMachine.registerPhase('LAST_WORDS', dummyPhase);
         stateMachine.registerPhase('VOTE_RESULT_DISPLAY', dummyPhase);
         
@@ -73,6 +75,32 @@ window.PhaseRegistry = {
             onTimeout: (ctx) => self.resolveSheriffCandidacy(ctx)
         });
 
+        stateMachine.registerPhase('SHERIFF_RE_ELECTION_BAILOUT', {
+            onEnter: (ctx) => {
+                ctx.sheriff.candidates = ctx.sheriff.candidates.filter(seat => {
+                    const p = ctx.getPlayer(seat);
+                    return p && !p.isDead;
+                });
+                
+                if (ctx.sheriff.candidates.length === 0) {
+                    ctx.sheriff.badgeLost = true;
+                    ctx.systemLog = "參與競選的玩家均已死亡，警徽流失。";
+                    Engine.EventBus.emit('DAWN_ANNOUNCE');
+                } else if (ctx.sheriff.candidates.length === 1) {
+                    ctx.sheriff.seat = ctx.sheriff.candidates[0];
+                    ctx.systemLog = `僅剩 ${ctx.sheriff.seat} 號玩家參選，自動當選警長！`;
+                    Engine.EventBus.emit('DAWN_ANNOUNCE');
+                } else {
+                    ctx.currentStepActions = [];
+                    ctx.systemLog = "【延遲再選舉】退水時間 (10秒)...";
+                    self.sm.setTimer(10000);
+                }
+            },
+            onAction: () => {}, // 退水統一由 host.js 的 SHERIFF_BAILOUT 封包攔截
+            onTimeout: () => self.sm.transitionTo('SHERIFF_VOTING')
+        });
+
+        // [重構] 四階段獨立投票模組邏輯
         const baseVotingLogic = {
             onEnter: (ctx) => {
                 ctx.votes = {};
@@ -81,16 +109,19 @@ window.PhaseRegistry = {
             onAction: (ctx, player, actionId, targets) => {
                 if (ctx.votes[player.seatNumber] !== undefined) return;
                 
-                const isPK = ctx.phase === 'PK_VOTING';
-                const isSheriff = ctx.phase === 'SHERIFF_VOTING';
+                const isSheriff = ['SHERIFF_VOTING', 'SHERIFF_PK_VOTING'].includes(ctx.phase);
+                const isDayPK = ctx.phase === 'DAY_PK_VOTING';
+                const isSheriffPK = ctx.phase === 'SHERIFF_PK_VOTING';
                 
-                if (isPK && ctx.pkTargets.includes(player.seatNumber)) return;
+                if (isDayPK && ctx.pkTargets.includes(player.seatNumber)) return;
+                if (isSheriffPK && ctx.sheriff.pkTargets.includes(player.seatNumber)) return;
                 if (isSheriff && (ctx.sheriff.candidates.includes(player.seatNumber) || ctx.sheriff.withdrawn.includes(player.seatNumber))) return;
 
                 ctx.votes[player.seatNumber] = (actionId === 'vote' && targets.length > 0) ? targets[0] : 'pass';
 
                 const aliveCount = ctx.getAlivePlayers().filter(p => {
-                    if (isPK && ctx.pkTargets.includes(p.seatNumber)) return false;
+                    if (isDayPK && ctx.pkTargets.includes(p.seatNumber)) return false;
+                    if (isSheriffPK && ctx.sheriff.pkTargets.includes(p.seatNumber)) return false;
                     if (isSheriff && (ctx.sheriff.candidates.includes(p.seatNumber) || ctx.sheriff.withdrawn.includes(p.seatNumber))) return false;
                     return true;
                 }).length;
@@ -102,8 +133,9 @@ window.PhaseRegistry = {
             onTimeout: (ctx) => self.resolveVoting(ctx)
         };
         stateMachine.registerPhase('DAY_VOTING', baseVotingLogic);
-        stateMachine.registerPhase('PK_VOTING', baseVotingLogic);
+        stateMachine.registerPhase('DAY_PK_VOTING', baseVotingLogic); // 更名
         stateMachine.registerPhase('SHERIFF_VOTING', baseVotingLogic);
+        stateMachine.registerPhase('SHERIFF_PK_VOTING', baseVotingLogic); // 新增
 
         stateMachine.registerPhase('SHERIFF_TRANSFER', {
             allowDeadAction: true, // [新增] 宣告此階段允許死者送出動作
