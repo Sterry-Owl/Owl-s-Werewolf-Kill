@@ -138,7 +138,7 @@ window.PhaseRegistry = {
         stateMachine.registerPhase('SHERIFF_PK_VOTING', baseVotingLogic); // 新增
 
         stateMachine.registerPhase('SHERIFF_TRANSFER', {
-            allowDeadAction: true, // [新增] 宣告此階段允許死者送出動作
+            allowDeadAction: true, 
             onEnter: (ctx) => { ctx.systemLog = "等待警長移交或撕毀警徽..."; },
             onAction: (ctx, player, actionId, targets) => {
                 if (player.seatNumber !== ctx.sheriff.seat) return;
@@ -146,12 +146,21 @@ window.PhaseRegistry = {
                 if (actionId === 'transfer' && targets.length > 0) {
                     ctx.sheriff.seat = targets[0];
                     ctx.systemLog = `【警長傳承】前任警長將警徽交給了 ${ctx.sheriff.seat} 號玩家。`;
+                    ctx.dayDiscussionPrompt = ctx.prompt_Sheriff; // [關鍵修復] 移交後有新警長，套用警長字串
                 } else {
                     ctx.sheriff.seat = null;
                     ctx.sheriff.badgeLost = true;
                     ctx.systemLog = `【警徽流失】前任警長選擇撕毀警徽。`;
+                    ctx.dayDiscussionPrompt = ctx.prompt_NoSheriff; // [關鍵修復] 撕毀後無警長，套用無警長字串
                 }
                 
+                Engine.EventBus.emit('RESUME_ROUTINE');
+            },
+            onTimeout: (ctx) => {
+                ctx.sheriff.seat = null;
+                ctx.sheriff.badgeLost = true;
+                ctx.systemLog = `【警徽流失】超時未動作，警徽強制流失。`;
+                ctx.dayDiscussionPrompt = ctx.prompt_NoSheriff;
                 Engine.EventBus.emit('RESUME_ROUTINE');
             }
         });
