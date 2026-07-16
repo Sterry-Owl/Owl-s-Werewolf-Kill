@@ -53,9 +53,19 @@ class GameContext {
         this.deadThisNight = [];
         this.voteHistory = [];
         this.votes = {};
-        this.sheriff = { enabled: false, seat: null, badgeLost: false, electionDay: 1, candidates: [], withdrawn: [] };
+        this.sheriff = { 
+            enabled: false, 
+            seat: null, 
+            badgeLost: false, 
+            candidates: [], 
+            withdrawn: [], 
+            pkTargets: [],           // 警長專用 PK 名單
+            explodeDelayCount: 0,    // 因自爆延遲的累積次數
+            tieDelayCount: 0,        // 因平票延遲的累積次數
+            isDelayedElection: false // 標記是否為延後再選舉
+        };
         this.wolfPreviews = {};
-        this.pkTargets = [];
+        this.pkTargets = []; // 放逐專用 PK 名單
         this.nightSequence = [];
         this.lastWordsTargets = [];
         this.nightTags = { killed: [], poisoned: [], witchUsedSaveTonight: false };
