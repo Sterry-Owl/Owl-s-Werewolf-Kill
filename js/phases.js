@@ -250,7 +250,11 @@ stateMachine.registerPhase('HUNTER_ACTION', {
             Engine.EventBus.emit('DAWN_ANNOUNCE');
         } else {
             ctx.sheriff.candidates.sort((a,b) => a-b);
-            ctx.systemLog = `上警名單：${ctx.sheriff.candidates.join('、')} 號。\n請競選者開始發言...`;
+            const startSeat = ctx.sheriff.candidates[Math.floor(Math.random() * ctx.sheriff.candidates.length)];
+            const direction = Math.random() < 0.5 ? '順' : '逆';
+            ctx.sheriffSpeechPrompt = `現在開始競選警長\n請由 ${startSeat} 號開始${direction}序發言`;
+            
+            ctx.systemLog = `上警名單：${ctx.sheriff.candidates.join('、')} 號。\n${ctx.sheriffSpeechPrompt}`;
             this.sm.transitionTo('SHERIFF_SPEECH');
         }
     },
