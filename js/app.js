@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sheriffExplodeRule: document.getElementById('rule-sheriff-explode').value
             };
         if (typeof window.startGame === 'function') {
-            window.startGame(tpl.deck, tpl.name, gameRules);
+            window.startGame(board.deck, board.name, gameRules);
         }
     });
     document.getElementById('my-card-container')?.addEventListener('click', () => {
