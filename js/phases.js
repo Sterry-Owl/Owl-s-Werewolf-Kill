@@ -257,12 +257,13 @@ stateMachine.registerPhase('HUNTER_ACTION', {
 
     resolveVoting: function(ctx) {
         this.sm.clearTimer();
-        const isSheriff = ctx.phase === 'SHERIFF_VOTING';
+        const phase = ctx.phase;
+        const isSheriff = ['SHERIFF_VOTING', 'SHERIFF_PK_VOTING'].includes(phase);
         if (!isSheriff) ctx.votedOutToday = null;
         
         ctx.getAlivePlayers().forEach(p => {
-            const isPK = ctx.phase === 'PK_VOTING';
-            if (isPK && ctx.pkTargets.includes(p.seatNumber)) return;
+            if (phase === 'DAY_PK_VOTING' && ctx.pkTargets.includes(p.seatNumber)) return;
+            if (phase === 'SHERIFF_PK_VOTING' && ctx.sheriff.pkTargets.includes(p.seatNumber)) return;
             if (isSheriff && (ctx.sheriff.candidates.includes(p.seatNumber) || ctx.sheriff.withdrawn.includes(p.seatNumber))) return;
             if (ctx.votes[p.seatNumber] === undefined) ctx.votes[p.seatNumber] = 'pass';
         });
@@ -284,10 +285,9 @@ stateMachine.registerPhase('HUNTER_ACTION', {
             }
         });
 
-        const isPK = ctx.phase === 'PK_VOTING';
         if (!isSheriff && ctx.cursedSeat) {
             const t = ctx.cursedSeat;
-            const isEligible = isPK ? ctx.pkTargets.includes(t) : ctx.getAlivePlayers().some(p => p.seatNumber === t);
+            const isEligible = (phase === 'DAY_PK_VOTING') ? ctx.pkTargets.includes(t) : ctx.getAlivePlayers().some(p => p.seatNumber === t);
             if (isEligible) {
                 if (!voteGroups[t]) voteGroups[t] = [];
                 voteGroups[t].push(`咒詛`);
@@ -312,36 +312,66 @@ stateMachine.registerPhase('HUNTER_ACTION', {
             resultLines.push(`。${voters.join('、')} → ${targetName}`);
         }
 
-        if (isSheriff) {
-            ctx.sheriff.electionFinishedToday = true;
+        // ================= 1. 警長首次投票 =================
+        if (phase === 'SHERIFF_VOTING') {
             if (isTie) {
-                ctx.sheriff.electionDay++;
-                if (ctx.sheriff.electionDay > 2) ctx.sheriff.badgeLost = true;
-                ctx.currentVoteResultString = `【警長平票】\n${resultLines.join('\n')}\n\n本日無警長產生。`;
+                ctx.sheriff.pkTargets = [];
+                for (const [t, count] of Object.entries(voteCounts)) {
+                    if (count === maxVotes) ctx.sheriff.pkTargets.push(parseInt(t));
+                }
+                ctx.currentVoteResultString = `【平票發生】\n${resultLines.join('\n')}\n\n準備進入警長 PK 發言。`;
+                ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(警長首次投票)\n${ctx.currentVoteResultString}`);
+                ctx.nextPhaseAfterVoteDisplay = 'SHERIFF_PK_SPEECH';
             } else {
                 ctx.sheriff.seat = finalTarget;
                 ctx.currentVoteResultString = `【警長誕生】\n${resultLines.join('\n')}\n\n恭喜 ${finalTarget} 號當選警長。`;
+                ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(警長選舉)\n${ctx.currentVoteResultString}`);
+                ctx.nextPhaseAfterVoteDisplay = 'DAWN_RESUME';
             }
-            ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(警長選舉)\n${ctx.currentVoteResultString}`);
-            ctx.nextPhaseAfterVoteDisplay = 'DAWN_RESUME';
             this.sm.transitionTo('VOTE_RESULT_DISPLAY');
             return;
         }
 
-        if (isTie && validVotesCount > 0 && ctx.rules.tieResolution === 'pk' && !ctx.isPK) {
-            ctx.isPK = true;
-            ctx.pkTargets = [];
-            for (const [t, count] of Object.entries(voteCounts)) {
-                if (count === maxVotes) ctx.pkTargets.push(parseInt(t));
+        // ================= 2. 警長對決投票 (延遲判定) =================
+        if (phase === 'SHERIFF_PK_VOTING') {
+            if (isTie) {
+                ctx.sheriff.tieDelayCount++;
+                if (ctx.sheriff.tieDelayCount >= 2) {
+                    ctx.sheriff.badgeLost = true;
+                    ctx.currentVoteResultString = `【再次平票】\n${resultLines.join('\n')}\n\n累積平票達上限，警徽流失。`;
+                } else {
+                    ctx.sheriff.isDelayedElection = true;
+                    ctx.currentVoteResultString = `【再次平票】\n${resultLines.join('\n')}\n\n本日無法產生警長，選舉延後至明日。`;
+                }
+                ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(警長對決投票)\n${ctx.currentVoteResultString}`);
+                ctx.nextPhaseAfterVoteDisplay = 'DAWN_RESUME';
+            } else {
+                ctx.sheriff.seat = finalTarget;
+                ctx.currentVoteResultString = `【警長誕生】\n${resultLines.join('\n')}\n\n恭喜 ${finalTarget} 號當選警長。`;
+                ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(警長對決投票)\n${ctx.currentVoteResultString}`);
+                ctx.nextPhaseAfterVoteDisplay = 'DAWN_RESUME';
             }
-            ctx.currentVoteResultString = `【平票發生】\n${resultLines.join('\n')}\n\n準備進入 PK 發言。`;
-            ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(首次投票)\n${ctx.currentVoteResultString}`);
-            ctx.systemLog = `平票！即將進行 PK 發言。`;
-            ctx.nextPhaseAfterVoteDisplay = 'PK_SPEECH';
             this.sm.transitionTo('VOTE_RESULT_DISPLAY');
-            return; 
+            return;
         }
 
+        // ================= 3. 放逐首次投票 =================
+        if (phase === 'DAY_VOTING') {
+            if (isTie && validVotesCount > 0 && ctx.rules.tieResolution === 'pk' && !ctx.isPK) {
+                ctx.isPK = true;
+                ctx.pkTargets = [];
+                for (const [t, count] of Object.entries(voteCounts)) {
+                    if (count === maxVotes) ctx.pkTargets.push(parseInt(t));
+                }
+                ctx.currentVoteResultString = `【平票發生】\n${resultLines.join('\n')}\n\n準備進入放逐 PK 發言。`;
+                ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(放逐首次投票)\n${ctx.currentVoteResultString}`);
+                ctx.nextPhaseAfterVoteDisplay = 'DAY_PK_SPEECH';
+                this.sm.transitionTo('VOTE_RESULT_DISPLAY');
+                return; 
+            }
+        }
+
+        // ================= 4. 常規放逐與放逐PK結算 =================
         ctx.isPK = false;
         let header = isTie ? "投票結果出爐，平票或全數棄票，無人出局" : `投票結果出爐，${finalTarget} 號玩家出局`;
 
