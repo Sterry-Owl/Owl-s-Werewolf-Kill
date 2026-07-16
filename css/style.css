@@ -257,7 +257,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .player-seat.dead::after { 
     content: '';
     position: absolute; 
-    width: 42px;
+    width: 46px;
     height: 36px; 
     z-index: 20; 
     top: 21px; 
@@ -277,7 +277,6 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     background-image: url('../img/pic-explode.webp'); 
 }
 
-/* [乾淨架構] 精準對應 ui.js 傳遞的屬性，拒絕模糊比對 */
 .player-seat.dead[data-death-reason="killed"]::after {
     background-image: url('../img/pic-killed.webp');
 }
