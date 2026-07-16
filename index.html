@@ -66,11 +66,10 @@
                         <!-- 規則一：女巫自救 -->
                         <label>女巫自救：</label>
                         <div class="toggle-group" data-target="rule-witch-save">
-                            <div class="toggle-option active" data-value="first_night" style="--active-bg: #96a164; --active-color: #000;">僅首夜可以自救</div>
-                            <div class="toggle-option" data-value="never" style="--active-bg: #69424e; --active-color: #000;">全程不可自救</div>
+                            <div class="toggle-option active" data-value="never" style="--active-bg: #96a164; --active-color: #000;">全程不可自救</div>
+                            <div class="toggle-option" data-value="first_night" style="--active-bg: #69424e; --active-color: #000;">僅首夜可以自救</div>
                         </div>
-                        <input type="hidden" id="rule-witch-save" value="first_night">
-
+                        <input type="hidden" id="rule-witch-save" value="never">
                         <!-- 規則二：勝利條件 -->
                         <label>勝利條件：</label>
                         <div class="toggle-group" data-target="rule-win-condition">
@@ -94,6 +93,14 @@
                             <div class="toggle-option" data-value="disabled" style="--active-bg: #69424e; --active-color: #000;">關閉警長</div>
                         </div>
                         <input type="hidden" id="rule-sheriff" value="enabled">
+
+                        <!-- [新增] 規則 4-1：警長自爆 -->
+                        <label>警長競選自爆：</label>
+                        <div class="toggle-group" data-target="rule-sheriff-explode">
+                            <div class="toggle-option active" data-value="single" style="--active-bg: #96a164; --active-color: #000;">單爆吞警徽</div>
+                            <div class="toggle-option" data-value="double" style="--active-bg: #69424e; --active-color: #000;">雙爆吞警徽</div>
+                        </div>
+                        <input type="hidden" id="rule-sheriff-explode" value="single">
 
                         <!-- 規則五：出局身分揭曉 -->
                         <label>出局身分揭曉：</label>
