@@ -89,16 +89,26 @@ function handleIncomingPacket(peerId, data) {
         const sheriffPhases = ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_RE_ELECTION_BAILOUT'];
         
         if (sheriffPhases.includes(engineContext.phase)) {
-            // 先強制結算昨晚死者
+            // [關鍵修復] 呼叫正規的死亡過濾器，確保解藥與守衛等狀態能正確抵銷狼刀
+            const calculation = {
+                killed: [...engineContext.nightTags.killed],
+                poisoned: [...engineContext.nightTags.poisoned],
+                saved: engineContext.witchState?.savedSeat ? [engineContext.witchState.savedSeat] : [],
+                guarded: engineContext.guardedSeat ? [engineContext.guardedSeat] : [],
+                dreamed: engineContext.dreamedSeat ? [engineContext.dreamedSeat] : [],
+                lastDreamed: engineContext.lastDreamedSeat ? [engineContext.lastDreamedSeat] : []
+            };
+            const deathMap = engineContext.applyFilter('DAWN_DEATH_EVALUATION', calculation);
+            
             engineContext.players.forEach(p => {
-                if (!p.isDead && (engineContext.nightTags.killed.includes(p.seatNumber) || engineContext.nightTags.poisoned.includes(p.seatNumber))) {
-                    p.kill(engineContext.nightTags.poisoned.includes(p.seatNumber) ? 'poisoned' : 'killed', engineContext);
+                if (!p.isDead && deathMap[p.seatNumber]) {
+                    p.kill(deathMap[p.seatNumber], engineContext);
                 }
             });
+            
             engineContext.nightTags.killed = [];
             engineContext.nightTags.poisoned = [];
-            
-            // 寫入自爆延遲邏輯
+            engineContext.guardedSeat = null;
             engineContext.sheriff.explodeDelayCount++;
             const maxExplode = engineContext.rules.sheriffExplodeRule === 'double' ? 2 : 1;
             if (engineContext.sheriff.explodeDelayCount >= maxExplode) {
@@ -567,7 +577,9 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
 function getPhaseMessageForPlayer(phase, ctx) {
     const dict = { 
         'NIGHT_TRANSITION': "天黑請閉眼...", 'NIGHT_ACTION': "夜間行動中...", 
-        'SHERIFF_CANDIDACY': "登記上警意願...", 'SHERIFF_SPEECH': "警長發言中...", 'SHERIFF_RE_ELECTION_BAILOUT': "延遲選舉退水時間...", 
+        'SHERIFF_CANDIDACY': "登記上警意願...", 
+        'SHERIFF_SPEECH': ctx ? (ctx.sheriffSpeechPrompt || "警長發言中...") : "警長發言中...", 
+        'SHERIFF_RE_ELECTION_BAILOUT': "延遲選舉退水時間...", 
         'SHERIFF_PK_SPEECH': "警長 PK 發言...", 'SHERIFF_VOTING': "警長首次投票...", 'SHERIFF_PK_VOTING': "警長 PK 投票...", 
         'SHERIFF_TRANSFER': "移交警徽中...", 'DAY_DISCUSSION': ctx ? (ctx.dayDiscussionPrompt || "白天發言階段。") : "白天發言階段。",
         'DAY_VOTING': "放逐投票...", 'DAY_PK_SPEECH': "放逐 PK 發言...", 'DAY_PK_VOTING': "放逐 PK 投票...", 
