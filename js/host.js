@@ -76,18 +76,20 @@ function handleIncomingPacket(peerId, data) {
             stateMachine.handleAction(player, data.payload.actionId, data.payload.targets);
         }
     }
-    else if (data.type === PACKET_TYPE.SHERIFF_BAILOUT && engineContext.phase === 'SHERIFF_SPEECH') {
+    else if (data.type === PACKET_TYPE.SHERIFF_BAILOUT && ['SHERIFF_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT'].includes(engineContext.phase)) {
         const player = engineContext.getPlayerByPeer(peerId);
         if (player && (engineContext.sheriff.candidates || []).includes(player.seatNumber)) {
             engineContext.sheriff.candidates = engineContext.sheriff.candidates.filter(s => s !== player.seatNumber);
             engineContext.sheriff.withdrawn.push(player.seatNumber);
-            engineContext.systemLog = `【突發事件】${player.seatNumber} 號玩家選擇退水！`;
+            engineContext.systemLog = `宣布${player.seatNumber} 號玩家退水`;
             syncStateToAll();
         }
     }
     else if (data.type === PACKET_TYPE.WOLF_EXPLODE) {
-        // [防呆機制] 如果狼人在警長競選期間自爆，強制立刻結算昨晚死者，避免死者逃過一劫
-        if (['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING'].includes(engineContext.phase)) {
+        const sheriffPhases = ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_RE_ELECTION_BAILOUT'];
+        
+        if (sheriffPhases.includes(engineContext.phase)) {
+            // 先強制結算昨晚死者
             engineContext.players.forEach(p => {
                 if (!p.isDead && (engineContext.nightTags.killed.includes(p.seatNumber) || engineContext.nightTags.poisoned.includes(p.seatNumber))) {
                     p.kill(engineContext.nightTags.poisoned.includes(p.seatNumber) ? 'poisoned' : 'killed', engineContext);
@@ -95,6 +97,15 @@ function handleIncomingPacket(peerId, data) {
             });
             engineContext.nightTags.killed = [];
             engineContext.nightTags.poisoned = [];
+            
+            // 寫入自爆延遲邏輯
+            engineContext.sheriff.explodeDelayCount++;
+            const maxExplode = engineContext.rules.sheriffExplodeRule === 'double' ? 2 : 1;
+            if (engineContext.sheriff.explodeDelayCount >= maxExplode) {
+                engineContext.sheriff.badgeLost = true;
+            } else {
+                engineContext.sheriff.isDelayedElection = true;
+            }
         }
         Engine.EventBus.emit('WOLF_EXPLODE', { context: engineContext, player: engineContext.getPlayerByPeer(peerId) });
     }
@@ -209,12 +220,12 @@ function setupEngineFlowControllers() {
     });
 
     Engine.EventBus.on('PROCESS_DAWN', () => {
-        engineContext.sheriff.electionFinishedToday = false; 
-        
-        // [關鍵修復] 移除這裡的 p.kill() 死亡結算，讓死者活著參與警長競選
-
-        if (engineContext.rules.sheriff === 'enabled' && !engineContext.sheriff.seat && !engineContext.sheriff.badgeLost && engineContext.sheriff.electionDay <= 2) {
-            stateMachine.transitionTo('SHERIFF_CANDIDACY');
+        if (engineContext.rules.sheriff === 'enabled' && !engineContext.sheriff.seat && !engineContext.sheriff.badgeLost) {
+            if (!engineContext.sheriff.isDelayedElection) {
+                stateMachine.transitionTo('SHERIFF_CANDIDACY');
+            } else {
+                stateMachine.transitionTo('SHERIFF_RE_ELECTION_BAILOUT');
+            }
         } else {
             Engine.EventBus.emit('DAWN_ANNOUNCE');
         }
@@ -354,49 +365,35 @@ function resumeRoutinePhase() {
 
 function syncStateToAll() {
     const ctx = engineContext;
-    const isDayPhase = ['DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING', 'SHERIFF_TRANSFER', 'DAY_DISCUSSION', 'DAY_VOTING', 'PK_SPEECH', 'PK_VOTING', 'VOTE_RESULT_DISPLAY', 'LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION'].includes(ctx.phase);
+    const isDayPhase = ['DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'DAY_DISCUSSION', 'DAY_VOTING', 'DAY_PK_SPEECH', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION'].includes(ctx.phase);
 
     const hostState = {
         systemLog: ctx.systemLog,
         players: ctx.players.map(p => ({ ...p })),
-        layout: {
-            showSetupPanel: ctx.phase === 'LOBBY',
-            showNightPanel: ['NIGHT_TRANSITION', 'NIGHT_ACTION'].includes(ctx.phase),
-            showDayPanel: isDayPhase
-        },
-        nightFlow: (ctx.nightSequence || []).map((step, idx) => ({
-            title: `[${step.phaseName}]`,
-            status: idx < ctx.currentNightStepIndex ? 'completed' : (idx === ctx.currentNightStepIndex ? 'active' : 'pending'),
-            result: step.roles.map(r => r.roleName).join(', ')
-        })),
+        layout: { showSetupPanel: ctx.phase === 'LOBBY', showNightPanel: ['NIGHT_TRANSITION', 'NIGHT_ACTION'].includes(ctx.phase), showDayPanel: isDayPhase },
+        nightFlow: (ctx.nightSequence || []).map((step, idx) => ({ title: `[${step.phaseName}]`, status: idx < ctx.currentNightStepIndex ? 'completed' : (idx === ctx.currentNightStepIndex ? 'active' : 'pending'), result: step.roles.map(r => r.roleName).join(', ') })),
         allowForceNext: ctx.phase === 'NIGHT_ACTION',
         dayBtnText: getDayBtnText(ctx.phase),
-        dayBtnDisabled: ['SHERIFF_CANDIDACY', 'SHERIFF_VOTING', 'SHERIFF_TRANSFER', 'DAY_VOTING', 'PK_VOTING', 'HUNTER_ACTION', 'WOLFKING_ACTION', 'GAME_OVER'].includes(ctx.phase),        dayBtnCommand: getDayBtnCommand(ctx.phase)
+        dayBtnDisabled: ['SHERIFF_CANDIDACY', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'DAY_VOTING', 'DAY_PK_VOTING', 'HUNTER_ACTION', 'WOLFKING_ACTION', 'GAME_OVER'].includes(ctx.phase),        
+        dayBtnCommand: getDayBtnCommand(ctx.phase)
     };
     UI.renderHostView(hostState, handleHostCommand);
-
     ctx.players.forEach(player => {
         if (connections[player.peerId]) {
-            try {
-                connections[player.peerId].send({ type: PACKET_TYPE.STATE_SYNC, payload: buildUIStateForPlayer(ctx, player, isDayPhase) });
-            } catch (e) {
-                console.error(`玩家 ${player.seatNumber} 狀態同步失敗:`, e);
-            }
+            try { connections[player.peerId].send({ type: PACKET_TYPE.STATE_SYNC, payload: buildUIStateForPlayer(ctx, player, isDayPhase) }); } 
+            catch (e) {}
         }
     });
 }
 
 function buildUIStateForPlayer(ctx, player, isDayPhase) {
-    // [新增] 嚴格判定當前是否處於「警長競選」的三個階段
-    const isSheriffPhase = ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING'].includes(ctx.phase);
+    const isSheriffPhase = ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING'].includes(ctx.phase);
 
     // ==========================================
     // 1. 處理每個玩家座位上的標籤與狀態
     // ==========================================
     const mappedPlayers = ctx.players.map(p => {
         let topTag = null, sideTag = null, wolfPreviewTags = [];
-        
-        // [乾淨擴充] 新增明牌規則攔截：若玩家已死 (p.isDead) 且規則為明牌 ('light')，則將真實身分賦予 topTag
         if (ctx.phase === 'GAME_OVER' || p.isRevealed || (p.isDead && ctx.rules.deathReveal === 'light')) topTag = p.role;
         else if (RoleRegistry.plugins[player.role]?.canSeeWolves && RoleRegistry.plugins[p.role]?.seenAsWolf) topTag = p.role;
         else if (player.data.customTopTags && player.data.customTopTags[p.seatNumber]) topTag = player.data.customTopTags[p.seatNumber];
@@ -406,25 +403,26 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
 
         if (ctx.phase === 'NIGHT_ACTION' && RoleRegistry.plugins[player.role]?.canSeeWolves) {
             Object.values(ctx.wolfPreviews || {}).forEach(preview => {
-                if (String(preview.target) === String(p.seatNumber) && preview.seat !== player.seatNumber) {
-                    wolfPreviewTags.push(`${preview.seat}號`);
-                }
+                if (String(preview.target) === String(p.seatNumber) && preview.seat !== player.seatNumber) wolfPreviewTags.push(`${preview.seat}號`);
             });
         }
+        
+        let isPKTgt = false;
+        if (['SHERIFF_PK_SPEECH', 'SHERIFF_PK_VOTING'].includes(ctx.phase)) isPKTgt = (ctx.sheriff.pkTargets || []).includes(p.seatNumber);
+        if (['DAY_PK_SPEECH', 'DAY_PK_VOTING'].includes(ctx.phase)) isPKTgt = (ctx.pkTargets || []).includes(p.seatNumber);
 
         return { 
-            seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, 
-            deathReason: p.deathReason,
+            seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, deathReason: p.deathReason,
             topTag, sideTag, wolfPreviewTags, isWolfSelected: wolfPreviewTags.length > 0,
             isCandidate: isSheriffPhase && (ctx.sheriff.candidates || []).includes(p.seatNumber), 
             hasWithdrawn: isSheriffPhase && (ctx.sheriff.withdrawn || []).includes(p.seatNumber),
             isSheriff: (ctx.sheriff.seat === p.seatNumber),
-            isPKTarget: (ctx.phase === 'PK_SPEECH' || ctx.phase === 'PK_VOTING') && (ctx.pkTargets || []).includes(p.seatNumber)
+            isPKTarget: isPKTgt
         };
     });
 
     let actionPanel = { show: false, type: 'none', prompt: '', selectableSeats: [], buttons: [], submitPacketType: PACKET_TYPE.ACTION_SUBMIT };
-    let personalMessage = getPhaseMessageForPlayer(ctx.phase, ctx); // [修改] 將 ctx 傳遞進去
+    let personalMessage = getPhaseMessageForPlayer(ctx.phase, ctx);
 
     // ==========================================
     // 2. 處理玩家本人的行動面板 (Action Panel)
@@ -475,14 +473,29 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             actionPanel.buttons = [{ id: 'run', text: '競選', requiresTarget: false }, { id: 'pass', text: '不競選', requiresTarget: false }];
         }
     }
-    else if (ctx.phase === 'SHERIFF_VOTING' && !player.isDead) {
+    if (['SHERIFF_VOTING', 'SHERIFF_PK_VOTING'].includes(ctx.phase) && !player.isDead) {
         actionPanel.show = true;
         const isEligible = !(ctx.sheriff.candidates || []).includes(player.seatNumber) && !(ctx.sheriff.withdrawn || []).includes(player.seatNumber);
         if (!isEligible) { actionPanel.prompt = "你是警上玩家（或已退水），無法參與警長投票。"; actionPanel.buttons = []; }
         else if (ctx.votes[player.seatNumber] !== undefined) { actionPanel.prompt = "投票完成，等待..."; actionPanel.buttons = []; }
         else {
-            actionPanel.type = 'single_select'; actionPanel.deadline = ctx.deadline; actionPanel.selectableSeats = ctx.sheriff.candidates || [];
+            actionPanel.type = 'single_select'; actionPanel.deadline = ctx.deadline; 
+            actionPanel.selectableSeats = ctx.phase === 'SHERIFF_PK_VOTING' ? ctx.sheriff.pkTargets : (ctx.sheriff.candidates || []);
             actionPanel.prompt = '選擇你要投票的警長候選人：';
+            actionPanel.submitPacketType = PACKET_TYPE.VOTE_SUBMIT;
+            actionPanel.buttons = [{ id: 'vote', text: '投票', requiresTarget: true }, { id: 'pass', text: '棄票', requiresTarget: false }];
+        }
+    }
+    else if (['DAY_VOTING', 'DAY_PK_VOTING'].includes(ctx.phase) && !player.isDead) {
+        actionPanel.show = true;
+        const isDayPK = ctx.phase === 'DAY_PK_VOTING';
+        if (isDayPK && (ctx.pkTargets || []).includes(player.seatNumber)) { actionPanel.prompt = "你是 PK 發言對象，無法投票。"; actionPanel.buttons = []; }
+        else if (ctx.votes[player.seatNumber] !== undefined) { actionPanel.prompt = "投票完成，等待..."; actionPanel.buttons = []; }
+        else {
+            actionPanel.type = 'single_select'; actionPanel.deadline = ctx.deadline; 
+            actionPanel.selectableSeats = isDayPK ? ctx.pkTargets : ctx.getAlivePlayers().map(p=>p.seatNumber);
+            actionPanel.prompt = isDayPK ? '選擇 PK 目標：' : '選擇放逐目標：';
+            if (ctx.sheriff.seat === player.seatNumber) actionPanel.prompt += '\n(你是警長，擁有 1.5 票)';
             actionPanel.submitPacketType = PACKET_TYPE.VOTE_SUBMIT;
             actionPanel.buttons = [{ id: 'vote', text: '投票', requiresTarget: true }, { id: 'pass', text: '棄票', requiresTarget: false }];
         }
@@ -492,26 +505,17 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         actionPanel.prompt = '你已死亡。選擇移交警徽，或撕毀：';
         actionPanel.buttons = [{ id: 'transfer', text: '移交警徽', requiresTarget: true }, { id: 'pass', text: '撕毀警徽', requiresTarget: false }];
     }
-    else if ((ctx.phase === 'DAY_VOTING' || ctx.phase === 'PK_VOTING') && !player.isDead) {
-        actionPanel.show = true;
-        const isPK = ctx.phase === 'PK_VOTING';
-        if (isPK && (ctx.pkTargets || []).includes(player.seatNumber)) { actionPanel.prompt = "你是 PK 發言對象，無法投票。"; actionPanel.buttons = []; }
-        else if (ctx.votes[player.seatNumber] !== undefined) { actionPanel.prompt = "投票完成，等待..."; actionPanel.buttons = []; }
-        else {
-            actionPanel.type = 'single_select'; actionPanel.deadline = ctx.deadline; actionPanel.selectableSeats = isPK ? ctx.pkTargets : ctx.getAlivePlayers().map(p=>p.seatNumber);
-            actionPanel.prompt = isPK ? '選擇 PK 目標：' : '選擇放逐目標：';
-            if (ctx.sheriff.seat === player.seatNumber) actionPanel.prompt += '\n(你是警長，擁有 1.5 票)';
-            actionPanel.submitPacketType = PACKET_TYPE.VOTE_SUBMIT;
-            actionPanel.buttons = [{ id: 'vote', text: '投票', requiresTarget: true }, { id: 'pass', text: '棄票', requiresTarget: false }];
-        }
-    }
     else if (ctx.phase === 'VOTE_RESULT_DISPLAY') {
         actionPanel.show = true; actionPanel.prompt = ctx.currentVoteResultString;
     }
-    else if (ctx.phase === 'LAST_WORDS' || ctx.phase === 'PK_SPEECH') {
+    else if (ctx.phase === 'LAST_WORDS' || ctx.phase === 'DAY_PK_SPEECH' || ctx.phase === 'SHERIFF_PK_SPEECH') {
         actionPanel.show = true;
-        let targets = ctx.phase === 'PK_SPEECH' ? [...(ctx.pkTargets||[])] : [...(ctx.lastWordsTargets||[])].sort((a,b)=>a-b);
-        actionPanel.prompt = `請 ${targets.join('號、')} 號玩家${ctx.phase === 'PK_SPEECH' ? "PK 發言" : "發表遺言"}`;
+        let targets = [];
+        let verb = "";
+        if (ctx.phase === 'DAY_PK_SPEECH') { targets = [...(ctx.pkTargets||[])]; verb = "放逐 PK 發言"; }
+        else if (ctx.phase === 'SHERIFF_PK_SPEECH') { targets = [...(ctx.sheriff.pkTargets||[])]; verb = "警長 PK 發言"; }
+        else { targets = [...(ctx.lastWordsTargets||[])].sort((a,b)=>a-b); verb = "發表遺言"; }
+        actionPanel.prompt = `請 ${targets.join('號、')} 號玩家${verb}`;
     }
     else if (ctx.phase === 'HUNTER_ACTION' || ctx.phase === 'WOLFKING_ACTION') {
         actionPanel.show = true;
@@ -560,33 +564,26 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     };
 }
 
-function getPhaseMessageForPlayer(phase, ctx) { // [修改] 接收 ctx
+function getPhaseMessageForPlayer(phase, ctx) {
     const dict = { 
-        'NIGHT_TRANSITION': "天黑請閉眼...", 
-        'NIGHT_ACTION': "夜間行動中...", 
-        'SHERIFF_CANDIDACY': "登記上警意願...", 
-        'SHERIFF_SPEECH': "警長發言中...", 
-        'SHERIFF_VOTING': "警長投票...", 
-        'SHERIFF_TRANSFER': "移交警徽中...", 
-        'DAY_DISCUSSION': ctx ? (ctx.dayDiscussionPrompt || "白天發言階段。") : "白天發言階段。", // [修改] 讀取動態字串
-        'DAY_VOTING': "放逐投票...", 
-        'PK_SPEECH': "PK 發言...", 
-        'PK_VOTING': "PK 投票...", 
-        'VOTE_RESULT_DISPLAY': "展示投票結果...", 
-        'LAST_WORDS': "遺言發表。", 
-        'HUNTER_ACTION': "系統結算中...", 
-        'WOLFKING_ACTION': "系統結算中...", 
-        'GAME_OVER': engineContext ? engineContext.systemLog : "遊戲結束。"
+        'NIGHT_TRANSITION': "天黑請閉眼...", 'NIGHT_ACTION': "夜間行動中...", 
+        'SHERIFF_CANDIDACY': "登記上警意願...", 'SHERIFF_SPEECH': "警長發言中...", 'SHERIFF_RE_ELECTION_BAILOUT': "延遲選舉退水時間...", 
+        'SHERIFF_PK_SPEECH': "警長 PK 發言...", 'SHERIFF_VOTING': "警長首次投票...", 'SHERIFF_PK_VOTING': "警長 PK 投票...", 
+        'SHERIFF_TRANSFER': "移交警徽中...", 'DAY_DISCUSSION': ctx ? (ctx.dayDiscussionPrompt || "白天發言階段。") : "白天發言階段。",
+        'DAY_VOTING': "放逐投票...", 'DAY_PK_SPEECH': "放逐 PK 發言...", 'DAY_PK_VOTING': "放逐 PK 投票...", 
+        'VOTE_RESULT_DISPLAY': "展示投票結果...", 'LAST_WORDS': "遺言發表。", 'HUNTER_ACTION': "系統結算中...", 
+        'WOLFKING_ACTION': "系統結算中...", 'GAME_OVER': engineContext ? engineContext.systemLog : "遊戲結束。"
     };
     return dict[phase] || "等待中...";
 }
+
 function getDayBtnText(phase) {
-    const dict = { 'SHERIFF_CANDIDACY': "強制結束上警登記 (防卡死)", 'SHERIFF_VOTING': "強制結算警長投票 (防卡死)", 'SHERIFF_SPEECH': "發起警長投票", 'DAY_DISCUSSION': "發起放逐投票", 'PK_SPEECH': "發起 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入遺言發表階段", 'LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍...", 'WOLFKING_ACTION': "等待狼王開槍..." };
+    const dict = { 'SHERIFF_CANDIDACY': "強制結束上警登記", 'SHERIFF_VOTING': "強制結算投票", 'SHERIFF_PK_VOTING': "強制結算投票", 'SHERIFF_SPEECH': "發起警長投票", 'SHERIFF_PK_SPEECH': "發起警長 PK 投票", 'DAY_DISCUSSION': "發起放逐投票", 'DAY_PK_SPEECH': "發起放逐 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入下一階段", 'LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍...", 'WOLFKING_ACTION': "等待狼王開槍..." };
     return dict[phase] || "投票/行動進行中...";
 }
 
 function getDayBtnCommand(phase) {
-    const dict = { 'SHERIFF_CANDIDACY': "FORCE_TIMEOUT", 'SHERIFF_VOTING': "FORCE_TIMEOUT", 'SHERIFF_SPEECH': "START_SHERIFF_VOTE", 'DAY_DISCUSSION': "START_VOTE", 'PK_SPEECH': "START_PK_VOTE", 'VOTE_RESULT_DISPLAY': "END_VOTE_DISPLAY", 'LAST_WORDS': "END_LAST_WORDS" };
+    const dict = { 'SHERIFF_CANDIDACY': "FORCE_TIMEOUT", 'SHERIFF_VOTING': "FORCE_TIMEOUT", 'SHERIFF_PK_VOTING': "FORCE_TIMEOUT", 'SHERIFF_SPEECH': "START_SHERIFF_VOTE", 'SHERIFF_PK_SPEECH': "START_SHERIFF_PK_VOTE", 'DAY_DISCUSSION': "START_VOTE", 'DAY_PK_SPEECH': "START_DAY_PK_VOTE", 'VOTE_RESULT_DISPLAY': "END_VOTE_DISPLAY", 'LAST_WORDS': "END_LAST_WORDS" };
     return dict[phase] || "";
 }
 
@@ -596,21 +593,13 @@ function handleHostCommand(cmd) {
         if (stateMachine.currentPhase && stateMachine.currentPhase.onTimeout) stateMachine.currentPhase.onTimeout(engineContext);
     } 
     else if (cmd === 'START_SHERIFF_VOTE') stateMachine.transitionTo('SHERIFF_VOTING');
-    else if (cmd === 'START_VOTE') {
-        engineContext.routineOrigin = 'AFTERNOON'; 
-        stateMachine.transitionTo('DAY_VOTING');
-    }
-    else if (cmd === 'START_PK_VOTE') {
-        engineContext.routineOrigin = 'AFTERNOON';
-        stateMachine.transitionTo('PK_VOTING');
-    }
+    else if (cmd === 'START_SHERIFF_PK_VOTE') stateMachine.transitionTo('SHERIFF_PK_VOTING'); // 新增
+    else if (cmd === 'START_VOTE') { engineContext.routineOrigin = 'AFTERNOON'; stateMachine.transitionTo('DAY_VOTING'); }
+    else if (cmd === 'START_DAY_PK_VOTE') { engineContext.routineOrigin = 'AFTERNOON'; stateMachine.transitionTo('DAY_PK_VOTING'); } // 修改
     else if (cmd === 'END_VOTE_DISPLAY') {
         if (engineContext.nextPhaseAfterVoteDisplay === 'DAWN_RESUME') Engine.EventBus.emit('DAWN_ANNOUNCE');
         else if (engineContext.nextPhaseAfterVoteDisplay === 'RESUME_ROUTINE') resumeRoutinePhase();
         else if (engineContext.nextPhaseAfterVoteDisplay) stateMachine.transitionTo(engineContext.nextPhaseAfterVoteDisplay);
     }
-    else if (cmd === 'END_LAST_WORDS') {
-        engineContext.lastWordsTargets = [];
-        resumeRoutinePhase();
-    }
+    else if (cmd === 'END_LAST_WORDS') { engineContext.lastWordsTargets = []; resumeRoutinePhase(); }
 }
