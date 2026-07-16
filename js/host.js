@@ -284,35 +284,32 @@ function setupEngineFlowControllers() {
         // [新增] 白天發言順序與動態文本計算
         // ===============================================
         let promptLine1 = "";
-        let promptLine2 = "";
+        let promptLine2_NoSheriff = "";
         
         if (dead.length === 0) {
             promptLine1 = "昨晚是平安夜";
             const aliveSeats = engineContext.getAlivePlayers().map(p => p.seatNumber);
             const u = aliveSeats[Math.floor(Math.random() * aliveSeats.length)];
             const T = Math.random() < 0.5 ? '順' : '逆';
-            if (engineContext.sheriff.seat && !engineContext.getPlayer(engineContext.sheriff.seat).isDead) {
-                promptLine2 = "請警長決定發言順序";
-            } else {
-                promptLine2 = `請從 ${u} 號開始${T}序發言`;
-            }
+            promptLine2_NoSheriff = `請從 ${u} 號開始${T}序發言`;
         } else {
-            // 排序確保 A 是死者中號碼最小的
             const sortedDead = [...dead].sort((a, b) => a - b);
             promptLine1 = `昨晚 ${sortedDead.join(' 號、')} 號玩家死亡`;
             
             const A = sortedDead[0];
             const direction = Math.random() < 0.5 ? 1 : -1;
             const T = direction === 1 ? '順' : '逆';
-            const u = engineContext.getNextAliveSeat(A, direction); // 呼叫剛才寫的演算法
+            const u = engineContext.getNextAliveSeat(A, direction);
             
-            if (engineContext.sheriff.seat && !engineContext.getPlayer(engineContext.sheriff.seat).isDead) {
-                promptLine2 = "請警長決定發言順序";
-            } else {
-                promptLine2 = `請從 ${u} 號開始${T}序發言`;
-            }
+            promptLine2_NoSheriff = `請從 ${u} 號開始${T}序發言`;
         }
-        engineContext.dayDiscussionPrompt = `${promptLine1}\n${promptLine2}`;
+        engineContext.prompt_Sheriff = `${promptLine1}\n請警長決定發言順序`;
+        engineContext.prompt_NoSheriff = `${promptLine1}\n${promptLine2_NoSheriff}`;
+        if (engineContext.sheriff.seat && !engineContext.sheriff.badgeLost) {
+            engineContext.dayDiscussionPrompt = engineContext.prompt_Sheriff;
+        } else {
+            engineContext.dayDiscussionPrompt = engineContext.prompt_NoSheriff;
+        }
         // ===============================================
 
         engineContext.isPK = false;
@@ -570,7 +567,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             requiresTarget: RoleRegistry.plugins[player.role].daySkill.requiresTarget,
             selectableSeats: RoleRegistry.plugins[player.role].daySkill.getSelectableSeats(ctx, player.seatNumber)
         } : null,
-        allowBailout: !player.isDead && ctx.phase === 'SHERIFF_SPEECH' && (ctx.sheriff.candidates || []).includes(player.seatNumber) 
+        allowBailout: !player.isDead && ['SHERIFF_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT'].includes(ctx.phase) && (ctx.sheriff.candidates || []).includes(player.seatNumber)
     };
 }
 
