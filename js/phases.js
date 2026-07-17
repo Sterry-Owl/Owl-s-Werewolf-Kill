@@ -167,7 +167,10 @@ window.PhaseRegistry = {
 
 stateMachine.registerPhase('HUNTER_ACTION', {
             allowDeadAction: true, 
-            onEnter: (ctx) => { ctx.systemLog = "等待獵人開槍..."; },
+            onEnter: (ctx) => { 
+                ctx.systemLog = "等待獵人開槍 (15秒)..."; 
+                self.sm.setTimer(15000); // [新增] 設定 15 秒開槍時限
+            },
             onAction: (ctx, player, actionId, targets) => {
                 if (player.seatNumber !== ctx.activeShooter) return; 
                 
@@ -187,14 +190,26 @@ stateMachine.registerPhase('HUNTER_ACTION', {
                 if (ctx.phase !== 'GAME_OVER') {
                     Engine.EventBus.emit('RESUME_ROUTINE');
                 }
+            },
+            // [新增] 超時強制悶槍邏輯，完全複用不開槍的流轉路徑
+            onTimeout: (ctx) => {
+                ctx.systemLog = `獵人超時未動作，視為放棄開槍 (悶槍)。`;
+                ctx.activeShooter = null;
+                Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+                if (ctx.phase !== 'GAME_OVER') {
+                    Engine.EventBus.emit('RESUME_ROUTINE');
+                }
             }
         });
         
         stateMachine.registerPhase('WOLFKING_ACTION', {
             allowDeadAction: true, 
-            onEnter: (ctx) => { ctx.systemLog = "等待狼王開槍..."; },
+            onEnter: (ctx) => { 
+                ctx.systemLog = "等待狼王開槍 (15秒)..."; 
+                self.sm.setTimer(15000); // [新增] 設定 15 秒開槍時限
+            },
             onAction: (ctx, player, actionId, targets) => {
-                if (player.seatNumber !== ctx.activeShooter) return; // [修正] 安全鎖：不相干的人亂點按鈕直接無視
+                if (player.seatNumber !== ctx.activeShooter) return; 
                 
                 const target = targets.length > 0 ? targets[0] : null;
                 if (actionId === 'shoot' && target) {
@@ -207,9 +222,17 @@ stateMachine.registerPhase('HUNTER_ACTION', {
                     ctx.systemLog = `狼王選擇不開槍。`;
                 }
                 
-                ctx.activeShooter = null; // [新增] 開槍完畢，解除鎖定
+                ctx.activeShooter = null; 
                 
-                // [關鍵修正] 開槍殺人後，必須立刻檢查遊戲是否達到屠邊條件！
+                Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+                if (ctx.phase !== 'GAME_OVER') {
+                    Engine.EventBus.emit('RESUME_ROUTINE');
+                }
+            },
+            // [新增] 超時強制悶槍邏輯
+            onTimeout: (ctx) => {
+                ctx.systemLog = `狼王超時未動作，視為放棄開槍。`;
+                ctx.activeShooter = null;
                 Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
                 if (ctx.phase !== 'GAME_OVER') {
                     Engine.EventBus.emit('RESUME_ROUTINE');
