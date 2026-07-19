@@ -134,4 +134,6 @@ const ROLE_DICTIONARY = {
     "機械狼": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "dynamic", prompt: "機械狼請行動", description:"不可自刀、自爆、不參與襲擊；可以學習一名玩家，被查驗的身分將替換為該玩家。學習後的下個夜晚可以獲得「相對應的技能」。其餘狼人死亡後，機械狼將參與襲擊。" },
     "奇蹟商人": { faction: "good", type: "god", nightPhase: "first_half", actionType: "dynamic", prompt: "奇蹟商人請行動\n請選擇贈禮的目標", description:"神職；首夜可以且必須選擇一名玩家贈送禮物。從查驗、毒藥、守護三者中贈送一項。收禮者立即成為幸運兒，可在夜晚使用該技能。若贈送到狼人，則送禮失敗、奇蹟商人死亡。" },
     "魔術師": { faction: "good", type: "god", nightPhase: "first_half", actionType: "double_select", prompt: "魔術師請行動\n請選擇交換的目標", description:"神職；每晚可以交換兩個號碼，當夜所有技能作用於這兩個號碼上的效果將會互換。每個號碼一局只能被交換一次" },
+    "狼鴉之爪": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "dynamic", prompt: "狼鴉之爪請行動", description:"不可自爆。當場上存活的狼人陣營≤2人時覺醒，參與夜晚襲擊，且解鎖一次無視任何防禦技能的獨立擊殺能力。" },
+};
 };
