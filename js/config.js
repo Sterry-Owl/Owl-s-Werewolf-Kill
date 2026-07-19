@@ -115,7 +115,7 @@ const ROLE_DICTIONARY = {
     "暗戀者": { faction: "good", type: "villager", nightPhase: "none", actionType: "none", prompt: "選擇你的暗戀對象", description:"特殊平民；首夜可以且必須選擇一名玩家成為自己的暗戀對象。自身的勝利條件永遠跟隨暗戀對象。" },
     "燈影預言家": { faction: "good", type: "villager", nightPhase: "second_half", actionType: "single_select", prompt: "預言家請行動\n選擇今晚的查驗目標", description:"神職；每晚可查驗一名玩家的陣營。" },
     "獵人": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "", description:"神職；出局後可以擊殺一名玩家。吃毒、殉情或成為最後一個出局的神職時不能發動技能。" },
-    "白痴": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "", description:"" },
+    "白痴": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "", description:"神職；被放逐出局時，可以翻牌免除這次出局，但是之後失去投票權且須移交警徽。" },
     "狼人": { faction: "wolf", type: "wolf", nightPhase: "midnight", actionType: "consensus", prompt: "選擇今晚的襲擊目標\n(或跳過以空刀)", description:"每天晚上可以擊殺一名玩家。" },
     "女巫": { faction: "good", type: "god", nightPhase: "second_half", actionType: "dynamic_buttons", prompt: "女巫請行動", description:"神職；擁有一瓶解藥和一瓶毒藥，解藥可拯救被狼人襲擊的對象、毒藥可以擊殺玩家。不可在同一晚使用兩瓶藥水。" },
     "預言家": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "預言家請行動\n選擇今晚的查驗目標", description:"神職；每晚可以查驗一名玩家的陣營" },
