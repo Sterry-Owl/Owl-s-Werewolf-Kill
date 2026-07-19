@@ -20,7 +20,17 @@ window.initHost = function(roomId) {
     Engine.EventBus.on('PHASE_CHANGED', syncStateToAll);
     Engine.EventBus.on('RESUME_ROUTINE', resumeRoutinePhase); 
     Engine.EventBus.on('BROADCAST_MESSAGE', msg => {
+        let initialRolesLog = "【開局身分配置】\n";
         engineContext.players.forEach(p => p.data.tempPrivateMessage = msg);
+        Engine.EventBus.emit('MASTER_LOG', `【系統廣播】${msg}`);
+        syncStateToAll();
+    });
+
+    // [新增] 註冊全知紀錄事件接收器
+    Engine.EventBus.on('MASTER_LOG', (msg) => {
+        if (!engineContext.masterLog) engineContext.masterLog = [];
+        const time = new Date().toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
+        engineContext.masterLog.push(`<span style="color:#888; font-size:10px;">[${time}]</span><br/>${msg}`);
         syncStateToAll();
     });
 
@@ -117,6 +127,7 @@ function handleIncomingPacket(peerId, data) {
                 engineContext.sheriff.isDelayedElection = true;
             }
         }
+        Engine.EventBus.emit('MASTER_LOG', `【突發事件】${player.seatNumber}號 狼人自爆！`);
         Engine.EventBus.emit('WOLF_EXPLODE', { context: engineContext, player: engineContext.getPlayerByPeer(peerId) });
     }
     else if (data.type === PACKET_TYPE.WOLF_PREVIEW) {
@@ -155,6 +166,7 @@ function handleIncomingPacket(peerId, data) {
             const validTargets = plugin.daySkill.getSelectableSeats(engineContext, player.seatNumber);
             if (!validTargets.includes(data.payload.target)) return;
             plugin.daySkill.resolve(engineContext, player, data.payload.target);
+            Engine.EventBus.emit('MASTER_LOG', `【技能發動】${player.seatNumber}號(${player.role}) 對 ${data.payload.target}號 使用了 ${plugin.daySkill.buttonText}`);
             syncStateToAll();
         }
     }
@@ -376,6 +388,7 @@ function syncStateToAll() {
 
     const hostState = {
         systemLog: ctx.systemLog,
+        masterLog: ctx.masterLog || [],
         players: ctx.players.map(p => ({ ...p })),
         layout: { showSetupPanel: ctx.phase === 'LOBBY', showNightPanel: ['NIGHT_TRANSITION', 'NIGHT_ACTION'].includes(ctx.phase), showDayPanel: isDayPhase },
         nightFlow: (ctx.nightSequence || []).map((step, idx) => ({ title: `[${step.phaseName}]`, status: idx < ctx.currentNightStepIndex ? 'completed' : (idx === ctx.currentNightStepIndex ? 'active' : 'pending'), result: step.roles.map(r => r.roleName).join(', ') })),
