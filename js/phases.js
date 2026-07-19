@@ -146,12 +146,14 @@ window.PhaseRegistry = {
                 if (actionId === 'transfer' && targets.length > 0) {
                     ctx.sheriff.seat = targets[0];
                     ctx.systemLog = `【警長傳承】前任警長將警徽交給了 ${ctx.sheriff.seat} 號玩家。`;
-                    ctx.dayDiscussionPrompt = ctx.prompt_Sheriff; // [關鍵修復] 移交後有新警長，套用警長字串
+                    Engine.EventBus.emit('MASTER_LOG', ctx.systemLog); // [新增]
+                    ctx.dayDiscussionPrompt = ctx.prompt_Sheriff; 
                 } else {
                     ctx.sheriff.seat = null;
                     ctx.sheriff.badgeLost = true;
                     ctx.systemLog = `【警徽流失】前任警長選擇撕毀警徽。`;
-                    ctx.dayDiscussionPrompt = ctx.prompt_NoSheriff; // [關鍵修復] 撕毀後無警長，套用無警長字串
+                    Engine.EventBus.emit('MASTER_LOG', ctx.systemLog); // [新增]
+                    ctx.dayDiscussionPrompt = ctx.prompt_NoSheriff; 
                 }
                 
                 Engine.EventBus.emit('RESUME_ROUTINE');
@@ -160,6 +162,7 @@ window.PhaseRegistry = {
                 ctx.sheriff.seat = null;
                 ctx.sheriff.badgeLost = true;
                 ctx.systemLog = `【警徽流失】超時未動作，警徽強制流失。`;
+                Engine.EventBus.emit('MASTER_LOG', ctx.systemLog);
                 ctx.dayDiscussionPrompt = ctx.prompt_NoSheriff;
                 Engine.EventBus.emit('RESUME_ROUTINE');
             }
@@ -255,6 +258,7 @@ stateMachine.registerPhase('HUNTER_ACTION', {
         });
         
         ctx.systemLog = phaseLog;
+        Engine.EventBus.emit('MASTER_LOG', phaseLog);
         Engine.EventBus.emit('SYNC_STATE');
         setTimeout(() => Engine.EventBus.emit('NIGHT_STEP_COMPLETE'), 3000); 
     },
@@ -273,12 +277,14 @@ stateMachine.registerPhase('HUNTER_ACTION', {
             ctx.sheriff.badgeLost = true;
             ctx.sheriff.electionFinishedToday = true;
             ctx.systemLog = `由於全體上警/無人上警，本局警徽流失。`;
+            Engine.EventBus.emit('MASTER_LOG', ctx.systemLog); // [新增] 將結果寫入全知紀錄
             Engine.EventBus.emit('DAWN_ANNOUNCE');
         } else if (ctx.sheriff.candidates.length === 1) {
             // [新增] 單人上警，自動當選
             ctx.sheriff.seat = ctx.sheriff.candidates[0];
             ctx.sheriff.electionFinishedToday = true;
             ctx.systemLog = `僅 ${ctx.sheriff.seat} 號玩家上警，自動當選警長！`;
+            Engine.EventBus.emit('MASTER_LOG', ctx.systemLog); // [新增] 將結果寫入全知紀錄
             Engine.EventBus.emit('DAWN_ANNOUNCE');
         } else {
             ctx.sheriff.candidates.sort((a,b) => a-b);
@@ -357,11 +363,15 @@ stateMachine.registerPhase('HUNTER_ACTION', {
                 }
                 ctx.currentVoteResultString = `【平票發生】\n${resultLines.join('\n')}\n\n準備進入警長 PK 發言。`;
                 ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(警長首次投票)\n${ctx.currentVoteResultString}`);
+                // [新增] 全知紀錄
+                Engine.EventBus.emit('MASTER_LOG', `【投票結算】(警長首次投票) 第 ${ctx.nightCount} 天\n${ctx.currentVoteResultString}`);
                 ctx.nextPhaseAfterVoteDisplay = 'SHERIFF_PK_SPEECH';
             } else {
                 ctx.sheriff.seat = finalTarget;
                 ctx.currentVoteResultString = `【警長誕生】\n${resultLines.join('\n')}\n\n恭喜 ${finalTarget} 號當選警長。`;
                 ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(警長選舉)\n${ctx.currentVoteResultString}`);
+                // [新增] 全知紀錄
+                Engine.EventBus.emit('MASTER_LOG', `【投票結算】(警長選舉) 第 ${ctx.nightCount} 天\n${ctx.currentVoteResultString}`);
                 ctx.nextPhaseAfterVoteDisplay = 'DAWN_RESUME';
             }
             this.sm.transitionTo('VOTE_RESULT_DISPLAY');
@@ -380,11 +390,15 @@ stateMachine.registerPhase('HUNTER_ACTION', {
                     ctx.currentVoteResultString = `【再次平票】\n${resultLines.join('\n')}\n\n本日無法產生警長，選舉延後至明日。`;
                 }
                 ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(警長對決投票)\n${ctx.currentVoteResultString}`);
+                // [新增] 全知紀錄
+                Engine.EventBus.emit('MASTER_LOG', `【投票結算】(警長對決投票) 第 ${ctx.nightCount} 天\n${ctx.currentVoteResultString}`);
                 ctx.nextPhaseAfterVoteDisplay = 'DAWN_RESUME';
             } else {
                 ctx.sheriff.seat = finalTarget;
                 ctx.currentVoteResultString = `【警長誕生】\n${resultLines.join('\n')}\n\n恭喜 ${finalTarget} 號當選警長。`;
                 ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(警長對決投票)\n${ctx.currentVoteResultString}`);
+                // [新增] 全知紀錄
+                Engine.EventBus.emit('MASTER_LOG', `【投票結算】(警長對決投票) 第 ${ctx.nightCount} 天\n${ctx.currentVoteResultString}`);
                 ctx.nextPhaseAfterVoteDisplay = 'DAWN_RESUME';
             }
             this.sm.transitionTo('VOTE_RESULT_DISPLAY');
@@ -401,6 +415,8 @@ stateMachine.registerPhase('HUNTER_ACTION', {
                 }
                 ctx.currentVoteResultString = `【平票發生】\n${resultLines.join('\n')}\n\n準備進入放逐 PK 發言。`;
                 ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(放逐首次投票)\n${ctx.currentVoteResultString}`);
+                // [新增] 全知紀錄
+                Engine.EventBus.emit('MASTER_LOG', `【投票結算】(放逐首次投票) 第 ${ctx.nightCount} 天\n${ctx.currentVoteResultString}`);
                 ctx.nextPhaseAfterVoteDisplay = 'DAY_PK_SPEECH';
                 this.sm.transitionTo('VOTE_RESULT_DISPLAY');
                 return; 
@@ -423,6 +439,8 @@ stateMachine.registerPhase('HUNTER_ACTION', {
         
         ctx.currentVoteResultString = `${header}\n${resultLines.join('\n')}`;
         ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】\n${ctx.currentVoteResultString}`);
+        // [新增] 全知紀錄
+        Engine.EventBus.emit('MASTER_LOG', `【投票結算】第 ${ctx.nightCount} 天\n${ctx.currentVoteResultString}`);
         ctx.systemLog = header.replace('\n', '');
         
         Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
