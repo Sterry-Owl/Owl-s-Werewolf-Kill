@@ -496,7 +496,12 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     if (['SHERIFF_VOTING', 'SHERIFF_PK_VOTING'].includes(ctx.phase) && !player.isDead) {
         actionPanel.show = true;
         const isEligible = !(ctx.sheriff.candidates || []).includes(player.seatNumber) && !(ctx.sheriff.withdrawn || []).includes(player.seatNumber);
-        if (!isEligible) { actionPanel.prompt = "你是警上玩家（或已退水），無法參與警長投票。"; actionPanel.buttons = []; }
+        
+        // [UI 狀態同步修復 1] 剝奪投票權的玩家，直接隱藏投票面板，避免送出幽靈封包
+        if (player.data && player.data.cannotVote) { 
+            actionPanel.prompt = "你已失去投票權。"; actionPanel.buttons = []; 
+        }
+        else if (!isEligible) { actionPanel.prompt = "你是警上玩家（或已退水），無法參與警長投票。"; actionPanel.buttons = []; }
         else if (ctx.votes[player.seatNumber] !== undefined) { actionPanel.prompt = "投票完成，等待..."; actionPanel.buttons = []; }
         else {
             actionPanel.type = 'single_select'; actionPanel.deadline = ctx.deadline; 
@@ -509,11 +514,17 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     else if (['DAY_VOTING', 'DAY_PK_VOTING'].includes(ctx.phase) && !player.isDead) {
         actionPanel.show = true;
         const isDayPK = ctx.phase === 'DAY_PK_VOTING';
-        if (isDayPK && (ctx.pkTargets || []).includes(player.seatNumber)) { actionPanel.prompt = "你是 PK 發言對象，無法投票。"; actionPanel.buttons = []; }
+        
+        // [UI 狀態同步修復 2] 隱藏失去投票權者的介面
+        if (player.data && player.data.cannotVote) { 
+            actionPanel.prompt = "你已失去投票權。"; actionPanel.buttons = []; 
+        }
+        else if (isDayPK && (ctx.pkTargets || []).includes(player.seatNumber)) { actionPanel.prompt = "你是 PK 發言對象，無法投票。"; actionPanel.buttons = []; }
         else if (ctx.votes[player.seatNumber] !== undefined) { actionPanel.prompt = "投票完成，等待..."; actionPanel.buttons = []; }
         else {
             actionPanel.type = 'single_select'; actionPanel.deadline = ctx.deadline; 
-            actionPanel.selectableSeats = isDayPK ? ctx.pkTargets : ctx.getAlivePlayers().map(p=>p.seatNumber);
+            // [規則防護修復] 於前端過濾掉 cannotVote 狀態者（如翻牌白痴），禁止其他玩家將其選為放逐目標
+            actionPanel.selectableSeats = isDayPK ? ctx.pkTargets : ctx.getAlivePlayers().filter(p => !p.data.cannotVote).map(p=>p.seatNumber);
             actionPanel.prompt = isDayPK ? '選擇 PK 目標：' : '選擇放逐目標：';
             if (ctx.sheriff.seat === player.seatNumber) actionPanel.prompt += '\n(你是警長，擁有 1.5 票)';
             actionPanel.submitPacketType = PACKET_TYPE.VOTE_SUBMIT;
