@@ -314,9 +314,9 @@ const UI = {
 
             let tagsHtml = '';
             
+            // 恢復 PK 圓點的無附加 Class 渲染，交由 CSS 統一處理右下角圓周定位
             if (p.isPKTarget) {
-                const pkAlignClass = p.seatNumber <= 6 ? 'align-right-inner' : 'align-left-inner';
-                tagsHtml += `<div class="pk-dot ${pkAlignClass}"></div>`;
+                tagsHtml += `<div class="pk-dot"></div>`;
             } else if (p.isCandidate) {
                 tagsHtml += `<div class="candidate-dot"></div>`;
             } else if (p.hasWithdrawn) {
