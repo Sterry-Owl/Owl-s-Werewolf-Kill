@@ -98,11 +98,6 @@ window.RoleRegistry = {
             if (player.role === '狼王' && canShootReasons.includes(reason)) {
                 context.pendingWolfKing = player.seatNumber;
             }
-
-            if (player.role === '白痴' && reason === 'voted') {
-                player.isRevealed = true;
-                Engine.EventBus.emit('BROADCAST_MESSAGE', `${player.seatNumber} 號玩家為白痴，進行翻牌。\n(視為已出局，但保留發言權)`);
-            }
             if (player.role === '狼美人' && reason !== 'dueled') {
                 if (context.charmedSeat) {
                     const target = context.getPlayer(context.charmedSeat);
@@ -1171,24 +1166,21 @@ RoleRegistry.register("魔術師", {
 RoleRegistry.register("狼鴉之爪", {
     canSelfExplode: false,
     seenAsWolf: true,
-    canSeeWolves: (ctx, mySeat) => {
-        const p = ctx.getPlayer(mySeat);
-        return p ? !!p.data.isAwakened : false;
-    },
-    hasWolfChatAccess: (ctx, mySeat) => {
-        const p = ctx.getPlayer(mySeat);
-        return p ? !!p.data.isAwakened : false;
-    },
+    canSeeWolves: false
+    hasWolfChatAccess: false
     
     nightPhase: ["midnight", "second_half"],
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
     isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
     
     onNightStart: (ctx, player) => {
+        if (ctx.nightCount === 1) {
+            RoleRegistry.plugins["狼鴉之爪"].hasWolfChatAccess = false;
+        }
         const totalWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf').length;
-
         if (!player.isDead && !player.data.isAwakened && totalWolves <= 2) {
             player.data.isAwakened = true;
+            RoleRegistry.plugins["狼鴉之爪"].hasWolfChatAccess = true;
             player.data.customTopTags = player.data.customTopTags || {};
             ctx.players.forEach(p => {
                 if (p.seatNumber !== player.seatNumber) {
@@ -1200,7 +1192,6 @@ RoleRegistry.register("狼鴉之爪", {
             });
         }
     },
-    
     hasAction: (ctx, mySeat) => {
         const player = ctx.getPlayer(mySeat);
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
@@ -1210,35 +1201,29 @@ RoleRegistry.register("狼鴉之爪", {
         if (step === 'second_half') return !player.data.hasUsedClaw; 
         return false;
     },
-    
     getPrompt: (ctx) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         if (step === 'midnight') return "你已覺醒，請與同伴一起選擇襲擊目標 (或跳過以空刀)";
         return "【狼鴉之爪技能】\n請選擇一名玩家發動致命利爪\n(無視解藥/守護/攝夢，全局限用一次)";
     },
-    
     getSelectableSeats: (ctx, mySeat) => {
         if (ctx.nightSequence[ctx.currentNightStepIndex].phaseId === 'midnight') {
             return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
         }
         return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
     },
-    
     getButtons: (ctx) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         if (step === 'midnight') return [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
         return [{ id: 'claw_kill', text: '發動利爪', requiresTarget: true }, { id: 'pass', text: '保留技能', requiresTarget: false }];
     },
-    
     resolveNightAction: (ctx, actions) => {
         const act = actions[0];
         if (!act) return "【無效行動】";
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
-
         if (step === 'midnight') {
             return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
         }
-
         if (step === 'second_half') {
             if (act.actionId === 'pass' || !act.targets || act.targets.length === 0) {
                 return "【保留技能】";
