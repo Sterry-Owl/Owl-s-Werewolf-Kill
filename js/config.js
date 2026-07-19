@@ -85,7 +85,7 @@ const BOARD_TEMPLATES = [
     { id: "test-11_6", name: "6人 惡靈騎士(測試)", category: 'test', playerCount: 6, deck: ["女巫", "預言家", "惡靈騎士", "狼人", "平民", "平民"] },
     { id: "test-12_6", name: "6人 機械狼(測試)", category: 'test', playerCount: 6, deck: ["女巫", "魔鏡少女", "守衛", "獵人", "狼人", "機械狼"] },
     { id: "test-13_6", name: "6人 奇蹟商人(測試)", category: 'test', playerCount: 6, deck: ["女巫", "預言家", "守衛", "奇蹟商人", "狼王", "惡靈騎士"] },
-    { id: "survivortwo_7", name: "7人 生還者(雙狼王測試)", category: 'test', playerCount: 7, deck: ["預言家", "守衛", "女巫", "獵人", "狼王", "狼王", "平民"] },
+    { id: "test-14_6", name: "6人 無目之夜(測試)", category: 'test', playerCount: 6, deck: ["攝夢人", "女巫", "狼鴉之爪", "狼人", "石像鬼", "隱狼"] },    
     { id: "standard_9", name: "9人 標準局", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "standard_10", name: "10人 標準局", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_grd_10", name: "10人 狼王守衛", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "守衛", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
