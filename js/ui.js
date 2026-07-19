@@ -181,10 +181,15 @@ const UI = {
             
             // 3. 顯示並更新角色 3D 卡牌
             if (cardContainer && state.myRole) {
+                const def = ROLE_DICTIONARY[state.myRole];
+                const displayRoleName = (def && def.displayName) ? def.displayName : state.myRole;
+                
+                const headerRoleEl = document.getElementById('player-role-name');
+                if (headerRoleEl) headerRoleEl.textContent = displayRoleName;
+
                 document.getElementById('my-card-img').src = `./img/${state.myRole.split('-')[0]}.webp`;
                 
-                document.getElementById('role-desc-title').textContent = state.myRole;
-                const def = ROLE_DICTIONARY[state.myRole];
+                document.getElementById('role-desc-title').textContent = displayRoleName;
                 document.getElementById('role-desc-content').textContent = def ? def.description : '無技能說明。';
                 
                 cardContainer.classList.remove('hidden');
