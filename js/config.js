@@ -136,4 +136,3 @@ const ROLE_DICTIONARY = {
     "魔術師": { faction: "good", type: "god", nightPhase: "first_half", actionType: "double_select", prompt: "魔術師請行動\n請選擇交換的目標", description:"神職；每晚可以交換兩個號碼，當夜所有技能作用於這兩個號碼上的效果將會互換。每個號碼一局只能被交換一次" },
     "狼鴉之爪": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "dynamic", prompt: "狼鴉之爪請行動", description:"不可自爆。當場上存活的狼人陣營≤2人時覺醒，參與夜晚襲擊，且解鎖一次無視任何防禦技能的獨立擊殺能力。" },
 };
-};
