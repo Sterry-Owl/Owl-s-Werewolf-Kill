@@ -153,30 +153,36 @@ window.PhaseRegistry = {
             onAction: (ctx, player, actionId, targets) => {
                 if (player.seatNumber !== ctx.sheriff.seat) return;
                 
+                // [狀態清理] 優先清除一次性移交標記，保持實例純淨
+                if (player.data) player.data.mustTransferBadge = false;
+
                 if (actionId === 'transfer' && targets.length > 0) {
                     ctx.sheriff.seat = targets[0];
                     ctx.systemLog = `【警長傳承】前任警長將警徽交給了 ${ctx.sheriff.seat} 號玩家。`;
-                    Engine.EventBus.emit('MASTER_LOG', ctx.systemLog); // [新增]
+                    Engine.EventBus.emit('MASTER_LOG', ctx.systemLog);
                     ctx.dayDiscussionPrompt = ctx.prompt_Sheriff; 
                 } else {
                     ctx.sheriff.seat = null;
                     ctx.sheriff.badgeLost = true;
                     ctx.systemLog = `【警徽流失】前任警長選擇撕毀警徽。`;
-                    Engine.EventBus.emit('MASTER_LOG', ctx.systemLog); // [新增]
+                    Engine.EventBus.emit('MASTER_LOG', ctx.systemLog);
                     ctx.dayDiscussionPrompt = ctx.prompt_NoSheriff; 
                 }
                 
                 Engine.EventBus.emit('RESUME_ROUTINE');
-                player.data.mustTransferBadge = false;
             },
             onTimeout: (ctx) => {
+                // [修復崩潰與清理狀態] 必須先取得原警長實例，避免 player is not defined 報錯
+                const oldSheriff = ctx.getPlayer(ctx.sheriff.seat);
+                if (oldSheriff && oldSheriff.data) oldSheriff.data.mustTransferBadge = false;
+
                 ctx.sheriff.seat = null;
                 ctx.sheriff.badgeLost = true;
                 ctx.systemLog = `【警徽流失】超時未動作，警徽強制流失。`;
                 Engine.EventBus.emit('MASTER_LOG', ctx.systemLog);
                 ctx.dayDiscussionPrompt = ctx.prompt_NoSheriff;
+                
                 Engine.EventBus.emit('RESUME_ROUTINE');
-                player.data.mustTransferBadge = false;
             }
         });
 
