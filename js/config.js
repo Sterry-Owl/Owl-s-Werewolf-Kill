@@ -95,6 +95,7 @@ const BOARD_TEMPLATES = [
     { id: "wbt_kn_10", name: "10人 狼美人騎士", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "騎士", "狼美人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
     { id: "gh_gra_10", name: "10人 石像鬼守墓人", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "守墓人", "石像鬼", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "crush_10", name: "10人 暗戀者", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "暗戀者"] },
+    { id: "noeye_10", name: "10人 無目之夜", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼鴉之爪", "石像鬼", "平民", "平民", "平民", "平民"] },
     { id: "standard_12", name: "12人 標準局", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_grd_12", name: "12人 狼王守衛", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_mag_12", name: "12人 狼王魔術師", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "魔術師", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }, 
