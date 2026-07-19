@@ -107,6 +107,8 @@ window.PhaseRegistry = {
                 self.sm.setTimer(30000);
             },
             onAction: (ctx, player, actionId, targets) => {
+                if (player.data && player.data.cannotVote) return;
+
                 if (ctx.votes[player.seatNumber] !== undefined) return;
                 
                 const isSheriff = ['SHERIFF_VOTING', 'SHERIFF_PK_VOTING'].includes(ctx.phase);
@@ -115,6 +117,14 @@ window.PhaseRegistry = {
                 
                 if (isDayPK && ctx.pkTargets.includes(player.seatNumber)) return;
                 if (isSheriffPK && ctx.sheriff.pkTargets.includes(player.seatNumber)) return;
+                if (isSheriff && (ctx.sheriff.candidates.includes(player.seatNumber) || ctx.sheriff.withdrawn.includes(player.seatNumber))) return;
+
+                ctx.votes[player.seatNumber] = (actionId === 'vote' && targets.length > 0) ? targets[0] : 'pass';
+
+                const aliveCount = ctx.getAlivePlayers().filter(p => {
+                    if (p.data && p.data.cannotVote) return false; // [新增] 白痴不計入應投票人數
+                    if (isDayPK && ctx.pkTargets.includes(p.seatNumber)) return false;
+                    if (isSheriffPK && ctx.sheriff.pkTargets.includes(p.seatNumber)) return false;
                 if (isSheriff && (ctx.sheriff.candidates.includes(player.seatNumber) || ctx.sheriff.withdrawn.includes(player.seatNumber))) return;
 
                 ctx.votes[player.seatNumber] = (actionId === 'vote' && targets.length > 0) ? targets[0] : 'pass';
@@ -321,6 +331,7 @@ stateMachine.registerPhase('HUNTER_ACTION', {
         if (!isSheriff) ctx.votedOutToday = null;
         
         ctx.getAlivePlayers().forEach(p => {
+            if (p.data && p.data.cannotVote) return;
             if (phase === 'DAY_PK_VOTING' && ctx.pkTargets.includes(p.seatNumber)) return;
             if (phase === 'SHERIFF_PK_VOTING' && ctx.sheriff.pkTargets.includes(p.seatNumber)) return;
             if (isSheriff && (ctx.sheriff.candidates.includes(p.seatNumber) || ctx.sheriff.withdrawn.includes(p.seatNumber))) return;
@@ -449,6 +460,30 @@ stateMachine.registerPhase('HUNTER_ACTION', {
 
         if (!isTie && finalTarget) {
             const tPlayer = ctx.getPlayer(finalTarget);
+            
+            // [新增] 白痴翻牌免除出局機制
+            if (tPlayer.role === '白痴' && !tPlayer.isRevealed) {
+                tPlayer.isRevealed = true;
+                tPlayer.data.cannotVote = true; // 永久剝奪投票權
+                
+                header = `投票結果出爐，${finalTarget} 號玩家為白痴！\n翻牌自證，免除本次放逐出局，但永久失去投票權。`;
+                ctx.currentVoteResultString = `${header}\n${resultLines.join('\n')}`;
+                ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】\n${ctx.currentVoteResultString}`);
+                Engine.EventBus.emit('MASTER_LOG', `【投票結算】第 ${ctx.nightCount} 天\n${ctx.currentVoteResultString}`);
+                ctx.systemLog = header.replace('\n', '');
+                
+                // 強制引導狀態機流轉
+                ctx.destinationPhase = 'NIGHT_TRANSITION';
+                if (ctx.sheriff.seat === finalTarget) {
+                    ctx.nextPhaseAfterVoteDisplay = 'SHERIFF_TRANSFER'; // 身上有警徽則強制移交
+                } else {
+                    ctx.nextPhaseAfterVoteDisplay = 'RESUME_ROUTINE';
+                }
+                
+                this.sm.transitionTo('VOTE_RESULT_DISPLAY');
+                return; // 終止後續的 kill() 死亡結算
+            }
+
             tPlayer.kill('voted', ctx); 
             ctx.lastWordsTargets = [finalTarget];
             ctx.votedOutToday = finalTarget;
@@ -456,8 +491,6 @@ stateMachine.registerPhase('HUNTER_ACTION', {
         
         ctx.currentVoteResultString = `${header}\n${resultLines.join('\n')}`;
         ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】\n${ctx.currentVoteResultString}`);
-        // [新增] 全知紀錄
-        Engine.EventBus.emit('MASTER_LOG', `【投票結算】第 ${ctx.nightCount} 天\n${ctx.currentVoteResultString}`);
         ctx.systemLog = header.replace('\n', '');
         
         Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
