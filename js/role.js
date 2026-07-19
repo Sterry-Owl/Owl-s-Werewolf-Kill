@@ -320,7 +320,22 @@ RoleRegistry.register("燈影預言家", {
 
 RoleRegistry.register("平民", { canSelfExplode: false });
 RoleRegistry.register("獵人", { canSelfExplode: false });
-RoleRegistry.register("白痴", { canSelfExplode: false });
+RoleRegistry.register("白痴", { 
+    canSelfExplode: false,
+    onVotedOut: (ctx, player) => {
+        if (!player.isRevealed) {
+            player.isRevealed = true;
+            player.data.cannotVote = true; 
+            player.data.mustTransferBadge = true;
+            return {
+                prevented: true,
+                transferSheriff: true,
+                logMessage: `投票結果出爐，${player.seatNumber} 號玩家為白痴！\n翻牌自證，免除本次放逐出局，但永久失去投票權。`
+            };
+        }
+        return { prevented: false };
+    }
+});
 RoleRegistry.register("狼王", {
     canSelfExplode: true,
     canSeeWolves: true,
@@ -1166,21 +1181,22 @@ RoleRegistry.register("魔術師", {
 RoleRegistry.register("狼鴉之爪", {
     canSelfExplode: false,
     seenAsWolf: true,
-    canSeeWolves: false
-    hasWolfChatAccess: false
+    canSeeWolves: false,
+    
+    // [重構] 透過 Getter 動態綁定個人實例狀態，從根本上消滅全域物件污染
+    hasWolfChatAccess: (ctx, player) => {
+        return !!player.data.isAwakened;
+    },
     
     nightPhase: ["midnight", "second_half"],
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
     isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
     
     onNightStart: (ctx, player) => {
-        if (ctx.nightCount === 1) {
-            RoleRegistry.plugins["狼鴉之爪"].hasWolfChatAccess = false;
-        }
         const totalWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf').length;
         if (!player.isDead && !player.data.isAwakened && totalWolves <= 2) {
             player.data.isAwakened = true;
-            RoleRegistry.plugins["狼鴉之爪"].hasWolfChatAccess = true;
+            
             player.data.customTopTags = player.data.customTopTags || {};
             ctx.players.forEach(p => {
                 if (p.seatNumber !== player.seatNumber) {
@@ -1221,6 +1237,7 @@ RoleRegistry.register("狼鴉之爪", {
         const act = actions[0];
         if (!act) return "【無效行動】";
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        
         if (step === 'midnight') {
             return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
         }
