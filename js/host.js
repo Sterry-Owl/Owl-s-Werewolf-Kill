@@ -521,8 +521,8 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         }
     }
     else if (ctx.phase === 'SHERIFF_TRANSFER' && player.seatNumber === ctx.sheriff.seat) {
-        actionPanel.show = true; actionPanel.type = 'single_select'; actionPanel.selectableSeats = ctx.getAlivePlayers().map(p=>p.seatNumber);
-        // [防呆] 動態判斷生死，讓白痴活著移交時不會出現「你已死亡」
+        actionPanel.show = true; actionPanel.type = 'single_select'; 
+        actionPanel.selectableSeats = ctx.getAlivePlayers().filter(p => !p.data.cannotVote).map(p=>p.seatNumber);
         actionPanel.prompt = player.isDead ? '你已死亡。選擇移交警徽，或撕毀：' : '請選擇移交警徽，或撕毀：';
         actionPanel.buttons = [{ id: 'transfer', text: '移交警徽', requiresTarget: true }, { id: 'pass', text: '撕毀警徽', requiresTarget: false }];
     }
