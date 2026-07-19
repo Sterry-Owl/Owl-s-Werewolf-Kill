@@ -326,10 +326,12 @@ RoleRegistry.register("白痴", {
         if (!player.isRevealed) {
             player.isRevealed = true;
             player.data.cannotVote = true; 
-            player.data.mustTransferBadge = true;
+            const isSheriff = (ctx.sheriff.seat === player.seatNumber);
+            if (isSheriff) player.data.mustTransferBadge = true; 
+            
             return {
                 prevented: true,
-                transferSheriff: true,
+                transferSheriff: isSheriff,
                 logMessage: `投票結果出爐，${player.seatNumber} 號玩家為白痴！\n翻牌自證，免除本次放逐出局，但永久失去投票權。`
             };
         }
