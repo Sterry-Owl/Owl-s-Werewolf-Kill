@@ -190,14 +190,12 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 
 /* [修改] PK 狀態的小紅圓圈：動態吸附於正左/正右圓周 */
 .pk-dot {
-    position: absolute; 
+    position: absolute; top: 85.35%; left: 85.35%; transform: translate(-50%, -50%);
     width: 14px; height: 14px; background: var(--accent-red);
     border-radius: 50%; border: 2px solid #2b3a42; z-index: 18;
     box-shadow: 0 0 6px rgba(239, 35, 60, 0.8);
     animation: pulse-red 1.5s infinite; 
 }
-.pk-dot.align-right-inner { top: 50%; left: 100%; transform: translate(-50%, -50%); }
-.pk-dot.align-left-inner { top: 50%; left: 0%; transform: translate(-50%, -50%); }
 
 /* [修改] 警長標記：中心對齊 45 度角圓周，並結合旋轉效果 */
 .sheriff-diamond {
