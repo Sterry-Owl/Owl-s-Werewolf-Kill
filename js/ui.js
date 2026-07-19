@@ -425,12 +425,15 @@ const UI = {
     },
 
     renderHostView: function(state, onHostAction) {
+        const inGameRoomId = document.getElementById('display-room-id-in-game');
+        if (inGameRoomId) inGameRoomId.textContent = document.getElementById('display-room-id').textContent;
+        const phaseName = document.getElementById('host-phase-name');
+        if (phaseName) phaseName.textContent = state.phase;
+        
         document.getElementById('host-status-log').innerHTML = state.systemLog || '等待中...';
         
         const setupPanel = document.getElementById('host-setup-panel');
         const controlPanel = document.getElementById('host-control-panel');
-        const dayPanel = document.getElementById('host-day-panel');
-        const nightPanel = document.getElementById('host-night-panel');
         
         if (state.layout.showSetupPanel) {
             setupPanel.classList.remove('hidden');
@@ -439,6 +442,10 @@ const UI = {
             setupPanel.classList.add('hidden');
             controlPanel.classList.remove('hidden');
             
+            const nightPanel = document.getElementById('host-night-panel');
+            const forceBtn = document.getElementById('btn-force-next');
+            const actionBtn = document.getElementById('btn-host-action');
+
             if (state.layout.showNightPanel) {
                 nightPanel.classList.remove('hidden');
                 const listEl = document.getElementById('night-flow-list');
@@ -450,15 +457,10 @@ const UI = {
                         if (step.status === 'completed') li.classList.add('completed');
                         else if (step.status === 'active') li.classList.add('active');
                         
-                        li.innerHTML = `
-                            <span style="font-weight:bold; color: ${step.status==='active'?'var(--accent-green)':'inherit'}">${step.title}</span>
-                            <span class="flow-status" style="color: ${step.status==='active'?'var(--accent-green)': (step.status==='completed'?'#888':'#ccc')}">${step.result || '等待中'}</span>
-                        `;
+                        li.innerHTML = `<span style="font-weight:bold; color: ${step.status==='active'?'var(--accent-green)':'inherit'}">${step.title}</span><span class="flow-status" style="color: ${step.status==='active'?'var(--accent-green)': (step.status==='completed'?'#888':'#ccc')}">${step.result || '等待中'}</span>`;
                         listEl.appendChild(li);
                     });
                 }
-                
-                const forceBtn = document.getElementById('btn-force-next');
                 if (state.allowForceNext) {
                     forceBtn.classList.remove('hidden');
                     forceBtn.onclick = () => onHostAction('FORCE_NEXT');
@@ -467,35 +469,62 @@ const UI = {
                 }
             } else {
                 nightPanel.classList.add('hidden');
+                forceBtn.classList.add('hidden');
             }
 
             if (state.layout.showDayPanel) {
-                dayPanel.classList.remove('hidden');
-                const actionBtn = document.getElementById('btn-host-action');
+                actionBtn.classList.remove('hidden');
                 actionBtn.textContent = state.dayBtnText;
                 actionBtn.disabled = state.dayBtnDisabled;
                 actionBtn.onclick = () => onHostAction(state.dayBtnCommand);
             } else {
-                dayPanel.classList.add('hidden');
+                actionBtn.classList.add('hidden');
+            }
+
+            // [新增] 渲染全知視角紀錄
+            const logContent = document.getElementById('host-master-log-content');
+            if (logContent) {
+                if (state.masterLog && state.masterLog.length > 0) {
+                    logContent.innerHTML = state.masterLog.map(log => `<div style="margin-bottom:8px; border-bottom:1px dashed #444; padding-bottom:6px;">${log}</div>`).join('');
+                    logContent.scrollTop = logContent.scrollHeight;
+                } else {
+                    logContent.innerHTML = '<div style="color:#777; text-align:center; margin-top:20px;">遊戲尚未產生紀錄</div>';
+                }
+            }
+
+            // [重構] 使用與玩家端相同邏輯渲染上帝視角座位表
+            const leftSeats = document.getElementById('host-left-seats');
+            const rightSeats = document.getElementById('host-right-seats');
+            if (leftSeats && rightSeats) {
+                leftSeats.innerHTML = '';
+                rightSeats.innerHTML = '';
+
+                state.players.forEach(p => {
+                    const seat = document.createElement('div');
+                    seat.className = 'player-seat';
+                    if (p.isDead) {
+                        seat.classList.add('dead');
+                        const reason = (p.deathReason === 'voted' || p.deathReason === 'explode') ? p.deathReason : 'killed';
+                        seat.setAttribute('data-death-reason', reason);
+                    }
+
+                    let tagsHtml = `<div class="top-tag" style="background:var(--accent-blue); color:#fff; font-size:11px;">${p.role || '未分配'}</div>`;
+                    if (p.isSheriff) tagsHtml += `<div class="sheriff-diamond"></div>`;
+
+                    seat.innerHTML = `
+                        <div class="seat-img-wrapper">
+                            <img src="./img/seat_${p.seatNumber}.webp" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-size:18px; font-weight:bold; color:#333;">${p.seatNumber}</div>
+                            ${tagsHtml}
+                        </div>
+                        <div class="player-name">${p.name || '等待加入'}</div>
+                    `;
+
+                    if (p.seatNumber <= 6) leftSeats.appendChild(seat);
+                    else rightSeats.appendChild(seat);
+                });
             }
         }
-
-        const grid = document.getElementById('host-players-grid');
-        grid.innerHTML = '';
-        state.players.forEach(p => {
-            const seat = document.createElement('div');
-            seat.className = 'player-seat';
-            if (p.isDead) seat.classList.add('dead');
-            
-            seat.innerHTML = `
-                <div class="role-label" style="background:var(--accent-blue)">${p.role || '未分配'}</div>
-                <div class="seat-img-wrapper" style="width: 56px; height: 56px; border-radius: 50%; border: 3px solid #555; background: #222; position: relative; overflow: hidden;">
-                    <img src="./img/seat_${p.seatNumber}.webp" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none';">
-                </div>
-                <div class="player-name">${p.name || '等待加入'}</div>
-            `;
-            grid.appendChild(seat);
-        });
     }
 };
 UI.openWolfChatModal = function(state) {
