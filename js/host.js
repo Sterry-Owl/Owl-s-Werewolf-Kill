@@ -140,10 +140,9 @@ function handleIncomingPacket(peerId, data) {
     else if (data.type === 'WOLF_CHAT_SEND') {
         const player = engineContext.getPlayerByPeer(peerId);
         const plugin = RoleRegistry.plugins[player?.role];
-        const currentStep = engineContext.nightSequence?.[engineContext.currentNightStepIndex];
-        
-        // 驗證：玩家活著 + 具備通訊特權 + 當前微觀階段為午夜
-        if (player && !player.isDead && plugin?.hasWolfChatAccess && currentStep?.phaseId === 'midnight') {
+        const currentStep = engineContext.nightSequence?.[engineContext.currentNightStepIndex];   
+        const hasWolfChat = plugin?.hasWolfChatAccess === true || (typeof plugin?.hasWolfChatAccess === 'function' && plugin.hasWolfChatAccess(engineContext, player));
+        if (player && !player.isDead && hasWolfChat && currentStep?.phaseId === 'midnight') {
             const msgText = data.payload.text?.trim();
             if (msgText) {
                 engineContext.wolfChatHistory = engineContext.wolfChatHistory || [];
@@ -357,8 +356,9 @@ function setupEngineFlowControllers() {
 }
 
 function resumeRoutinePhase() {
-    const deadSheriff = engineContext.players.find(p => p.isDead && p.seatNumber === engineContext.sheriff.seat);
-    if (deadSheriff && !engineContext.sheriff.badgeLost) {
+    // [擴充] 支援因為特殊掛鉤 (mustTransferBadge) 而必須移交警徽的存活玩家
+    const sheriffToTransfer = engineContext.players.find(p => (p.isDead || p.data.mustTransferBadge) && p.seatNumber === engineContext.sheriff.seat);
+    if (sheriffToTransfer && !engineContext.sheriff.badgeLost) {
         stateMachine.transitionTo('SHERIFF_TRANSFER');
     } else if (engineContext.pendingHunter) {
         engineContext.activeShooter = engineContext.pendingHunter; // [新增] 鎖定開槍者座位
@@ -522,7 +522,8 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     }
     else if (ctx.phase === 'SHERIFF_TRANSFER' && player.seatNumber === ctx.sheriff.seat) {
         actionPanel.show = true; actionPanel.type = 'single_select'; actionPanel.selectableSeats = ctx.getAlivePlayers().map(p=>p.seatNumber);
-        actionPanel.prompt = '你已死亡。選擇移交警徽，或撕毀：';
+        // [防呆] 動態判斷生死，讓白痴活著移交時不會出現「你已死亡」
+        actionPanel.prompt = player.isDead ? '你已死亡。選擇移交警徽，或撕毀：' : '請選擇移交警徽，或撕毀：';
         actionPanel.buttons = [{ id: 'transfer', text: '移交警徽', requiresTarget: true }, { id: 'pass', text: '撕毀警徽', requiresTarget: false }];
     }
     else if (ctx.phase === 'VOTE_RESULT_DISPLAY') {
@@ -563,7 +564,9 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     const deckArr = Object.entries(roleCounts).map(([r, c]) => `${r} x${c}`);
     const currentStep = ctx.nightSequence?.[ctx.currentNightStepIndex];
     const isMidnight = (currentStep?.phaseId === 'midnight');
-    const canUseWolfChat = !player.isDead && ctx.phase === 'NIGHT_ACTION' && RoleRegistry.plugins[player.role]?.hasWolfChatAccess === true;
+    const plugin = RoleRegistry.plugins[player.role];
+    const hasWolfChat = plugin?.hasWolfChatAccess === true || (typeof plugin?.hasWolfChatAccess === 'function' && plugin.hasWolfChatAccess(ctx, player));
+    const canUseWolfChat = !player.isDead && ctx.phase === 'NIGHT_ACTION' && hasWolfChat;
     return {
         boardName: ctx.boardName, phase: ctx.phase, 
         nightStepIndex: ctx.currentNightStepIndex,
