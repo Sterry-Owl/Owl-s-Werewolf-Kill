@@ -5,6 +5,25 @@
 const UI = {
     countdownInterval: null, 
 
+    getTopTagStyle: function(text) {
+        let bg = 'var(--accent-blue)'; 
+        let color = '#fff';
+        const def = typeof ROLE_DICTIONARY !== 'undefined' ? ROLE_DICTIONARY[text] : null;
+        
+        if (def) {
+            if (def.faction === 'wolf') bg = '#e57373'; 
+            else if (text === '預言家' || text === '燈影預言家' || text === '魔鏡少女') bg = '#b28dd6'; 
+            else if (text === '平民' || text === '暗戀者') { bg = '#f5f5f5'; color = '#333'; } 
+            else if (text === '獵人') bg = '#81c784'; 
+        } else {
+            if (text === '狼人') bg = '#e57373';
+            else if (text === '平民') { bg = '#f5f5f5'; color = '#333'; }
+            else if (text === '預言家') bg = '#b28dd6';
+            else if (text === '獵人') bg = '#81c784';
+        }
+        return `background:${bg}; color:${color}; border: 1px solid rgba(0,0,0,0.2);`;
+    }, 
+
     updateStatusMessage: function(msg) {
         const el = document.getElementById('action-prompt');
         if (el) el.textContent = msg;
@@ -295,10 +314,9 @@ const UI = {
 
             let tagsHtml = '';
             
-            // [新增] 繪製警長競選狀態圓圈 (參選/退水) 或 PK 紅色圓點
-            // 注意：因為它們都在右下角，我們讓 PK 圓點優先級更高（會蓋過退水標記）
             if (p.isPKTarget) {
-                tagsHtml += `<div class="pk-dot"></div>`;
+                const pkAlignClass = p.seatNumber <= 6 ? 'align-right-inner' : 'align-left-inner';
+                tagsHtml += `<div class="pk-dot ${pkAlignClass}"></div>`;
             } else if (p.isCandidate) {
                 tagsHtml += `<div class="candidate-dot"></div>`;
             } else if (p.hasWithdrawn) {
@@ -306,7 +324,8 @@ const UI = {
             }
 
             if (p.topTag) {
-                tagsHtml += `<div class="top-tag">${p.topTag}</div>`;
+                const styleStr = UI.getTopTagStyle(p.topTag);
+                tagsHtml += `<div class="top-tag" style="${styleStr}">${p.topTag}</div>`;
             }
             
             if (p.sideTag) {
@@ -513,7 +532,9 @@ const UI = {
                         seat.setAttribute('data-death-reason', reason);
                     }
 
-                    let tagsHtml = `<div class="top-tag" style="background:var(--accent-blue); color:#fff; font-size:11px;">${p.role || '未分配'}</div>`;
+                    const roleText = p.role || '未分配';
+                    const styleStr = UI.getTopTagStyle(roleText);
+                    let tagsHtml = `<div class="top-tag" style="${styleStr} font-size:11px;">${roleText}</div>`;
                     if (p.isSheriff) tagsHtml += `<div class="sheriff-diamond"></div>`;
 
                     seat.innerHTML = `
