@@ -1184,8 +1184,6 @@ RoleRegistry.register("狼鴉之爪", {
     canSelfExplode: false,
     seenAsWolf: true,
     canSeeWolves: false,
-    
-    // [重構] 透過 Getter 動態綁定個人實例狀態，從根本上消滅全域物件污染
     hasWolfChatAccess: (ctx, player) => {
         return !!player.data.isAwakened;
     },
@@ -1202,8 +1200,8 @@ RoleRegistry.register("狼鴉之爪", {
             player.data.customTopTags = player.data.customTopTags || {};
             ctx.players.forEach(p => {
                 if (p.seatNumber !== player.seatNumber) {
-                    const def = ROLE_DICTIONARY[p.role];
-                    if (def && def.faction === 'wolf') {
+                    const pluginDef = RoleRegistry.plugins[p.role];
+                    if (pluginDef && pluginDef.seenAsWolf) {
                         player.data.customTopTags[p.seatNumber] = p.role;
                     }
                 }
