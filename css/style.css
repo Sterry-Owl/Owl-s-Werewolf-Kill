@@ -179,31 +179,34 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 
 /* [新增] 競選警長的小綠圓圈 */
+/* [修改] 競選警長與退水的小綠/灰圓圈：精準落於 45 度角圓周 */
 .candidate-dot {
-    position: absolute; bottom: -2px; right: -2px;
+    position: absolute; top: 85.35%; left: 85.35%; transform: translate(-50%, -50%);
     width: 14px; height: 14px; background: var(--accent-green);
     border-radius: 50%; border: 2px solid #2b3a42; z-index: 18;
     box-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
-.candidate-dot.withdrawn { background: #666; /* 退水後變為灰色 */ }
+.candidate-dot.withdrawn { background: #666; }
 
-/* [新增] PK 狀態的小紅圓圈 */
+/* [修改] PK 狀態的小紅圓圈：動態吸附於正左/正右圓周 */
 .pk-dot {
-    position: absolute; bottom: -2px; right: -2px;
+    position: absolute; 
     width: 14px; height: 14px; background: var(--accent-red);
     border-radius: 50%; border: 2px solid #2b3a42; z-index: 18;
     box-shadow: 0 0 6px rgba(239, 35, 60, 0.8);
-    animation: pulse-red 1.5s infinite; /* 加上呼吸燈效果更明顯 */
+    animation: pulse-red 1.5s infinite; 
 }
+.pk-dot.align-right-inner { top: 50%; left: 100%; transform: translate(-50%, -50%); }
+.pk-dot.align-left-inner { top: 50%; left: 0%; transform: translate(-50%, -50%); }
 
-/* [新增] 警長標記：尺寸縮小，精準對齊右下角端點 */
+/* [修改] 警長標記：中心對齊 45 度角圓周，並結合旋轉效果 */
 .sheriff-diamond {
-    position: absolute; bottom: -2px; right: -2px; /* 與圓點座標一致 */
-    width: 10px; height: 10px; /* 旋轉45度後，對角線長度完美吻合 14px 圓形 */
+    position: absolute; top: 85.35%; left: 85.35%;
+    width: 10px; height: 10px; 
     background: linear-gradient(135deg, #FFD700, #B8860B);
-    transform: rotate(45deg);
+    transform: translate(-50%, -50%) rotate(45deg);
     border: 1.5px solid #222;
-    z-index: 19; /* 覆蓋在其他標記之上 */
+    z-index: 19; 
     box-shadow: 1px 1px 3px rgba(0,0,0,0.6);
 }
 
