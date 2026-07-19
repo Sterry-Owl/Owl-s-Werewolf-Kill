@@ -245,6 +245,9 @@ stateMachine.registerPhase('HUNTER_ACTION', {
     },
 
     resolveNightStep: function(ctx) {
+        if (ctx.isResolvingNightStep) return; 
+        ctx.isResolvingNightStep = true;
+        
         this.sm.clearTimer();
         const currentPhase = ctx.nightSequence[ctx.currentNightStepIndex];
         let phaseLog = `【${currentPhase.phaseName}】結算完畢：`;
@@ -252,7 +255,17 @@ stateMachine.registerPhase('HUNTER_ACTION', {
         currentPhase.roles.forEach(roleObj => {
             const plugin = RoleRegistry.plugins[roleObj.roleName];
             const roleActions = ctx.currentStepActions.filter(act => act.player.role === roleObj.roleName);
-            const result = plugin ? plugin.resolveNightAction(ctx, roleActions) : "【未定義】";
+            
+            let result = "【未定義】";
+            if (plugin && typeof plugin.resolveNightAction === 'function') {
+                try {
+                    result = plugin.resolveNightAction(ctx, roleActions);
+                } catch (error) {
+                    console.error(`[Engine] ${roleObj.roleName} 結算異常:`, error);
+                    result = "因超時或例外錯誤，視為無動作。";
+                }
+            }
+            
             roleObj.resultLog = result;
             phaseLog += `\n- ${roleObj.roleName}：${result}`;
         });
@@ -260,7 +273,11 @@ stateMachine.registerPhase('HUNTER_ACTION', {
         ctx.systemLog = phaseLog;
         Engine.EventBus.emit('MASTER_LOG', phaseLog);
         Engine.EventBus.emit('SYNC_STATE');
-        setTimeout(() => Engine.EventBus.emit('NIGHT_STEP_COMPLETE'), 3000); 
+        
+        setTimeout(() => {
+            ctx.isResolvingNightStep = false;
+            Engine.EventBus.emit('NIGHT_STEP_COMPLETE');
+        }, 3000); 
     },
 
     resolveSheriffCandidacy: function(ctx) {
