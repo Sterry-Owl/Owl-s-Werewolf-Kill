@@ -100,36 +100,30 @@ window.PhaseRegistry = {
             onTimeout: () => self.sm.transitionTo('SHERIFF_VOTING')
         });
 
-        // [重構] 四階段獨立投票模組邏輯
         const baseVotingLogic = {
             onEnter: (ctx) => {
                 ctx.votes = {};
                 self.sm.setTimer(30000);
             },
             onAction: (ctx, player, actionId, targets) => {
+                // 1. 本人投票權限防呆
                 if (player.data && player.data.cannotVote) return;
-
                 if (ctx.votes[player.seatNumber] !== undefined) return;
                 
                 const isSheriff = ['SHERIFF_VOTING', 'SHERIFF_PK_VOTING'].includes(ctx.phase);
                 const isDayPK = ctx.phase === 'DAY_PK_VOTING';
                 const isSheriffPK = ctx.phase === 'SHERIFF_PK_VOTING';
                 
+                // 2. 特殊身分禁止投票過濾 (PK台、警上玩家)
                 if (isDayPK && ctx.pkTargets.includes(player.seatNumber)) return;
                 if (isSheriffPK && ctx.sheriff.pkTargets.includes(player.seatNumber)) return;
                 if (isSheriff && (ctx.sheriff.candidates.includes(player.seatNumber) || ctx.sheriff.withdrawn.includes(player.seatNumber))) return;
 
                 ctx.votes[player.seatNumber] = (actionId === 'vote' && targets.length > 0) ? targets[0] : 'pass';
 
+                // 3. 模組化動態計算：當前「真正具備投票權」的總存活人數
                 const aliveCount = ctx.getAlivePlayers().filter(p => {
-                    if (p.data && p.data.cannotVote) return false; // [新增] 白痴不計入應投票人數
-                    if (isDayPK && ctx.pkTargets.includes(p.seatNumber)) return false;
-                    if (isSheriffPK && ctx.sheriff.pkTargets.includes(p.seatNumber)) return false;
-                if (isSheriff && (ctx.sheriff.candidates.includes(player.seatNumber) || ctx.sheriff.withdrawn.includes(player.seatNumber))) return;
-
-                ctx.votes[player.seatNumber] = (actionId === 'vote' && targets.length > 0) ? targets[0] : 'pass';
-
-                const aliveCount = ctx.getAlivePlayers().filter(p => {
+                    if (p.data && p.data.cannotVote) return false; // 白痴不計入
                     if (isDayPK && ctx.pkTargets.includes(p.seatNumber)) return false;
                     if (isSheriffPK && ctx.sheriff.pkTargets.includes(p.seatNumber)) return false;
                     if (isSheriff && (ctx.sheriff.candidates.includes(p.seatNumber) || ctx.sheriff.withdrawn.includes(p.seatNumber))) return false;
