@@ -533,12 +533,23 @@ RoleRegistry.register("隱狼", {
     canSeeWolves: true,
     seenAsWolf: false,
     isAttacker: false,
+    onNightStart: (ctx, player) => {
+        player.data.customTopTags = player.data.customTopTags || {};
+        ctx.players.forEach(p => {
+            if (p.seatNumber !== player.seatNumber) {
+                const def = ROLE_DICTIONARY[p.role];
+                if (def && def.faction === 'wolf') {
+                    player.data.customTopTags[p.seatNumber] = p.role;
+                }
+            }
+        });
+    },
     seenBySeerAsGood: (ctx, mySeat) => {
         const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
         return otherWolves.length > 0;
     },
     nightPhase: "midnight",      
-    actionType: "single_select", 
+    actionType: "single_select",
     hasAction: (ctx, mySeat) => {
         const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
         return otherWolves.length === 0; 
@@ -1154,5 +1165,91 @@ RoleRegistry.register("魔術師", {
         act.player.data.usedMagicianTargets.push(t1, t2);
 
         return `【交換: ${t1}號 與 ${t2}號】`;
+    }
+});
+
+RoleRegistry.register("狼鴉之爪", {
+    canSelfExplode: false,
+    canSeeWolves: false,      
+    seenAsWolf: true,         
+    hasWolfChatAccess: false, 
+    nightPhase: ["midnight", "second_half"],
+    actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
+    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
+    
+    onNightStart: (ctx, player) => {
+        if (ctx.nightCount === 1) {
+            RoleRegistry.plugins["狼鴉之爪"].canSeeWolves = false;
+            RoleRegistry.plugins["狼鴉之爪"].hasWolfChatAccess = false;
+        }
+
+        const totalWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf').length;
+
+        // 【覺醒條件攔截】
+        if (!player.isDead && !player.data.isAwakened && totalWolves <= 2) {
+            player.data.isAwakened = true;
+            
+            // 開啟視野與狼頻權限 (移除 tempPrivateMessage，統一經由 TopTag 顯示視野)
+            RoleRegistry.plugins["狼鴉之爪"].canSeeWolves = true;
+            RoleRegistry.plugins["狼鴉之爪"].hasWolfChatAccess = true;
+        }
+    },
+    
+    hasAction: (ctx, mySeat) => {
+        const player = ctx.getPlayer(mySeat);
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        
+        if (!player.data.isAwakened) return false;
+        if (step === 'midnight') return true; 
+        if (step === 'second_half') return !player.data.hasUsedClaw; 
+        return false;
+    },
+    
+    getPrompt: (ctx) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return "你已覺醒，請與同伴一起選擇襲擊目標 (或跳過以空刀)";
+        return "【狼鴉之爪技能】\n請選擇一名玩家發動致命利爪\n（全局限用一次）";
+    },
+    
+    getSelectableSeats: (ctx, mySeat) => {
+        if (ctx.nightSequence[ctx.currentNightStepIndex].phaseId === 'midnight') {
+            return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
+        }
+        return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
+    },
+    
+    getButtons: (ctx) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
+        return [{ id: 'claw_kill', text: '發動利爪', requiresTarget: true }, { id: 'pass', text: '保留技能', requiresTarget: false }];
+    },
+    
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act) return "【無效行動】";
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+
+        if (step === 'midnight') {
+            return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
+        }
+
+        if (step === 'second_half') {
+            if (act.actionId === 'pass') return "【保留技能】";
+            
+            const target = act.targets[0];
+            act.player.data.hasUsedClaw = true;
+            if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
+            
+            ctx.nightTags.clawKilled = parseInt(target); 
+            return `【發動利爪: ${target}號】`;
+        }
+    },
+
+    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        if (ctx.nightTags?.clawKilled) {
+            const t = ctx.nightTags.clawKilled;
+            deathMap[t] = 'killed'; 
+            ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：狼鴉之爪發動技能，無視防禦擊殺 ${t} 號)`;
+        }
     }
 });
