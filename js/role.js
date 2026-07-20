@@ -154,6 +154,11 @@ RoleRegistry.register("狼人", {
     getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
         if (ctx.nightTags.wolfKillResolvedThisTurn) return "已參與狼人陣營襲擊";
+        if (ctx.nightTags.wolfTeamFeared) {
+            ctx.nightTags.wolfKillResolvedThisTurn = true;
+            return "【空刀】(狼隊遭受恐懼)";
+        }
+
         const allWolfActions = ctx.currentStepActions.filter(act => ROLE_DICTIONARY[act.player.role]?.faction === 'wolf');
         let validTargets = allWolfActions.filter(act => act.actionId !== 'pass' && act.targets.length > 0).map(act => act.targets[0]);
         ctx.nightTags.wolfKillResolvedThisTurn = true; 
@@ -604,13 +609,23 @@ RoleRegistry.register("烏鴉", {
 
 RoleRegistry.register("噩夢之影", {
     canSelfExplode: true,
-    canSeeWolves: true,
+    canSeeWolves: false,
     seenAsWolf: true,
     immuneToWolfBite: true,
     hasWolfChatAccess: true,
     nightPhase: ["first_half", "midnight"], 
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half' ? 'single_select' : 'consensus',
     isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
+    onNightStart: (ctx, player) => {
+        if (ctx.nightCount > 1) {
+            player.data.customTopTags = player.data.customTopTags || {};
+            ctx.players.forEach(p => {
+                if (p.seatNumber !== player.seatNumber && RoleRegistry.plugins[p.role]?.seenAsWolf) {
+                    player.data.customTopTags[p.seatNumber] = p.role;
+                }
+            });
+        }
+    },
     getPrompt: (ctx, mySeat) => {
         if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half') return "選擇今晚恐懼的目標 (使其今晚無法行動)";
         return "選擇今晚的襲擊目標 (或跳過以空刀)";
