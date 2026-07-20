@@ -620,7 +620,7 @@ RoleRegistry.register("噩夢之影", {
         if (ctx.nightCount > 1) {
             player.data.customTopTags = player.data.customTopTags || {};
             ctx.players.forEach(p => {
-                if (p.seatNumber !== player.seatNumber && RoleRegistry.plugins[p.role]?.seenAsWolf) {
+                if (RoleRegistry.plugins[p.role]?.seenAsWolf) {
                     player.data.customTopTags[p.seatNumber] = p.role;
                 }
             });
@@ -656,7 +656,7 @@ RoleRegistry.register("噩夢之影", {
                     if (p.role === '噩夢之影' && !p.isDead) {
                         p.data.customTopTags = p.data.customTopTags || {};
                         ctx.players.forEach(op => {
-                            if (op.seatNumber !== p.seatNumber && RoleRegistry.plugins[op.role]?.seenAsWolf) {
+                            if (RoleRegistry.plugins[op.role]?.seenAsWolf) {
                                 p.data.customTopTags[op.seatNumber] = op.role;
                             }
                         });
@@ -744,6 +744,12 @@ RoleRegistry.register("攝夢人", {
     getButtons: () => [{ id: 'dream', text: '攝夢', requiresTarget: true }],
     onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
         if (player.isDead) return;
+        if (ctx.dreamedSeat) {
+            const dSeat = ctx.dreamedSeat;
+            if (deathMap[dSeat] === 'killed' || deathMap[dSeat] === 'poisoned') {
+                delete deathMap[dSeat]; 
+            }
+        }       
         calc.dreamed.forEach(targetSeat => {
             if (calc.lastDreamed.includes(targetSeat)) deathMap[targetSeat] = 'doubledreamed';
         });
