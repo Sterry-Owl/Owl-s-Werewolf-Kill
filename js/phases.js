@@ -55,10 +55,16 @@ window.PhaseRegistry = {
         stateMachine.registerPhase('SHERIFF_PK_SPEECH', createSpeechPhase('SHERIFF_PK_VOTING'));
         stateMachine.registerPhase('DAY_PK_SPEECH', createSpeechPhase('DAY_PK_VOTING'));
         stateMachine.registerPhase('LAST_WORDS', createSpeechPhase('RESUME_ROUTINE'));
-        
-        // 保留靜態視圖展示階段
-        const dummyPhase = { onEnter: () => {} };
-        stateMachine.registerPhase('VOTE_RESULT_DISPLAY', dummyPhase);
+        stateMachine.registerPhase('VOTE_RESULT_DISPLAY', {
+            onEnter: (ctx) => {
+                self.sm.setTimer(5000); 
+            },
+            onTimeout: (ctx) => {
+                if (ctx.nextPhaseAfterVoteDisplay === 'DAWN_RESUME') Engine.EventBus.emit('DAWN_ANNOUNCE');
+                else if (ctx.nextPhaseAfterVoteDisplay === 'RESUME_ROUTINE') Engine.EventBus.emit('RESUME_ROUTINE');
+                else if (ctx.nextPhaseAfterVoteDisplay) self.sm.transitionTo(ctx.nextPhaseAfterVoteDisplay);
+            }
+        });
         
         // [新增] 警長決定發言順序階段
         stateMachine.registerPhase('SHERIFF_ORDER_SELECTION', {
