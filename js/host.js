@@ -294,39 +294,39 @@ function setupEngineFlowControllers() {
         // ===============================================
         // [新增] 白天發言順序與動態文本計算
         // ===============================================
-        let promptLine1 = "";
-        let promptLine2_NoSheriff = "";
+        const deadPrompt = dead.length === 0 ? "昨晚是平安夜" : `昨晚 ${[...dead].sort((a, b) => a - b).join(' 號、')} 號玩家死亡`;
+        engineContext.systemLog = deadPrompt;
         
-        if (dead.length === 0) {
-            promptLine1 = "昨晚是平安夜";
-            const aliveSeats = engineContext.getAlivePlayers().map(p => p.seatNumber);
-            const u = aliveSeats[Math.floor(Math.random() * aliveSeats.length)];
-            const T = Math.random() < 0.5 ? '順' : '逆';
-            promptLine2_NoSheriff = `請從 ${u} 號開始${T}序發言`;
-        } else {
-            const sortedDead = [...dead].sort((a, b) => a - b);
-            promptLine1 = `昨晚 ${sortedDead.join(' 號、')} 號玩家死亡`;
-            
-            const A = sortedDead[0];
-            const direction = Math.random() < 0.5 ? 1 : -1;
-            const T = direction === 1 ? '順' : '逆';
-            const u = engineContext.getNextAliveSeat(A, direction);
-            
-            promptLine2_NoSheriff = `請從 ${u} 號開始${T}序發言`;
-        }
-        engineContext.prompt_Sheriff = `${promptLine1}\n請警長決定發言順序`;
-        engineContext.prompt_NoSheriff = `${promptLine1}\n${promptLine2_NoSheriff}`;
         if (engineContext.sheriff.seat && !engineContext.sheriff.badgeLost) {
-            engineContext.dayDiscussionPrompt = engineContext.prompt_Sheriff;
+            // 有警長：流轉至警長決定順序階段
+            engineContext.dayDiscussionPrompt = `${deadPrompt}\n請警長決定發言順序`;
+            engineContext.destinationPhase = 'SHERIFF_ORDER_SELECTION';
         } else {
-            engineContext.dayDiscussionPrompt = engineContext.prompt_NoSheriff;
+            // 無警長：系統隨機決定起點與順逆，並直接建構佇列
+            let startSeat;
+            const dirNum = Math.random() < 0.5 ? 1 : -1;
+            const dirStr = dirNum === 1 ? '順' : '逆';
+            
+            if (dead.length === 0) {
+                // 狀況 A：無人死亡 -> 隨機存活者，隨機順逆
+                const aliveSeats = engineContext.getAlivePlayers().map(p => p.seatNumber);
+                startSeat = aliveSeats[Math.floor(Math.random() * aliveSeats.length)];
+            } else {
+                // 狀況 B：有人死亡 -> 隨機一名死者，依據順逆序尋找其存活之下家或上家
+                const randomDeadSeat = dead[Math.floor(Math.random() * dead.length)];
+                startSeat = engineContext.getNextAliveSeat(randomDeadSeat, dirNum);
+            }
+            
+            // 將計算結果寫入 UI 文本，供全體玩家查看
+            engineContext.dayDiscussionPrompt = `${deadPrompt}\n請從 ${startSeat} 號開始${dirStr}序發言`;
+            engineContext.buildSpeakingQueue(startSeat, dirNum);
+            engineContext.destinationPhase = 'DAY_DISCUSSION';
         }
         // ===============================================
 
         engineContext.isPK = false;
         
         engineContext.routineOrigin = 'MORNING'; 
-        engineContext.destinationPhase = 'DAY_DISCUSSION';
         resumeRoutinePhase();
     });
 
@@ -384,7 +384,7 @@ function resumeRoutinePhase() {
 
 function syncStateToAll() {
     const ctx = engineContext;
-    const isDayPhase = ['DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'DAY_DISCUSSION', 'DAY_VOTING', 'DAY_PK_SPEECH', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION'].includes(ctx.phase);
+    const isDayPhase = ['DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'SHERIFF_ORDER_SELECTION', 'DAY_DISCUSSION', 'DAY_VOTING', 'DAY_PK_SPEECH', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION'].includes(ctx.phase);
 
     const hostState = {
         systemLog: ctx.systemLog,
@@ -394,7 +394,7 @@ function syncStateToAll() {
         nightFlow: (ctx.nightSequence || []).map((step, idx) => ({ title: `[${step.phaseName}]`, status: idx < ctx.currentNightStepIndex ? 'completed' : (idx === ctx.currentNightStepIndex ? 'active' : 'pending'), result: step.roles.map(r => r.roleName).join(', ') })),
         allowForceNext: ctx.phase === 'NIGHT_ACTION',
         dayBtnText: getDayBtnText(ctx.phase),
-        dayBtnDisabled: ['SHERIFF_CANDIDACY', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'DAY_VOTING', 'DAY_PK_VOTING', 'HUNTER_ACTION', 'WOLFKING_ACTION', 'GAME_OVER'].includes(ctx.phase),        
+        dayBtnDisabled: ['SHERIFF_CANDIDACY', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_ORDER_SELECTION', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'DAY_VOTING', 'DAY_PK_VOTING', 'HUNTER_ACTION', 'WOLFKING_ACTION', 'GAME_OVER'].includes(ctx.phase),        
         dayBtnCommand: getDayBtnCommand(ctx.phase)
     };
     UI.renderHostView(hostState, handleHostCommand);
@@ -540,14 +540,30 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     else if (ctx.phase === 'VOTE_RESULT_DISPLAY') {
         actionPanel.show = true; actionPanel.prompt = ctx.currentVoteResultString;
     }
-    else if (ctx.phase === 'LAST_WORDS' || ctx.phase === 'DAY_PK_SPEECH' || ctx.phase === 'SHERIFF_PK_SPEECH') {
-        actionPanel.show = true;
-        let targets = [];
-        let verb = "";
-        if (ctx.phase === 'DAY_PK_SPEECH') { targets = [...(ctx.pkTargets||[])]; verb = "放逐 PK 發言"; }
-        else if (ctx.phase === 'SHERIFF_PK_SPEECH') { targets = [...(ctx.sheriff.pkTargets||[])]; verb = "警長 PK 發言"; }
-        else { targets = [...(ctx.lastWordsTargets||[])].sort((a,b)=>a-b); verb = "發表遺言"; }
-        actionPanel.prompt = `請 ${targets.join('號、')} 號玩家${verb}`;
+    else if (ctx.phase === 'SHERIFF_ORDER_SELECTION') {
+        actionPanel.show = true; actionPanel.deadline = ctx.deadline;
+        if (player.seatNumber === ctx.sheriff.seat) {
+            actionPanel.prompt = "請決定白天發言順序：";
+            actionPanel.buttons = [
+                { id: 'order_left', text: '逆序發言', requiresTarget: false },
+                { id: 'order_right', text: '順序發言', requiresTarget: false }
+            ];
+        } else {
+            actionPanel.prompt = "等待警長決定發言順序...";
+            actionPanel.buttons = [];
+        }
+    }
+    else if (['DAY_DISCUSSION', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'DAY_PK_SPEECH', 'LAST_WORDS'].includes(ctx.phase)) {
+        actionPanel.show = true; actionPanel.deadline = ctx.deadline;
+        
+        if (player.seatNumber === ctx.currentSpeaker) {
+            actionPanel.prompt = `現在是你的發言時間\n(發言完畢請主動結束)`;
+            actionPanel.buttons = [{ id: 'end_speech', text: '結束發言', requiresTarget: false }];
+        } else {
+            const speakerStr = ctx.currentSpeaker ? `${ctx.currentSpeaker} 號` : "系統計算中";
+            actionPanel.prompt = `現在由 ${speakerStr} 玩家發言...`;
+            actionPanel.buttons = [];
+        }
     }
     else if (ctx.phase === 'HUNTER_ACTION' || ctx.phase === 'WOLFKING_ACTION') {
         actionPanel.show = true;
@@ -602,6 +618,7 @@ function getPhaseMessageForPlayer(phase, ctx) {
     const dict = { 
         'NIGHT_TRANSITION': "天黑請閉眼...", 'NIGHT_ACTION': "夜間行動中...", 
         'SHERIFF_CANDIDACY': "登記上警意願...", 
+        'SHERIFF_ORDER_SELECTION': "決定發言順序中...",
         'SHERIFF_SPEECH': ctx ? (ctx.sheriffSpeechPrompt || "警長發言中...") : "警長發言中...", 
         'SHERIFF_RE_ELECTION_BAILOUT': "延遲選舉退水時間...", 
         'SHERIFF_PK_SPEECH': "警長 PK 發言...", 'SHERIFF_VOTING': "警長首次投票...", 'SHERIFF_PK_VOTING': "警長 PK 投票...", 
