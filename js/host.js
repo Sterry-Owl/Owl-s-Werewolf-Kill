@@ -96,10 +96,10 @@ function handleIncomingPacket(peerId, data) {
         }
     }
     else if (data.type === PACKET_TYPE.WOLF_EXPLODE) {
+        const player = engineContext.getPlayerByPeer(peerId);
+        if (!player) return;
         const sheriffPhases = ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_RE_ELECTION_BAILOUT'];
-        
         if (sheriffPhases.includes(engineContext.phase)) {
-            // [關鍵修復] 呼叫正規的死亡過濾器，確保解藥與守衛等狀態能正確抵銷狼刀
             const calculation = {
                 killed: [...engineContext.nightTags.killed],
                 poisoned: [...engineContext.nightTags.poisoned],
@@ -555,13 +555,14 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     }
     else if (['DAY_DISCUSSION', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'DAY_PK_SPEECH', 'LAST_WORDS'].includes(ctx.phase)) {
         actionPanel.show = true; actionPanel.deadline = ctx.deadline;
+        const dirStr = ctx.speakingDirection ? `\n當前發言順序：${ctx.speakingDirection}序` : "";
         
         if (player.seatNumber === ctx.currentSpeaker) {
-            actionPanel.prompt = `現在是你的發言時間\n(發言完畢請點擊右下角結束發言)`;
-            actionPanel.buttons = []; // [修改] 淨空中央面板按鈕，交由浮動按鈕控制
+            actionPanel.prompt = `現在是你的發言時間\n(發言完畢請點擊右下角結束發言)${dirStr}`;
+            actionPanel.buttons = []; 
         } else {
             const speakerStr = ctx.currentSpeaker ? `${ctx.currentSpeaker} 號` : "系統計算中";
-            actionPanel.prompt = `現在由 ${speakerStr} 玩家發言...`;
+            actionPanel.prompt = `現在由 ${speakerStr} 玩家發言...${dirStr}`;
             actionPanel.buttons = [];
         }
     }
