@@ -222,8 +222,10 @@ const UI = {
                 
                 const headerRoleEl = document.getElementById('player-role-name');
                 if (headerRoleEl) headerRoleEl.textContent = displayRoleName;
-
-                document.getElementById('my-card-img').src = `./img/${state.myRole.split('-')[0]}.webp`;
+                const baseRoleName = state.myRole.split(/[-()]/)[0].trim();
+                const imgEl = document.getElementById('my-card-img');
+                imgEl.src = `./img/${baseRoleName}.webp`;
+                imgEl.onerror = function() { this.src = './img/back.webp'; }; 
                 
                 document.getElementById('role-desc-title').textContent = displayRoleName;
                 document.getElementById('role-desc-content').textContent = def ? def.description : '無技能說明。';
@@ -239,8 +241,8 @@ const UI = {
         if (slotsContainer) {
             slotsContainer.innerHTML = ''; // 每次渲染前清空
             
-            // 只有在行動面板開啟時才顯示槽位
-            if (state.actionPanel && state.actionPanel.show) {
+            // [修復 Bug 3] 當面板類型為 none 時 (如警長決定順序、展示投票)，強制隱藏槽位
+            if (state.actionPanel && state.actionPanel.show && state.actionPanel.type !== 'none') {
                 slotsContainer.classList.remove('hidden');
 
                 const createSlot = (seatNum, labelText, specialClass) => {
