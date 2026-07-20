@@ -59,13 +59,18 @@ class GameContext {
             badgeLost: false, 
             candidates: [], 
             withdrawn: [], 
-            pkTargets: [],           // 警長專用 PK 名單
-            explodeDelayCount: 0,    // 因自爆延遲的累積次數
-            tieDelayCount: 0,        // 因平票延遲的累積次數
-            isDelayedElection: false // 標記是否為延後再選舉
+            pkTargets: [],           
+            explodeDelayCount: 0,    
+            tieDelayCount: 0,        
+            isDelayedElection: false 
         };
         this.wolfPreviews = {};
-        this.pkTargets = []; // 放逐專用 PK 名單
+        this.pkTargets = []; 
+        
+        // [新增] 模組化發言佇列狀態
+        this.speakingQueue = [];    
+        this.currentSpeaker = null; 
+        
         this.nightSequence = [];
         this.lastWordsTargets = [];
         this.nightTags = { killed: [], poisoned: [], witchUsedSaveTonight: false };
@@ -82,9 +87,46 @@ class GameContext {
             const p = this.getPlayer(current);
             if (p && !p.isDead) return current;
         }
-        return startSeat; // 防呆預設值
+        return startSeat; 
     }
-    addPlayer(peerId, name) { const p = new PlayerModel(this.players.length + 1, peerId, name); this.players.push(p); return p; }
+    
+    // [新增] 抽象化的發言排序演算法 (支援全體順逆序及 PK 特定對象排序)
+    buildSpeakingQueue(startSeat, direction, specificTargets = null) {
+        this.speakingQueue = [];
+        const validSeats = specificTargets || this.players.map(p => p.seatNumber);
+        const aliveValidSeats = validSeats.filter(seat => {
+            const p = this.getPlayer(seat);
+            return p && !p.isDead;
+        });
+        
+        const totalSeats = this.players.length;
+        let current = startSeat;
+        let attempts = 0; // 防呆計數器，防止極端狀況無窮迴圈
+
+        while (this.speakingQueue.length < aliveValidSeats.length && attempts < totalSeats * 2) {
+            attempts++;
+            if (aliveValidSeats.includes(current) && !this.speakingQueue.includes(current)) {
+                this.speakingQueue.push(current);
+            }
+            current += direction;
+            if (current > totalSeats) current = 1;
+            if (current < 1) current = totalSeats;
+        }
+    }
+
+    // [修改] 斷線重連身分驗證覆寫
+    addPlayer(peerId, name) { 
+        const existingPlayer = this.players.find(p => p.name === name);
+        if (existingPlayer) {
+            // 身分吻合，覆寫 peerId，保留原有的狀態與角色資料
+            existingPlayer.peerId = peerId;
+            return existingPlayer;
+        }
+        const p = new PlayerModel(this.players.length + 1, peerId, name); 
+        this.players.push(p); 
+        return p; 
+    }
+    
     getPlayer(seat) { return this.players.find(p => p.seatNumber === seat); }
     getPlayerByPeer(peerId) { return this.players.find(p => p.peerId === peerId); }
     getAlivePlayers() { return this.players.filter(p => !p.isDead); }
