@@ -4,9 +4,9 @@
 
 const UI = {
     countdownInterval: null, 
-    isPreparingDaySkill: false, // [新增] 前端過渡視圖狀態 (Transient State)
-    cachedDaySkillData: null,   // [新增] 暫存技能資料
-
+    isPreparingDaySkill: false,
+    cachedDaySkillData: null, 
+    originalActionPanel: null,
     getTopTagStyle: function(text) {
         let bg = 'var(--accent-blue)'; 
         let color = '#fff';
@@ -59,23 +59,36 @@ const UI = {
         // [新增] 視圖攔截器 (View Interceptor)
         // 透過覆寫 DTO 狀態，無縫替換中央面板，零髒代碼
         // ==========================================
-        if (UI.isPreparingDaySkill && state.daySkill) {
+        // 1. 若伺服器傳來技能，安全更新快取
+        if (state.daySkill) {
             UI.cachedDaySkillData = state.daySkill;
+        }
+
+        // 2. 攔截並覆寫面板
+        if (UI.isPreparingDaySkill && UI.cachedDaySkillData) {
+            // 若尚未備份原始面板，則備份之 (避免重新渲染時備份被汙染)
+            if (!UI.originalActionPanel) {
+                UI.originalActionPanel = state.actionPanel;
+            }
+            
             state.actionPanel = {
                 show: true,
-                type: state.daySkill.requiresTarget ? 'single_select' : 'none',
-                prompt: `【發動技能：${state.daySkill.buttonText}】\n請選擇目標 (或點擊取消)`,
-                selectableSeats: state.daySkill.selectableSeats,
-                deadline: state.actionPanel.deadline, // 保留原倒數時鐘
+                type: UI.cachedDaySkillData.requiresTarget ? 'single_select' : 'none',
+                prompt: `【發動技能：${UI.cachedDaySkillData.buttonText}】\n請選擇目標 (或點擊取消)`,
+                selectableSeats: UI.cachedDaySkillData.selectableSeats,
+                deadline: UI.originalActionPanel ? UI.originalActionPanel.deadline : null, 
                 buttons: [
-                    { id: 'confirm_day_skill', text: '確定發動', requiresTarget: state.daySkill.requiresTarget },
+                    { id: 'confirm_day_skill', text: '確定發動', requiresTarget: UI.cachedDaySkillData.requiresTarget },
                     { id: 'cancel_day_skill', text: '取消', requiresTarget: false }
                 ]
             };
-            state.daySkill = null; // 進入準備狀態後，自動隱藏左下角浮動按鈕防呆
         } else {
+            // 3. 恢復或放行：取消技能時，還原原始面板狀態
             UI.isPreparingDaySkill = false;
-            UI.cachedDaySkillData = null;
+            if (UI.originalActionPanel) {
+                state.actionPanel = UI.originalActionPanel;
+                UI.originalActionPanel = null;
+            }
         }
 
         let headerEl = document.querySelector('.app-header');
@@ -199,7 +212,8 @@ const UI = {
         if (localPanel) localPanel.remove(); 
 
         if (btnDaySkill) {
-            if (state.daySkill) { // 當攔截器生效時，state.daySkill 會是 null，按鈕自然隱藏
+            // [修復] 取消對 state.daySkill 的破壞性操作，改以邏輯判斷是否進入準備狀態
+            if (state.daySkill && !UI.isPreparingDaySkill) { 
                 btnDaySkill.classList.remove('hidden');
                 btnDaySkill.style.backgroundImage = state.myRole === '騎士' ? "url('./img/btn-knight.webp')" : "url('./img/btn-explode.webp')"; 
                 
@@ -485,8 +499,7 @@ const UI = {
                         btn.onclick = () => {
                             if (bInfo.id === 'cancel_day_skill') {
                                 UI.isPreparingDaySkill = false;
-                                // 恢復原始 DTO 狀態並重新渲染
-                                state.daySkill = UI.cachedDaySkillData; 
+                                // [修復] 重新渲染，頂部的攔截器會自動從 originalActionPanel 安全恢復原始面板狀態
                                 UI.renderPlayerView(state, onSeatSelect, onActionSubmit, [], showVoteHistory);
                             } else if (bInfo.id === 'confirm_day_skill') {
                                 UI.isPreparingDaySkill = false;
