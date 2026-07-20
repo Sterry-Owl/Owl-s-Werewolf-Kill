@@ -80,9 +80,22 @@ function handleSeatSelect(seatNumber) {
     UI.renderPlayerView(localState, handleSeatSelect, handleActionSubmit, currentActionTarget, false);
 }
 
-function handleActionSubmit(actionId) {
+function handleActionSubmit(actionId, extraPayload = null) {
     if (!localState.actionPanel || !localState.actionPanel.show) return;
     
+    // [新增] 攔截前端過渡視圖拋出的日間技能指令
+    if (actionId === 'SPECIAL_DAY_SKILL_SUBMIT') {
+        if (currentActionTarget.length === 0) return alert('請先選擇目標！');
+        if (confirm(`確定要發動技能嗎？`)) {
+            hostConnection.send({ 
+                type: 'DAY_SKILL_SUBMIT', 
+                payload: { skillId: extraPayload, target: currentActionTarget[0] } 
+            });
+            UI.blockActionPanel();
+        }
+        return; 
+    }
+
     const packetType = localState.actionPanel.submitPacketType || PACKET_TYPE.ACTION_SUBMIT;
     const isPassAction = (actionId === 'pass' || actionId === 'save');
     const finalTargets = isPassAction ? [] : currentActionTarget;
@@ -122,47 +135,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (confirm("確定要退出警長競選嗎？退水後將喪失競選資格及本次投票權。")) {
                 if (hostConnection) hostConnection.send({ type: PACKET_TYPE.SHERIFF_BAILOUT });
             }
-        });
-    }
-    const btnDaySkill = document.getElementById('btn-day-skill');
-    const localPanel = document.getElementById('local-day-skill-panel');
-    const targetsContainer = document.getElementById('local-day-skill-targets');
-    const btnCancelSkill = document.getElementById('btn-cancel-day-skill');
-    const promptEl = document.getElementById('local-day-skill-prompt');
-
-    if (btnDaySkill && localPanel && targetsContainer && btnCancelSkill) {
-        btnDaySkill.addEventListener('click', () => {
-            if (!localState.daySkill) return;
-            
-            btnDaySkill.classList.add('hidden');
-            localPanel.classList.remove('hidden');
-            promptEl.textContent = `發動技能：${localState.daySkill.buttonText}\n請選擇目標：`;
-            targetsContainer.innerHTML = '';
-            localState.daySkill.selectableSeats.forEach(seat => {
-                const btn = document.createElement('button');
-                btn.className = 'btn-primary';
-                btn.textContent = `${seat}號`;
-                btn.style.margin = '4px';
-                btn.style.flex = '1 1 30%';
-                
-                btn.onclick = () => {
-                    if (confirm(`確定要對 ${seat} 號玩家 ${localState.daySkill.buttonText} 嗎？`)) {
-                        if (hostConnection) {
-                            hostConnection.send({ 
-                                type: 'DAY_SKILL_SUBMIT', 
-                                payload: { skillId: localState.daySkill.id, target: seat } 
-                            });
-                        }
-                        localPanel.classList.add('hidden');
-                    }
-                };
-                targetsContainer.appendChild(btn);
-            });
-        });
-
-        btnCancelSkill.addEventListener('click', () => {
-            localPanel.classList.add('hidden');
-            btnDaySkill.classList.remove('hidden');
         });
     }
 });
