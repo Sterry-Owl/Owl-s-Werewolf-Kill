@@ -4,6 +4,8 @@
 
 const UI = {
     countdownInterval: null, 
+    isPreparingDaySkill: false, // [新增] 前端過渡視圖狀態 (Transient State)
+    cachedDaySkillData: null,   // [新增] 暫存技能資料
 
     getTopTagStyle: function(text) {
         let bg = 'var(--accent-blue)'; 
@@ -53,6 +55,28 @@ const UI = {
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = [], showVoteHistory = false) {
         document.getElementById('player-seat-number').textContent = state.mySeat || '-';
 
+        // ==========================================
+        // [新增] 視圖攔截器 (View Interceptor)
+        // 透過覆寫 DTO 狀態，無縫替換中央面板，零髒代碼
+        // ==========================================
+        if (UI.isPreparingDaySkill && state.daySkill) {
+            UI.cachedDaySkillData = state.daySkill;
+            state.actionPanel = {
+                show: true,
+                type: state.daySkill.requiresTarget ? 'single_select' : 'none',
+                prompt: `【發動技能：${state.daySkill.buttonText}】\n請選擇目標 (或點擊取消)`,
+                selectableSeats: state.daySkill.selectableSeats,
+                deadline: state.actionPanel.deadline, // 保留原倒數時鐘
+                buttons: [
+                    { id: 'confirm_day_skill', text: '確定發動', requiresTarget: state.daySkill.requiresTarget },
+                    { id: 'cancel_day_skill', text: '取消', requiresTarget: false }
+                ]
+            };
+            state.daySkill = null; // 進入準備狀態後，自動隱藏左下角浮動按鈕防呆
+        } else {
+            UI.isPreparingDaySkill = false;
+            UI.cachedDaySkillData = null;
+        }
 
         let headerEl = document.querySelector('.app-header');
         if (headerEl) {
@@ -169,18 +193,23 @@ const UI = {
             else btnHistory.classList.add('hidden');
         }
         const btnDaySkill = document.getElementById('btn-day-skill');
+        
+        // [清理] 徹底移除舊版硬編碼的 local-day-skill-panel DOM 節點
         const localPanel = document.getElementById('local-day-skill-panel');
+        if (localPanel) localPanel.remove(); 
+
         if (btnDaySkill) {
-            if (state.daySkill) {
+            if (state.daySkill) { // 當攔截器生效時，state.daySkill 會是 null，按鈕自然隱藏
                 btnDaySkill.classList.remove('hidden');
-                if (state.myRole === '騎士') {
-                    btnDaySkill.style.backgroundImage = "url('./img/btn-knight.webp')"; 
-                } else {
-                    btnDaySkill.style.backgroundImage = "url('./img/btn-explode.webp')"; 
-                }
+                btnDaySkill.style.backgroundImage = state.myRole === '騎士' ? "url('./img/btn-knight.webp')" : "url('./img/btn-explode.webp')"; 
+                
+                // [新增] 點擊時，開啟過渡視圖並觸發即時重新渲染
+                btnDaySkill.onclick = () => {
+                    UI.isPreparingDaySkill = true;
+                    UI.renderPlayerView(state, onSeatSelect, onActionSubmit, [], showVoteHistory);
+                };
             } else {
                 btnDaySkill.classList.add('hidden');
-                if (localPanel) localPanel.classList.add('hidden');
             }
         }
         const cardPanel = document.querySelector('.card-panel');
@@ -417,7 +446,7 @@ const UI = {
                         const btn = document.createElement('button');
                         btn.textContent = bInfo.text;
                         
-                        if (bInfo.id === 'pass') {
+                        if (bInfo.id === 'pass' || bInfo.id === 'cancel_day_skill') {
                             btn.className = 'btn-secondary';
                             if (state.actionPanel.passTags && state.actionPanel.passTags.length > 0) {
                                 btn.style.position = 'relative';
@@ -434,15 +463,17 @@ const UI = {
                             btn.className = 'btn-secondary'; 
                         }
                         else if (bInfo.id === 'order_left' || bInfo.id === 'order_right') {
-                            // [新增] 警長決定順序設定為綠色按鈕，提供明確的操作指引
                             btn.className = 'btn-success'; 
+                        }
+                        else if (bInfo.id === 'confirm_day_skill') {
+                            btn.className = 'btn-primary';
+                            btn.style.background = '#aa68b0';
                         }
                         else {
                             btn.className = 'btn-primary';
                         }
 
                         if (bInfo.requiresTarget) {
-                            // [乾淨擴充] 針對雙選模式，必須選滿2人才能解鎖確認按鈕
                             if (state.actionPanel.type === 'double_select' && selectedTargets.length < 2) {
                                 btn.disabled = true;
                             } else if (state.actionPanel.type !== 'double_select' && selectedTargets.length === 0) {
@@ -450,7 +481,21 @@ const UI = {
                             }
                         }
 
-                        btn.onclick = () => onActionSubmit(bInfo.id);
+                        // [修改] 攔截過渡視圖的按鈕事件，不汙染原始的 onActionSubmit 封包
+                        btn.onclick = () => {
+                            if (bInfo.id === 'cancel_day_skill') {
+                                UI.isPreparingDaySkill = false;
+                                // 恢復原始 DTO 狀態並重新渲染
+                                state.daySkill = UI.cachedDaySkillData; 
+                                UI.renderPlayerView(state, onSeatSelect, onActionSubmit, [], showVoteHistory);
+                            } else if (bInfo.id === 'confirm_day_skill') {
+                                UI.isPreparingDaySkill = false;
+                                // 發送特殊識別碼，交由 player.js 解耦合發送
+                                onActionSubmit('SPECIAL_DAY_SKILL_SUBMIT', UI.cachedDaySkillData.id);
+                            } else {
+                                onActionSubmit(bInfo.id);
+                            }
+                        };
                         btnContainer.appendChild(btn);
                     });
                 }
