@@ -539,6 +539,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     }
     else if (ctx.phase === 'VOTE_RESULT_DISPLAY') {
         actionPanel.show = true; actionPanel.prompt = ctx.currentVoteResultString;
+        actionPanel.deadline = ctx.deadline;
     }
     else if (ctx.phase === 'SHERIFF_ORDER_SELECTION') {
         actionPanel.show = true; actionPanel.deadline = ctx.deadline;
@@ -605,7 +606,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         canUseWolfChat: canUseWolfChat,
         isMidnight: isMidnight,
         wolfChatHistory: canUseWolfChat ? (ctx.wolfChatHistory || []) : [],
-        daySkill: (!player.isDead && isDayPhase && RoleRegistry.plugins[player.role]?.daySkill) ? {
+        daySkill: (!player.isDead && isDayPhase && RoleRegistry.plugins[player.role]?.daySkill && RoleRegistry.plugins[player.role].daySkill.allowedPhases.includes(ctx.phase)) ? {
             id: RoleRegistry.plugins[player.role].daySkill.id,
             buttonText: RoleRegistry.plugins[player.role].daySkill.buttonText,
             requiresTarget: RoleRegistry.plugins[player.role].daySkill.requiresTarget,
