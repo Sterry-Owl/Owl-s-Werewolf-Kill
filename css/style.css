@@ -165,10 +165,10 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     background-size: contain; background-repeat: no-repeat; background-position: center;
 }
 .floating-btn:active { transform: scale(0.9); }
-.floating-btn.red { left: 15px; bottom: 20px; background-image: url('../img/btn-explode.webp'); }
-.floating-btn.yellow { right: 15px; bottom: 20px; background-image: url('../img/btn-history.webp'); }
+.floating-btn.red { left: 20px; bottom: 20px; background-image: url('../img/btn-explode.webp'); }
+.floating-btn.yellow { right: 20px; bottom: 60px; background-image: url('../img/btn-history.webp'); }
 .floating-btn.blue { right: 60px; bottom: 20px; background-image: url('../img/btn-bailout.webp'); }
-.floating-btn.skip { right: 15px; bottom: 85px; background-image: url('../img/btn-skip.webp'); }
+.floating-btn.skip { right: 20px; bottom: 20px; background-image: url('../img/btn-skip.webp'); }
 
 /* ==================================================== */
 /* 座位與標籤重構 */
