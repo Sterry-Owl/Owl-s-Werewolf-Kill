@@ -171,17 +171,16 @@ const UI = {
         const btnDaySkill = document.getElementById('btn-day-skill');
         const localPanel = document.getElementById('local-day-skill-panel');
         if (btnDaySkill) {
-            if (state.daySkill && !state.actionPanel.show) {
+            if (state.daySkill) {
                 btnDaySkill.classList.remove('hidden');
-                // 動態替換背景圖片：騎士用你上傳的新圖，白狼王用原本的自爆圖
                 if (state.myRole === '騎士') {
-                    btnDaySkill.style.backgroundImage = "url('./img/btn-knight.webp')"; // 使用你上傳的騎士技能圖
+                    btnDaySkill.style.backgroundImage = "url('./img/btn-knight.webp')"; 
                 } else {
-                    btnDaySkill.style.backgroundImage = "url('./img/btn-explode.webp')"; // 白狼王沿用原本的自爆圖
+                    btnDaySkill.style.backgroundImage = "url('./img/btn-explode.webp')"; 
                 }
             } else {
                 btnDaySkill.classList.add('hidden');
-                if (localPanel) localPanel.classList.add('hidden'); // 確保切換階段時關閉面板
+                if (localPanel) localPanel.classList.add('hidden');
             }
         }
         const cardPanel = document.querySelector('.card-panel');
