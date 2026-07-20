@@ -76,17 +76,25 @@ const UI = {
         if (roleNameEl && !detailsBtn) {
             const parent = roleNameEl.parentElement;
             if (parent) {
-                parent.innerHTML = ''; // 清空原本的 "身分：XXX"
+                parent.innerHTML = ''; 
+                const newRoleNameEl = document.createElement('span');
+                newRoleNameEl.id = 'player-role-name';
+                newRoleNameEl.textContent = '等待發牌';
                 
                 detailsBtn = document.createElement('span');
                 detailsBtn.id = 'btn-board-details';
                 detailsBtn.className = 'btn-board-details';
                 detailsBtn.textContent = '版型詳情 ℹ️';
+                parent.style.display = 'flex';
+                parent.style.alignItems = 'center';
+                parent.style.gap = '15px';
+                parent.appendChild(newRoleNameEl);
                 parent.appendChild(detailsBtn);
 
                 detailsPanel = document.createElement('div');
                 detailsPanel.id = 'board-details-panel';
                 detailsPanel.className = 'board-details-panel';
+                detailsPanel.style.display = 'none'; 
                 
                 const appContainer = document.querySelector('.player-app-container');
                 if (appContainer) {
