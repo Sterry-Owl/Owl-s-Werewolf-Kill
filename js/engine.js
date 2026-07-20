@@ -70,6 +70,7 @@ class GameContext {
         // [新增] 模組化發言佇列狀態
         this.speakingQueue = [];    
         this.currentSpeaker = null; 
+        this.speakingDirection = '順'; // [新增] 儲存當前順逆序狀態，供前端讀取
         
         this.nightSequence = [];
         this.lastWordsTargets = [];
@@ -91,6 +92,7 @@ class GameContext {
     }
     buildSpeakingQueue(startSeat, direction, specificTargets = null) {
         this.speakingQueue = [];
+        this.speakingDirection = direction === 1 ? '順' : '逆';
         let targetSeats;
         if (specificTargets) {
             targetSeats = specificTargets;
