@@ -113,7 +113,7 @@ window.RoleRegistry = {
         });
 
         Engine.EventBus.on('WOLF_EXPLODE', ({ context, player }) => {
-            if (!player || player.isDead || !this.plugins[player.role]?.canSelfExplode) return;
+            if (!player || player.isDead || !RoleRegistry.plugins[player.role]?.canSelfExplode) return;
 
             player.kill('explode', context);
             player.isRevealed = true;
