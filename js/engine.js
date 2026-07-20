@@ -89,23 +89,22 @@ class GameContext {
         }
         return startSeat; 
     }
-    
-    // [新增] 抽象化的發言排序演算法 (支援全體順逆序及 PK 特定對象排序)
     buildSpeakingQueue(startSeat, direction, specificTargets = null) {
         this.speakingQueue = [];
-        const validSeats = specificTargets || this.players.map(p => p.seatNumber);
-        const aliveValidSeats = validSeats.filter(seat => {
-            const p = this.getPlayer(seat);
-            return p && !p.isDead;
-        });
+        let targetSeats;
+        if (specificTargets) {
+            targetSeats = specificTargets;
+        } else {
+            targetSeats = this.players.filter(p => !p.isDead).map(p => p.seatNumber);
+        }
         
         const totalSeats = this.players.length;
         let current = startSeat;
-        let attempts = 0; // 防呆計數器，防止極端狀況無窮迴圈
+        let attempts = 0; 
 
-        while (this.speakingQueue.length < aliveValidSeats.length && attempts < totalSeats * 2) {
+        while (this.speakingQueue.length < targetSeats.length && attempts < totalSeats * 2) {
             attempts++;
-            if (aliveValidSeats.includes(current) && !this.speakingQueue.includes(current)) {
+            if (targetSeats.includes(current) && !this.speakingQueue.includes(current)) {
                 this.speakingQueue.push(current);
             }
             current += direction;
