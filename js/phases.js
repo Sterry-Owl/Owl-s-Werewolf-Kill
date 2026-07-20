@@ -10,13 +10,79 @@ window.PhaseRegistry = {
         this.sm = stateMachine;
         const self = this; 
         
+        // [重構] 高內聚的發言階段工廠函數，統一管理 120 秒計時與佇列推進
+        const createSpeechPhase = (nextPhaseName) => ({
+            onEnter: (ctx) => {
+                // 若佇列為空，自動結束發言環節，流轉至下一階段
+                if (!ctx.speakingQueue || ctx.speakingQueue.length === 0) {
+                    ctx.currentSpeaker = null;
+                    ctx.systemLog = "發言環節結束。";
+                    
+                    if (nextPhaseName === 'RESUME_ROUTINE') {
+                        Engine.EventBus.emit('RESUME_ROUTINE');
+                    } else {
+                        self.sm.transitionTo(nextPhaseName);
+                    }
+                    return;
+                }
+                
+                // 推進至下一位發言者
+                ctx.currentSpeaker = ctx.speakingQueue.shift();
+                ctx.systemLog = `現在由 ${ctx.currentSpeaker} 號玩家發言`;
+                self.sm.setTimer(120000); // 120秒發言限制
+            },
+            onAction: (ctx, player, actionId) => {
+                // 僅允許當前發言者主動結束發言
+                if (actionId === 'end_speech' && player.seatNumber === ctx.currentSpeaker) {
+                    self.sm.clearTimer();
+                    ctx.systemLog = `${player.seatNumber} 號玩家結束發言。`;
+                    self.sm.transitionTo(ctx.phase); // 重新進入相同階段，觸發 onEnter 提取下一位
+                }
+            },
+            onTimeout: (ctx) => {
+                ctx.systemLog = `${ctx.currentSpeaker} 號玩家發言時間到。`;
+                self.sm.transitionTo(ctx.phase); 
+            }
+        });
+
+        stateMachine.registerPhase('DAY_DISCUSSION', createSpeechPhase('DAY_VOTING'));
+        stateMachine.registerPhase('SHERIFF_SPEECH', createSpeechPhase('SHERIFF_VOTING'));
+        stateMachine.registerPhase('SHERIFF_PK_SPEECH', createSpeechPhase('SHERIFF_PK_VOTING'));
+        stateMachine.registerPhase('DAY_PK_SPEECH', createSpeechPhase('DAY_PK_VOTING'));
+        stateMachine.registerPhase('LAST_WORDS', createSpeechPhase('RESUME_ROUTINE'));
+        
+        // 保留靜態視圖展示階段
         const dummyPhase = { onEnter: () => {} };
-        stateMachine.registerPhase('DAY_DISCUSSION', dummyPhase);
-        stateMachine.registerPhase('SHERIFF_SPEECH', dummyPhase);
-        stateMachine.registerPhase('SHERIFF_PK_SPEECH', dummyPhase); // 新增
-        stateMachine.registerPhase('DAY_PK_SPEECH', dummyPhase);     // 更名
-        stateMachine.registerPhase('LAST_WORDS', dummyPhase);
         stateMachine.registerPhase('VOTE_RESULT_DISPLAY', dummyPhase);
+        
+        // [新增] 警長決定發言順序階段
+        stateMachine.registerPhase('SHERIFF_ORDER_SELECTION', {
+            onEnter: (ctx) => {
+                ctx.systemLog = "等待警長決定白天發言順序 (30秒)...";
+                self.sm.setTimer(30000);
+            },
+            onAction: (ctx, player, actionId) => {
+                if (player.seatNumber !== ctx.sheriff.seat) return;
+                
+                if (actionId === 'order_left' || actionId === 'order_right') {
+                    const direction = actionId === 'order_left' ? -1 : 1;
+                    const startSeat = ctx.getNextAliveSeat(ctx.sheriff.seat, direction);
+                    
+                    ctx.buildSpeakingQueue(startSeat, direction);
+                    const dirStr = direction === 1 ? '順序' : '逆序';
+                    Engine.EventBus.emit('MASTER_LOG', `【警長決定】由 ${startSeat} 號玩家開始${dirStr}發言`);
+                    
+                    self.sm.transitionTo('DAY_DISCUSSION');
+                }
+            },
+            onTimeout: (ctx) => {
+                // 超時防呆：預設從警長右手邊順序發言
+                const startSeat = ctx.getNextAliveSeat(ctx.sheriff.seat, 1);
+                ctx.buildSpeakingQueue(startSeat, 1);
+                Engine.EventBus.emit('MASTER_LOG', `【系統超時】警長未指定，預設由 ${startSeat} 號玩家開始順序發言`);
+                self.sm.transitionTo('DAY_DISCUSSION');
+            }
+        });
         
         ctx.addFilter('VOTE_WEIGHT', (weight, args) => {
             if (args.voterSeat === ctx.sheriff.seat && !args.isSheriffPhase) return weight + 0.5;
@@ -318,9 +384,13 @@ stateMachine.registerPhase('HUNTER_ACTION', {
         } else {
             ctx.sheriff.candidates.sort((a,b) => a-b);
             const startSeat = ctx.sheriff.candidates[Math.floor(Math.random() * ctx.sheriff.candidates.length)];
-            const direction = Math.random() < 0.5 ? '順' : '逆';
-            ctx.sheriffSpeechPrompt = `現在開始競選警長\n請由 ${startSeat} 號開始${direction}序發言`;
+            const dirNum = Math.random() < 0.5 ? 1 : -1;
+            const direction = dirNum === 1 ? '順' : '逆';
             
+            // [新增] 呼叫引擎建構上警發言佇列
+            ctx.buildSpeakingQueue(startSeat, dirNum, ctx.sheriff.candidates);
+            
+            ctx.sheriffSpeechPrompt = `現在開始競選警長\n請由 ${startSeat} 號開始${direction}序發言`;
             ctx.systemLog = `上警名單：${ctx.sheriff.candidates.join('、')} 號。\n${ctx.sheriffSpeechPrompt}`;
             this.sm.transitionTo('SHERIFF_SPEECH');
         }
@@ -391,6 +461,10 @@ stateMachine.registerPhase('HUNTER_ACTION', {
                 for (const [t, count] of Object.entries(voteCounts)) {
                     if (count === maxVotes) ctx.sheriff.pkTargets.push(parseInt(t));
                 }
+                // [新增] 建立警長 PK 佇列 (起點隨機，依序發言)
+                const startPK = ctx.sheriff.pkTargets[Math.floor(Math.random() * ctx.sheriff.pkTargets.length)];
+                ctx.buildSpeakingQueue(startPK, 1, ctx.sheriff.pkTargets);
+                
                 ctx.currentVoteResultString = `【平票發生】\n${resultLines.join('\n')}\n\n準備進入警長 PK 發言。`;
                 ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(警長首次投票)\n${ctx.currentVoteResultString}`);
                 // [新增] 全知紀錄
@@ -443,6 +517,10 @@ stateMachine.registerPhase('HUNTER_ACTION', {
                 for (const [t, count] of Object.entries(voteCounts)) {
                     if (count === maxVotes) ctx.pkTargets.push(parseInt(t));
                 }
+                // [新增] 建立放逐 PK 佇列
+                const startPK = ctx.pkTargets[Math.floor(Math.random() * ctx.pkTargets.length)];
+                ctx.buildSpeakingQueue(startPK, 1, ctx.pkTargets);
+                
                 ctx.currentVoteResultString = `【平票發生】\n${resultLines.join('\n')}\n\n準備進入放逐 PK 發言。`;
                 ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(放逐首次投票)\n${ctx.currentVoteResultString}`);
                 // [新增] 全知紀錄
@@ -489,6 +567,7 @@ stateMachine.registerPhase('HUNTER_ACTION', {
             tPlayer.kill('voted', ctx); 
             ctx.lastWordsTargets = [finalTarget];
             ctx.votedOutToday = finalTarget;
+            ctx.buildSpeakingQueue(finalTarget, 1, ctx.lastWordsTargets);
         }
         
         ctx.currentVoteResultString = `${header}\n${resultLines.join('\n')}`;
