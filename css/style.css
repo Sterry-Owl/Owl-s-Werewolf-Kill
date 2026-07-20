@@ -365,15 +365,18 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     top: 46px; 
     left: 0; 
     width: 100%;
+    max-height: calc(100% - 46px);
+    overflow-y: auto;
+    
     padding: 0; 
     margin: 0;
     border: none; 
     border-radius: 0; 
-    
-    background: transparent; 
+    background: rgba(26, 26, 26, 0.95); 
     z-index: 999; 
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8); 
 }
+.board-details-panel::-webkit-scrollbar { display: none; }
 
 .board-details-panel img {
     width: 100%;
