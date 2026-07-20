@@ -650,13 +650,41 @@ RoleRegistry.register("噩夢之影", {
         if (phaseId === 'midnight') {
             return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
         }
+        const unlockWolfVision = () => {
+            if (ctx.nightCount === 1) {
+                ctx.players.forEach(p => {
+                    if (p.role === '噩夢之影' && !p.isDead) {
+                        p.data.customTopTags = p.data.customTopTags || {};
+                        ctx.players.forEach(op => {
+                            if (op.seatNumber !== p.seatNumber && RoleRegistry.plugins[op.role]?.seenAsWolf) {
+                                p.data.customTopTags[op.seatNumber] = op.role;
+                            }
+                        });
+                    }
+                });
+            }
+        };
 
         const act = actions[0];
-        if (!act || act.actionId === 'pass') return "【跳過行動】";
+        if (!act || act.actionId === 'pass') {
+            unlockWolfVision(); 
+            return "【跳過行動】";
+        }
         
         if (phaseId === 'first_half' && act.actionId === 'fear') {
             const target = act.targets[0];
-            ctx.fearedSeat = target; // 寫入全域狀態，讓 Middleware 攔截
+            ctx.fearedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : target; 
+            
+            const tPlayer = ctx.getPlayer(ctx.fearedSeat);
+            if (tPlayer) {
+                const tPlugin = RoleRegistry.plugins[tPlayer.role];
+                if (ROLE_DICTIONARY[tPlayer.role]?.faction === 'wolf' && !!tPlugin?.isAttacker) {
+                    ctx.nightTags = ctx.nightTags || {};
+                    ctx.nightTags.wolfTeamFeared = true;
+                }
+            }
+            
+            unlockWolfVision(); 
             return `【恐懼: ${target}號】`;
         }
     }
