@@ -152,7 +152,16 @@ const UI = {
             if (state.allowBailout) btnBailout.classList.remove('hidden');
             else btnBailout.classList.add('hidden');
         }
-
+        const btnEndSpeech = document.getElementById('btn-end-speech');
+        if (btnEndSpeech) {
+            btnEndSpeech.textContent = '';
+            if (state.allowEndSpeech) {
+                btnEndSpeech.classList.remove('hidden');
+                btnEndSpeech.onclick = () => onActionSubmit('end_speech');
+            } else {
+                btnEndSpeech.classList.add('hidden');
+            }
+        }
         const btnHistory = document.getElementById('btn-vote-history');
         if (btnHistory) {
             btnHistory.textContent = ''; 
