@@ -557,8 +557,8 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         actionPanel.show = true; actionPanel.deadline = ctx.deadline;
         
         if (player.seatNumber === ctx.currentSpeaker) {
-            actionPanel.prompt = `現在是你的發言時間\n(發言完畢請主動結束)`;
-            actionPanel.buttons = [{ id: 'end_speech', text: '結束發言', requiresTarget: false }];
+            actionPanel.prompt = `現在是你的發言時間\n(發言完畢請點擊右下角結束發言)`;
+            actionPanel.buttons = []; // [修改] 淨空中央面板按鈕，交由浮動按鈕控制
         } else {
             const speakerStr = ctx.currentSpeaker ? `${ctx.currentSpeaker} 號` : "系統計算中";
             actionPanel.prompt = `現在由 ${speakerStr} 玩家發言...`;
@@ -610,7 +610,8 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             requiresTarget: RoleRegistry.plugins[player.role].daySkill.requiresTarget,
             selectableSeats: RoleRegistry.plugins[player.role].daySkill.getSelectableSeats(ctx, player.seatNumber)
         } : null,
-        allowBailout: !player.isDead && ['SHERIFF_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT'].includes(ctx.phase) && (ctx.sheriff.candidates || []).includes(player.seatNumber)
+        allowBailout: !player.isDead && ['SHERIFF_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT'].includes(ctx.phase) && (ctx.sheriff.candidates || []).includes(player.seatNumber),
+        allowEndSpeech: player.seatNumber === ctx.currentSpeaker
     };
 }
 
