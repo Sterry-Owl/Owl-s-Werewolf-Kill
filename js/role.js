@@ -391,7 +391,7 @@ RoleRegistry.register("白狼王", {
     resolveNightAction: RoleRegistry.plugins["狼人"].resolveNightAction,
     daySkill: {
         id: 'wwk_explode', buttonText: '自爆並帶走', requiresTarget: true,
-        allowedPhases: ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'DAY_DISCUSSION', 'DAY_PK_SPEECH'],
+        allowedPhases: ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_ORDER_SELECTION', 'DAY_DISCUSSION', 'DAY_PK_SPEECH', 'LAST_WORDS'],
         getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
         resolve: (ctx, player, targetSeat) => {
             const targetPlayer = ctx.getPlayer(targetSeat);
@@ -399,7 +399,7 @@ RoleRegistry.register("白狼王", {
             player.kill('explode', ctx);
             targetPlayer.kill('shot', ctx); 
             if (ctx.sheriff.seat === player.seatNumber) { ctx.sheriff.badgeLost = true; ctx.sheriff.seat = null; }
-            if (['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING'].includes(ctx.phase)) {
+            if (['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING'].includes(ctx.phase)) {
                 ctx.sheriff.electionDay++;
                 if (ctx.sheriff.electionDay > 2) ctx.sheriff.badgeLost = true;
             }
@@ -430,8 +430,8 @@ RoleRegistry.register("騎士", {
             const isWolf = ROLE_DICTIONARY[targetPlayer.role]?.faction === 'wolf';
             if (isWolf) {
                 targetPlayer.kill('dueled', ctx);
-                if (['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING'].includes(ctx.phase)) {
-                    ctx.sheriff.electionDay++;
+                if (['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING'].includes(ctx.phase)) {
+                    ctx.sheriff.electionDay++
                     if (ctx.sheriff.electionDay > 2) ctx.sheriff.badgeLost = true;
                 }
                 ctx.isResolvingAsync = true;
