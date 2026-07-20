@@ -123,9 +123,9 @@ window.RoleRegistry = {
                 context.sheriff.seat = null;
             }
 
-            if (['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_VOTING'].includes(context.phase)) {
-                context.sheriff.electionDay++;
-                if (context.sheriff.electionDay > 2) context.sheriff.badgeLost = true;
+            const sheriffPhases = ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_ORDER_SELECTION', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_RE_ELECTION_BAILOUT'];
+            if (sheriffPhases.includes(context.phase)) {
+                // [修復] 移除過時的 electionDay 邏輯，統一由 host.js 的封包處理器更新 isDelayedElection
                 context.systemLog = `${player.seatNumber} 號玩家自爆\n警長選舉被中斷。`;
             } else {
                 context.systemLog = `${player.seatNumber} 號玩家自爆\n天黑請閉眼。`;
@@ -399,9 +399,17 @@ RoleRegistry.register("白狼王", {
             player.kill('explode', ctx);
             targetPlayer.kill('shot', ctx); 
             if (ctx.sheriff.seat === player.seatNumber) { ctx.sheriff.badgeLost = true; ctx.sheriff.seat = null; }
-            if (['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING'].includes(ctx.phase)) {
-                ctx.sheriff.electionDay++;
-                if (ctx.sheriff.electionDay > 2) ctx.sheriff.badgeLost = true;
+            
+            const sheriffPhases = ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_ORDER_SELECTION', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_RE_ELECTION_BAILOUT'];
+            if (sheriffPhases.includes(ctx.phase)) {
+                // [修復] 同步寫入正規的延遲選舉狀態，取代過時的 electionDay
+                ctx.sheriff.explodeDelayCount++;
+                const maxExplode = ctx.rules.sheriffExplodeRule === 'double' ? 2 : 1;
+                if (ctx.sheriff.explodeDelayCount >= maxExplode) {
+                    ctx.sheriff.badgeLost = true;
+                } else {
+                    ctx.sheriff.isDelayedElection = true;
+                }
             }
 
             ctx.systemLog = `${player.seatNumber} 號玩家是白狼王\n他擊殺了 ${targetSeat} 號玩家，天黑請閉眼。`;
@@ -430,9 +438,15 @@ RoleRegistry.register("騎士", {
             const isWolf = ROLE_DICTIONARY[targetPlayer.role]?.faction === 'wolf';
             if (isWolf) {
                 targetPlayer.kill('dueled', ctx);
-                if (['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING'].includes(ctx.phase)) {
-                    ctx.sheriff.electionDay++
-                    if (ctx.sheriff.electionDay > 2) ctx.sheriff.badgeLost = true;
+                const sheriffPhases = ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_ORDER_SELECTION', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_RE_ELECTION_BAILOUT'];
+                if (sheriffPhases.includes(ctx.phase)) {
+                    ctx.sheriff.explodeDelayCount++;
+                    const maxExplode = ctx.rules.sheriffExplodeRule === 'double' ? 2 : 1;
+                    if (ctx.sheriff.explodeDelayCount >= maxExplode) {
+                        ctx.sheriff.badgeLost = true;
+                    } else {
+                        ctx.sheriff.isDelayedElection = true;
+                    }
                 }
                 ctx.isResolvingAsync = true;
                 setTimeout(() => {
