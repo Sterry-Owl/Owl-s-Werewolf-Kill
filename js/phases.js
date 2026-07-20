@@ -18,6 +18,11 @@ window.PhaseRegistry = {
                     ctx.currentSpeaker = null;
                     ctx.systemLog = "發言環節結束。";
                     
+                    // [修復 Bug 4] 安全截斷：當遺言發言完畢，清空狀態避免常規排程迴圈卡死
+                    if (ctx.phase === 'LAST_WORDS') {
+                        ctx.lastWordsTargets = [];
+                    }
+                    
                     if (nextPhaseName === 'RESUME_ROUTINE') {
                         Engine.EventBus.emit('RESUME_ROUTINE');
                     } else {
