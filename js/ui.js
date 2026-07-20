@@ -419,6 +419,14 @@ const UI = {
                         else if (bInfo.id === 'poison') {
                             btn.style.background = '#aa68b0'; 
                         }
+                        else if (bInfo.id === 'end_speech') {
+                            // [新增] 結束發言設定為灰色次要按鈕，降低誤觸率
+                            btn.className = 'btn-secondary'; 
+                        }
+                        else if (bInfo.id === 'order_left' || bInfo.id === 'order_right') {
+                            // [新增] 警長決定順序設定為綠色按鈕，提供明確的操作指引
+                            btn.className = 'btn-success'; 
+                        }
                         else {
                             btn.className = 'btn-primary';
                         }
