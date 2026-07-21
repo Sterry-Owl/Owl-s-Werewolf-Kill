@@ -60,7 +60,16 @@ const PACKET_TYPE = {
     VOTE_SUBMIT: 'VOTE_SUBMIT',     
     WOLF_PREVIEW: 'WOLF_PREVIEW',
     WOLF_EXPLODE: 'WOLF_EXPLODE',
-    SHERIFF_BAILOUT: 'SHERIFF_BAILOUT'
+    SHERIFF_BAILOUT: 'SHERIFF_BAILOUT',
+    PING: 'PING',  // [新增] 應用層心跳檢測
+    PONG: 'PONG'   // [新增] 應用層心跳回應
+};
+
+// [新增] 網路連線狀態常數，避免模組中出現髒代碼 (硬編碼)
+const NETWORK_CONFIG = {
+    PING_INTERVAL: 3000,    // 主機每 3 秒發送一次心跳
+    TIMEOUT_LIMIT: 10000,   // 客戶端超過 10 秒未收到心跳視為斷線
+    RECONNECT_DELAY: 2000   // 觸發斷線後，延遲 2 秒執行靜默重連
 };
 
 const BOARD_TEMPLATES = [
