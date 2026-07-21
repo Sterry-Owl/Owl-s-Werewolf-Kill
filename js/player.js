@@ -9,7 +9,17 @@ let mySeatNumber = null;
 let currentActionTarget = [];
 let localState = {}; 
 
+// [新增] 斷線重連狀態追蹤
+let savedRoomId = null;
+let savedPlayerName = null;
+let lastPingTime = Date.now();
+let heartbeatMonitor = null;
+let isReconnecting = false;
+
 window.initPlayer = function(roomId, playerName) {
+    savedRoomId = roomId;
+    savedPlayerName = playerName;
+
     // [關鍵升級] 本地端動態生成唯一 ID，徹底繞過 PeerJS 伺服器的派發延遲與擁塞
     const localGeneratedId = 'player_' + Math.random().toString(36).substring(2, 10);
     
@@ -23,7 +33,13 @@ window.initPlayer = function(roomId, playerName) {
         
         hostConnection.on('open', () => {
             hostConnection.send({ type: PACKET_TYPE.JOIN_ROOM, payload: { name: playerName } });
+            startHeartbeatMonitor(); // [新增] 啟動心跳監控
         });
+
+        // [新增] 綁定底層連線異常事件，觸發靜默重連
+        hostConnection.on('close', triggerSilentReconnect);
+        hostConnection.on('error', triggerSilentReconnect);
+        
         setupPlayerConnectionListeners(hostConnection);
     });
     
@@ -35,6 +51,13 @@ window.initPlayer = function(roomId, playerName) {
 
 function setupPlayerConnectionListeners(conn) {
     conn.on('data', (data) => {
+        // [新增] 攔截主機心跳並自動回應
+        if (data.type === PACKET_TYPE.PING) {
+            lastPingTime = Date.now();
+            try { conn.send({ type: PACKET_TYPE.PONG }); } catch (e) {}
+            return;
+        }
+
         switch(data.type) {
             case PACKET_TYPE.JOIN_SUCCESS:
                 mySeatNumber = data.payload.seatNumber;
@@ -146,3 +169,50 @@ window.addEventListener('WOLF_CHAT_OUTGOING', (e) => {
         });
     }
 });
+function startHeartbeatMonitor() {
+    if (heartbeatMonitor) clearInterval(heartbeatMonitor);
+    lastPingTime = Date.now();
+    heartbeatMonitor = setInterval(() => {
+        if (Date.now() - lastPingTime > NETWORK_CONFIG.TIMEOUT_LIMIT) {
+            triggerSilentReconnect();
+        }
+    }, NETWORK_CONFIG.PING_INTERVAL);
+}
+
+function triggerSilentReconnect() {
+    if (isReconnecting) return;
+    isReconnecting = true;
+    if (heartbeatMonitor) clearInterval(heartbeatMonitor);
+    
+    const attemptReconnect = () => {
+        if (hostConnection) hostConnection.close();
+        if (playerPeer) playerPeer.destroy();
+        
+        // 生成全新憑證，避免網路層狀態殘留
+        const localGeneratedId = 'player_' + Math.random().toString(36).substring(2, 10);
+        playerPeer = new Peer(localGeneratedId, PEER_CONFIG);
+        
+        playerPeer.on('open', () => {
+            const targetHostId = `${GAME_PREFIX}${savedRoomId}`;
+            hostConnection = playerPeer.connect(targetHostId);
+            
+            hostConnection.on('open', () => {
+                isReconnecting = false;
+                // 重連成功，發送接管請求
+                hostConnection.send({ type: PACKET_TYPE.JOIN_ROOM, payload: { name: savedPlayerName } });
+                startHeartbeatMonitor();
+            });
+            
+            hostConnection.on('close', triggerSilentReconnect);
+            hostConnection.on('error', triggerSilentReconnect);
+            setupPlayerConnectionListeners(hostConnection);
+        });
+        
+        playerPeer.on('error', () => {
+            // 重連失敗，執行退避重試策略 (Retry Policy)
+            setTimeout(attemptReconnect, NETWORK_CONFIG.RECONNECT_DELAY);
+        });
+    };
+    
+    setTimeout(attemptReconnect, NETWORK_CONFIG.RECONNECT_DELAY);
+}
