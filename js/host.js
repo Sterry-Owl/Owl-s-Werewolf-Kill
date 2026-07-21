@@ -60,17 +60,43 @@ window.initHost = function(roomId) {
     
     setupEngineFlowControllers();
     RoleRegistry.initPassives(engineContext);
+
+    // [新增] 啟動應用層心跳廣播
+    setInterval(() => {
+        Object.values(connections).forEach(conn => {
+            if (conn.open) {
+                try { conn.send({ type: PACKET_TYPE.PING }); } catch (e) {}
+            }
+        });
+    }, NETWORK_CONFIG.PING_INTERVAL);
 };
 
 function handleIncomingPacket(peerId, data) {
+    // [新增] 攔截客戶端回應的心跳，不干涉後續遊戲邏輯
+    if (data.type === PACKET_TYPE.PONG) return; 
+
     if (engineContext.isResolvingAsync) return;
-    if (data.type === PACKET_TYPE.JOIN_ROOM && engineContext.phase === 'LOBBY') {
-        const p = engineContext.addPlayer(peerId, data.payload.name);
-        try {
-            connections[peerId].send({ type: PACKET_TYPE.JOIN_SUCCESS, payload: { seatNumber: p.seatNumber } });
-        } catch(e) { console.warn('JOIN_SUCCESS Send Failed'); }
-        engineContext.systemLog = `玩家 ${p.name} (${p.seatNumber}號) 已加入。`;
-        syncStateToAll();
+    
+    // [修復] 解耦 JOIN_ROOM 邏輯，區分「大廳新加入」與「遊戲中斷線重連」
+    if (data.type === PACKET_TYPE.JOIN_ROOM) {
+        const playerName = data.payload.name;
+        
+        if (engineContext.phase === 'LOBBY') {
+            const p = engineContext.addPlayer(peerId, playerName);
+            try {
+                connections[peerId].send({ type: PACKET_TYPE.JOIN_SUCCESS, payload: { seatNumber: p.seatNumber } });
+            } catch(e) { console.warn('JOIN_SUCCESS Send Failed'); }
+            engineContext.systemLog = `玩家 ${p.name} (${p.seatNumber}號) 已加入。`;
+            syncStateToAll();
+        } else {
+            // [重連閘門] 若非大廳階段，嚴格比對已存在的暱稱，若吻合則進行 peerId 替換並恢復連線
+            const existingPlayer = engineContext.players.find(p => p.name === playerName);
+            if (existingPlayer) {
+                existingPlayer.peerId = peerId;
+                try { connections[peerId].send({ type: PACKET_TYPE.JOIN_SUCCESS, payload: { seatNumber: existingPlayer.seatNumber } }); } catch (e) {}
+                syncStateToAll(); 
+            }
+        }
     }
     else if (data.type === PACKET_TYPE.ACTION_SUBMIT || data.type === PACKET_TYPE.VOTE_SUBMIT) {
         const player = engineContext.getPlayerByPeer(peerId);
