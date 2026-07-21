@@ -7,14 +7,18 @@ const GAME_PREFIX = "TWG_WOLF_V4_";
 const PEER_CONFIG = { 
     config: { 
         'iceServers': [
+            // 1. STUN 伺服器群組：擴充高可用性公共節點
             { 
                 urls: [
                     'stun:stun.l.google.com:19302',
-                    'stun:stun1.l.google.com:19302'
+                    'stun:stun1.l.google.com:19302',
+                    'stun:stun2.l.google.com:19302',  // [擴充] Google 備用節點
+                    'stun:stun3.l.google.com:19302',  // [擴充] Google 備用節點
+                    'stun:stun.cloudflare.com:3478'   // [擴充] Cloudflare 節點 (DNS 解析優化)
                 ] 
             },
+            // 2. TURN 首選伺服器 (Metered)
             {
-                // [修正] 將 metered.com 改為官方指定的 metered.ca
                 urls: [
                     'turn:global.relay.metered.ca:80',
                     'turn:global.relay.metered.ca:80?transport=tcp',
@@ -23,7 +27,19 @@ const PEER_CONFIG = {
                 ],
                 username: 'a89975f53fd97193003482df',
                 credential: 'ShgDnEoNfkoSF2fh'
+            },
+            // 3. TURN 備用伺服器 (擴充模版：當首選節點異常時自動接管)
+            // 註：若無備用商用節點，可保持註解狀態。底層將依序嘗試連線。
+            /*
+            {
+                urls: [
+                    'turn:your-backup-turn-server.com:3478',
+                    'turns:your-backup-turn-server.com:5349?transport=tcp'
+                ],
+                username: 'your_backup_username',
+                credential: 'your_backup_credential'
             }
+            */
         ] 
     } 
 };
