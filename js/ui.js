@@ -205,6 +205,25 @@ const UI = {
             if (state.voteHistory && state.voteHistory.length > 0) btnHistory.classList.remove('hidden');
             else btnHistory.classList.add('hidden');
         }
+
+        // [新增] 動態管理右側浮動按鈕容器 (Floating Actions Group)
+        let rightActionsGroup = document.getElementById('right-actions-group');
+        if (!rightActionsGroup) {
+            rightActionsGroup = document.createElement('div');
+            rightActionsGroup.id = 'right-actions-group';
+            rightActionsGroup.className = 'right-actions-group';
+            const appContainer = document.querySelector('.player-app-container');
+            if (appContainer) {
+                // 將右側三個按鈕移入群組容器
+                const btnBailoutEl = document.getElementById('btn-bailout');
+                const btnEndSpeechEl = document.getElementById('btn-end-speech');
+                if (btnBailoutEl) rightActionsGroup.appendChild(btnBailoutEl);
+                if (btnEndSpeechEl) rightActionsGroup.appendChild(btnEndSpeechEl);
+                if (btnHistory) rightActionsGroup.appendChild(btnHistory);
+                appContainer.appendChild(rightActionsGroup);
+            }
+        }
+
         const btnDaySkill = document.getElementById('btn-day-skill');
         
         // [清理] 徹底移除舊版硬編碼的 local-day-skill-panel DOM 節點
