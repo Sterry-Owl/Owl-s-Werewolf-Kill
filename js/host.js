@@ -585,7 +585,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         const dirStr = ctx.speakingDirection ? `\n當前發言順序：${ctx.speakingDirection}序` : "";
         
         if (player.seatNumber === ctx.currentSpeaker) {
-            actionPanel.prompt = `現在是你的發言時間\n(發言完畢請點擊右下角結束發言)${dirStr}`;
+            actionPanel.prompt = `現在是你的發言時間\n發言完畢請點擊結束發言${dirStr}`;
             actionPanel.buttons = []; 
         } else {
             const speakerStr = ctx.currentSpeaker ? `${ctx.currentSpeaker} 號` : "系統計算中";
