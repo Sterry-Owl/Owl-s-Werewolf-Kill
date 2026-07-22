@@ -159,22 +159,16 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 /* 浮動按鈕區*/
 /* ==================================================== */
 .floating-btn {
-    position: absolute; 
-    width: 55px; height: 55px;
+    position: absolute; bottom: 20px; width: 55px; height: 55px;
     cursor: pointer; z-index: 50; pointer-events: auto; transition: 0.2s;
     background-color: transparent; border: none; box-shadow: none; color: transparent;
     background-size: contain; background-repeat: no-repeat; background-position: center;
 }
 .floating-btn:active { transform: scale(0.9); }
-
-/* 恢復獨立絕對定位，同時保留 iOS Home Indicator 安全邊界推移 */
-.floating-btn.red { left: 10px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background-image: url('../img/btn-explode.webp'); }
-.floating-btn.yellow { right: 10px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background-image: url('../img/btn-history.webp'); }
-.floating-btn.blue { right: 10px; bottom: calc(75px + env(safe-area-inset-bottom, 0px)); background-image: url('../img/btn-bailout.webp'); }
-/* 結束發言按鈕：保留置中精確運算與安全距離 */
-.floating-btn.skip { right: calc(25% - 8.75px); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background-image: url('../img/btn-skip.webp'); }
-
-/* 同步調整卡牌面板底部間距 */
+.floating-btn.red { left: 10px; bottom: 20px; background-image: url('../img/btn-explode.webp'); }
+.floating-btn.yellow { right: 10px; bottom: 20px; background-image: url('../img/btn-history.webp'); }
+.floating-btn.blue { right: 10px; bottom: 80px; background-image: url('../img/btn-bailout.webp'); }
+.floating-btn.skip { right: 70px; bottom: 20px; background-image: url('../img/btn-skip.webp'); }
 .card-panel {
     position: absolute; 
     bottom: calc(15px + env(safe-area-inset-bottom, 0px)); 
