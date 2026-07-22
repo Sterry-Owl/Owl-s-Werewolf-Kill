@@ -123,13 +123,20 @@ window.RoleRegistry = {
                 }
             }
             if (player.role === '機械狼' && player.data.machineState === 1 && player.data.learnedRole === '獵人' && canShootReasons.includes(reason)) {
-                context.pendingWolfKing = player.seatNumber; // 委託現有狼王開槍通道，避免重複建構 UI 邏輯
+                context.pendingWolfKing = player.seatNumber;
                 player.data.machineState = 2;
             }
             if (ROLE_DICTIONARY[player.role]?.faction === 'wolf') {
                 context.wolvesDiedThisTick = context.wolvesDiedThisTick || [];
-                context.wolvesDiedThisTick.push(player.role);
-                if (player.role === '血月使徒') context.bloodMoonSeat = player.seatNumber;
+                
+                if (player.role === '血月使徒') {
+                    if (reason === 'voted') {
+                        context.wolvesDiedThisTick.push(player.role);
+                        context.bloodMoonSeat = player.seatNumber;
+                    }
+                } else {
+                    context.wolvesDiedThisTick.push(player.role);
+                }
             }
         });
 
