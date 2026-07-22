@@ -140,31 +140,46 @@ const UI = {
                     document.body.appendChild(detailsPanel);
                 }
 
-                // 綁定事件 (僅綁定一次，防止 Memory Leak)
-                detailsBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    detailsPanel.style.display = detailsPanel.style.display === 'none' ? 'block' : 'none';
-                });
-                document.addEventListener('click', (e) => {
-                    if (e.target.id !== 'btn-board-details' && !detailsPanel.contains(e.target)) {
-                        detailsPanel.style.display = 'none';
-                    }
-                });
+                // [移除] 舊版綁定於單一實體的局部事件監聽器
             }
         }
 
+        // [新增] 採用全域事件代理 (Event Delegation)，徹底根除重繪時事件脫落之 Bug
+        if (!window.__boardDetailsEventBound) {
+            document.addEventListener('click', (e) => {
+                const btn = e.target.closest('#btn-board-details');
+                const panel = document.getElementById('board-details-panel');
+                if (!panel) return;
+
+                if (btn) {
+                    e.stopPropagation();
+                    // 運用 getComputedStyle 精準判斷實際顯示狀態，防止 inline style 初始為空字串的判定錯誤
+                    const isHidden = window.getComputedStyle(panel).display === 'none';
+                    panel.style.display = isHidden ? 'block' : 'none';
+                } else if (!panel.contains(e.target)) {
+                    panel.style.display = 'none';
+                }
+            });
+            window.__boardDetailsEventBound = true;
+        }
+
         // 2. 僅更新資料內容 (每次狀態同步時觸發，不破壞 DOM)
-        if (detailsPanel && state.boardName) {
-            // 讀取面板上目前記錄的版型名稱
+        if (detailsPanel) {
             const currentMountedBoard = detailsPanel.getAttribute('data-current-board');
+            // 若尚無版型，配置佔位符以防出現無法顯示的空面板
+            const targetBoard = state.boardName || 'empty';
             
             // [純淨架構] 只有當「尚未掛載」或「版型更換」時，才執行 DOM 渲染
-            if (currentMountedBoard !== state.boardName) {
-                // 將最新的版型名稱寫入標籤記憶
-                detailsPanel.setAttribute('data-current-board', state.boardName);
+            if (currentMountedBoard !== targetBoard) {
+                detailsPanel.setAttribute('data-current-board', targetBoard);
                 
-                // 渲染圖片，並保留 onerror 防呆機制
-                detailsPanel.innerHTML = `<img src="./img/info/${state.boardName}.webp" alt="${state.boardName}" style="width:100%; height:auto; display:block; border-radius:4px;" onerror="this.parentElement.innerHTML='<div style=\\'padding:20px; text-align:center; font-size:14px;\\'>找不到對應的版型圖片：<br>${state.boardName}.webp</div>';">`;
+                if (targetBoard === 'empty') {
+                    // [修復] 於大廳階段給予明確視覺提示，避免產生點擊無反應的錯覺
+                    detailsPanel.innerHTML = '<div style="padding:20px; text-align:center; font-size:14px; color:#ccc;">等待房主選擇版型...</div>';
+                } else {
+                    // 渲染圖片，並保留 onerror 防呆機制
+                    detailsPanel.innerHTML = `<img src="./img/info/${targetBoard}.webp" alt="${targetBoard}" style="width:100%; height:auto; display:block; border-radius:4px;" onerror="this.parentElement.innerHTML='<div style=\\'padding:20px; text-align:center; font-size:14px;\\'>找不到對應的版型圖片：<br>${targetBoard}.webp</div>';">`;
+                }
             }
         }
         const btnExplode = document.getElementById('btn-self-explode');
