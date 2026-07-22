@@ -929,6 +929,29 @@ RoleRegistry.register("機械狼", {
         player.data.learnedThisNight = false;
         player.data.mwGuardedSeat = null;
     },
+    // [新增] 機械狼強化守護結算鉤子
+    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        if (player.data.mwGuardedSeat) {
+            // 動態解析實體座位，相容魔術師換位邏輯
+            const gSeat = ctx.getActualTarget ? ctx.getActualTarget(player.data.mwGuardedSeat) : player.data.mwGuardedSeat;
+            
+            // 1. 抵禦狼刀 (相容標準機制的同守同救與真假守衛衝突)
+            if (calc.killed.includes(gSeat)) {
+                if (calc.saved.includes(gSeat) || calc.guarded.includes(gSeat)) {
+                    deathMap[gSeat] = 'killed'; 
+                } else {
+                    if (deathMap[gSeat] === 'killed') delete deathMap[gSeat];
+                }
+            }
+            
+            // 2. 抵禦毒藥 (強化守護特有邏輯)
+            if (calc.poisoned.includes(gSeat)) {
+                if (deathMap[gSeat] === 'poisoned') delete deathMap[gSeat];
+            }
+            
+            player.data.mwGuardedSeat = null;
+        }
+    },
     isAttacker: (ctx, mySeat) => {
         if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId !== 'midnight') return false;
         const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
