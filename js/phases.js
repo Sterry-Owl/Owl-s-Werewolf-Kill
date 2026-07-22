@@ -317,7 +317,7 @@ stateMachine.registerPhase('HUNTER_ACTION', {
             allowDeadAction: true, 
             onEnter: (ctx) => { 
                 ctx.systemLog = "等待狼王開槍 (15秒)..."; 
-                self.sm.setTimer(15000); // [新增] 設定 15 秒開槍時限
+                self.sm.setTimer(15000);
             },
             onAction: (ctx, player, actionId, targets) => {
                 if (player.seatNumber !== ctx.activeShooter) return; 
@@ -340,9 +340,43 @@ stateMachine.registerPhase('HUNTER_ACTION', {
                     Engine.EventBus.emit('RESUME_ROUTINE');
                 }
             },
-            // [新增] 超時強制悶槍邏輯
             onTimeout: (ctx) => {
                 ctx.systemLog = `狼王超時未動作，視為放棄開槍。`;
+                ctx.activeShooter = null;
+                Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+                if (ctx.phase !== 'GAME_OVER') {
+                    Engine.EventBus.emit('RESUME_ROUTINE');
+                }
+            }
+        });
+        stateMachine.registerPhase('BLOODMOON_ACTION', {
+            allowDeadAction: true,
+            onEnter: (ctx) => {
+                ctx.systemLog = "等待血月使徒進行最後追擊 (15秒)...";
+                self.sm.setTimer(15000);
+            },
+            onAction: (ctx, player, actionId, targets) => {
+                if (player.seatNumber !== ctx.activeShooter) return;
+
+                const target = targets.length > 0 ? targets[0] : null;
+                if (actionId === 'shoot' && target) {
+                    const tPlayer = ctx.getPlayer(target);
+                    if (tPlayer) tPlayer.kill('shot', ctx);
+                    const msg = `${player.seatNumber}號玩家(血月使徒)發動最後技能擊殺了${target}號玩家`;
+                    ctx.systemLog = msg;
+                    Engine.EventBus.emit('BROADCAST_MESSAGE', msg);
+                } else {
+                    ctx.systemLog = `血月使徒選擇放棄追擊。`;
+                }
+
+                ctx.activeShooter = null;
+                Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+                if (ctx.phase !== 'GAME_OVER') {
+                    Engine.EventBus.emit('RESUME_ROUTINE');
+                }
+            },
+            onTimeout: (ctx) => {
+                ctx.systemLog = `血月使徒超時未動作，視為放棄追擊。`;
                 ctx.activeShooter = null;
                 Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
                 if (ctx.phase !== 'GAME_OVER') {
