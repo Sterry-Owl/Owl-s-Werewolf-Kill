@@ -105,17 +105,13 @@ function handleSeatSelect(seatNumber) {
 
 function handleActionSubmit(actionId, extraPayload = null) {
     if (!localState.actionPanel || !localState.actionPanel.show) return;
-    
-    // [新增] 攔截前端過渡視圖拋出的日間技能指令
     if (actionId === 'SPECIAL_DAY_SKILL_SUBMIT') {
         if (currentActionTarget.length === 0) return alert('請先選擇目標！');
-        if (confirm(`確定要發動技能嗎？`)) {
-            hostConnection.send({ 
-                type: 'DAY_SKILL_SUBMIT', 
-                payload: { skillId: extraPayload, target: currentActionTarget[0] } 
-            });
-            UI.blockActionPanel();
-        }
+        hostConnection.send({ 
+            type: 'DAY_SKILL_SUBMIT', 
+            payload: { skillId: extraPayload, target: currentActionTarget[0] } 
+        });
+        UI.blockActionPanel();
         return; 
     }
 
@@ -136,10 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnExplode = document.getElementById('btn-self-explode');
     if (btnExplode) {
         btnExplode.addEventListener('click', () => {
-            if (confirm("確定要自爆嗎？這將立即中斷白天發言並進入黑夜！")) {
-                if (hostConnection) hostConnection.send({ type: PACKET_TYPE.WOLF_EXPLODE });
-                btnExplode.classList.add('hidden');
-            }
+            if (hostConnection) hostConnection.send({ type: PACKET_TYPE.WOLF_EXPLODE });
+            btnExplode.classList.add('hidden');
         });
     }
 
@@ -155,9 +149,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnBailout = document.getElementById('btn-bailout');
     if (btnBailout) {
         btnBailout.addEventListener('click', () => {
-            if (confirm("確定要退出警長競選嗎？退水後將喪失競選資格及本次投票權。")) {
-                if (hostConnection) hostConnection.send({ type: PACKET_TYPE.SHERIFF_BAILOUT });
-            }
         });
     }
 });
