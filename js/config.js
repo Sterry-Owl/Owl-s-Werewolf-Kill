@@ -62,6 +62,7 @@ const GAME_PHASE = {
     LAST_WORDS: 'LAST_WORDS',                   
     HUNTER_ACTION: 'HUNTER_ACTION',
     WOLFKING_ACTION: 'WOLFKING_ACTION',
+    BLOODMOON_ACTION: 'BLOODMOON_ACTION',
     GAME_OVER: 'GAME_OVER'
 };
 
@@ -111,7 +112,8 @@ const BOARD_TEMPLATES = [
     { id: "test-11_6", name: "6人 惡靈騎士(測試)", category: 'test', playerCount: 6, deck: ["女巫", "預言家", "惡靈騎士", "狼人", "平民", "平民"] },
     { id: "test-12_6", name: "6人 機械狼(測試)", category: 'test', playerCount: 6, deck: ["女巫", "魔鏡少女", "守衛", "獵人", "狼人", "機械狼"] },
     { id: "test-13_6", name: "6人 奇蹟商人(測試)", category: 'test', playerCount: 6, deck: ["女巫", "預言家", "守衛", "奇蹟商人", "狼王", "惡靈騎士"] },
-    { id: "test-14_6", name: "6人 無目之夜(測試)", category: 'test', playerCount: 6, deck: ["攝夢人", "女巫", "狼鴉之爪", "狼人", "石像鬼", "隱狼"] },    
+    { id: "test-14_6", name: "6人 無目之夜(測試)", category: 'test', playerCount: 6, deck: ["攝夢人", "女巫", "狼鴉之爪", "狼人", "石像鬼", "隱狼"] },
+    { id: "test-15_6", name: "6人 血月獵魔人(測試)", category: 'test', playerCount: 6, deck: ["預言家", "獵魔人", "血月使徒", "狼人", "平民", "平民"] }, 
     { id: "standard_9", name: "9人 標準局", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "standard_10", name: "10人 標準局", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_grd_10", name: "10人 狼王守衛", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "守衛", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
@@ -133,8 +135,9 @@ const BOARD_TEMPLATES = [
     { id: "evkn_12", name: "12人 惡靈騎士", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "惡靈騎士", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "mir_mw_12", name: "12人 魔鏡機械狼", category: 'standard', playerCount: 12, deck: ["魔鏡少女", "女巫", "獵人", "守衛", "機械狼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
     { id: "lightseer_12", name: "12人 燈影預言家", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "騎士", "守墓人", "狼王", "狼人", "狼人", "狼人", "燈影預言家", "平民", "平民", "平民"] },
-    { id: "mirc_12", name: "12人 狼王惡靈+奇蹟商人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "奇蹟商人", "狼王", "惡靈騎士", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "mirc_12", name: "12人 奇蹟商人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "奇蹟商人", "狼王", "惡靈騎士", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "noeye_12", name: "12人 無目之夜", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "攝夢人", "狼人", "狼鴉之爪", "隱狼", "石像鬼", "平民", "平民", "平民", "平民"] },
+    { id: "bloodmoon_12", name: "12人 血月使徒獵魔人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "白痴", "血月使徒", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
 ];
 
 const ROLE_DICTIONARY = {
@@ -163,4 +166,7 @@ const ROLE_DICTIONARY = {
     "奇蹟商人": { faction: "good", type: "god", nightPhase: "first_half", actionType: "dynamic", prompt: "奇蹟商人請行動\n請選擇贈禮的目標", description:"神職；首夜可以且必須選擇一名玩家贈送禮物。從查驗、毒藥、守護三者中贈送一項。收禮者立即成為幸運兒，可在夜晚使用該技能。若贈送到狼人，則送禮失敗、奇蹟商人死亡。" },
     "魔術師": { faction: "good", type: "god", nightPhase: "first_half", actionType: "double_select", prompt: "魔術師請行動\n請選擇交換的目標", description:"神職；每晚可以交換兩個號碼，當夜所有技能作用於這兩個號碼上的效果將會互換。每個號碼一局只能被交換一次" },
     "狼鴉之爪": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "dynamic", prompt: "狼鴉之爪請行動", description:"不可自爆。當場上存活的狼人陣營≤2人時覺醒，參與夜晚襲擊，且解鎖一次無視任何防禦技能的獨立擊殺能力。" },
+    "血月使徒": { faction: "wolf", type: "wolf", nightPhase: "midnight", actionType: "consensus", prompt: "選擇今晚的襲擊目標\n(或跳過以空刀)", description:"狼人陣營；可自刀、自爆。自爆後的下一個夜晚，所有神職玩家無法使用技能；若為最後一個出局的狼人，可在出局時指定擊殺一名玩家。" },
+    "獵魔人": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "獵魔人請行動\n選擇今晚狩獵的目標", description:"神職；從第二晚開始每晚可狩獵一名玩家。若目標為狼人則該狼人死亡；若目標為好人則獵魔人自身死亡。免疫女巫的毒藥。" },
+};
 };
