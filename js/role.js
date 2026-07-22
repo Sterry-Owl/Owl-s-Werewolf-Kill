@@ -69,8 +69,7 @@ window.RoleRegistry = {
             });
             ctx.addFilter('NIGHT_ACTION_PERMISSION', (canAct, args) => {
                 const feared = args.context.fearedSeat;
-                const actualFeared = args.context.getActualTarget ? args.context.getActualTarget(feared) : feared;
-                if (actualFeared === args.player.seatNumber) return false;
+                if (feared === args.player.seatNumber) return false;
                 return canAct;
             });
         }
@@ -858,11 +857,15 @@ RoleRegistry.register("惡靈騎士", {
         if (!player.data.hasReflected) {
             let hasTriggeredThisNight = false;
             ctx.players.forEach(p => {
-                if (!p.isDead && p.data.latestCheckResult && p.data.latestCheckResult.seat === player.seatNumber) {
-                    if (RoleRegistry.plugins[p.role]?.isSeer || p.data.latestCheckResult?.isSeerAction) { 
-                        deathMap[p.seatNumber] = 'reflected'; 
-                        ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：惡靈騎士反傷發動，擊殺 ${p.seatNumber} 號)`;
-                        hasTriggeredThisNight = true;
+                if (!p.isDead && p.data.latestCheckResult) {
+                    // [修復] 預言家的查驗紀錄為原始號碼(供UI顯示)，反傷判定必須動態轉換為實體座位
+                    const checkedActual = ctx.getActualTarget ? ctx.getActualTarget(p.data.latestCheckResult.seat) : p.data.latestCheckResult.seat;
+                    if (checkedActual === player.seatNumber) {
+                        if (RoleRegistry.plugins[p.role]?.isSeer || p.data.latestCheckResult?.isSeerAction) { 
+                            deathMap[p.seatNumber] = 'reflected'; 
+                            ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：惡靈騎士反傷發動，擊殺 ${p.seatNumber} 號)`;
+                            hasTriggeredThisNight = true;
+                        }
                     }
                 }
             });
@@ -1313,7 +1316,8 @@ RoleRegistry.register("狼鴉之爪", {
             act.player.data.hasUsedClaw = true;
             if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
             
-            ctx.nightTags.clawKilled = parseInt(target); 
+            // [修復] 將目標即時轉為實體座位，使其遵循魔術師換牌機制的統一標準
+            ctx.nightTags.clawKilled = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target); 
             return `【發動利爪: ${target}號】`;
         }
     },
