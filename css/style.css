@@ -159,31 +159,20 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 /* 浮動按鈕區*/
 /* ==================================================== */
 .floating-btn {
-    width: 55px; height: 55px; flex-shrink: 0;
+    position: absolute; 
+    width: 55px; height: 55px;
     cursor: pointer; z-index: 50; pointer-events: auto; transition: 0.2s;
     background-color: transparent; border: none; box-shadow: none; color: transparent;
     background-size: contain; background-repeat: no-repeat; background-position: center;
 }
 .floating-btn:active { transform: scale(0.9); }
 
-/* 左側自爆按鈕：獨立定位，支援 iOS Home Indicator 避讓 */
-.floating-btn.red { 
-    position: absolute; left: 10px; 
-    bottom: calc(20px + env(safe-area-inset-bottom, 0px)); 
-    background-image: url('../img/btn-explode.webp'); 
-}
-
-/* 右側按鈕群組容器：採用 Flex 垂直排列，自動推擠避免重疊 */
-.right-actions-group {
-    position: absolute; right: 10px; 
-    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-    display: flex; flex-direction: column; gap: 10px;
-    align-items: flex-end; z-index: 50; pointer-events: none;
-}
-/* 取消右側按鈕的絕對定位，交由 Flex 容器管理 */
-.floating-btn.yellow { position: relative; right: auto; bottom: auto; background-image: url('../img/btn-history.webp'); }
-.floating-btn.blue { position: relative; right: auto; bottom: auto; background-image: url('../img/btn-bailout.webp'); }
-.floating-btn.skip { position: relative; right: auto; bottom: auto; background-image: url('../img/btn-skip.webp'); }
+/* 恢復獨立絕對定位，同時保留 iOS Home Indicator 安全邊界推移 */
+.floating-btn.red { left: 10px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background-image: url('../img/btn-explode.webp'); }
+.floating-btn.yellow { right: 10px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background-image: url('../img/btn-history.webp'); }
+.floating-btn.blue { right: 10px; bottom: calc(75px + env(safe-area-inset-bottom, 0px)); background-image: url('../img/btn-bailout.webp'); }
+/* 結束發言按鈕：保留置中精確運算與安全距離 */
+.floating-btn.skip { right: calc(25% - 8.75px); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background-image: url('../img/btn-skip.webp'); }
 
 /* 同步調整卡牌面板底部間距 */
 .card-panel {
