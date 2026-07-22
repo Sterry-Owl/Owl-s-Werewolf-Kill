@@ -363,8 +363,17 @@ function setupEngineFlowControllers() {
     
     Engine.EventBus.on('CHECK_WIN_CONDITION', (ctx) => {
         if (ctx.phase === 'GAME_OVER') return;
+
         const alive = ctx.getAlivePlayers();
         const wolfCount = alive.filter(p => p.role && ROLE_DICTIONARY[p.role]?.faction === 'wolf').length;
+        if (wolfCount === 0 && ctx.wolvesDiedThisTick && ctx.wolvesDiedThisTick.includes('血月使徒') && !ctx.bloodMoonHasShot) {
+            ctx.pendingBloodMoon = ctx.bloodMoonSeat;
+            ctx.bloodMoonHasShot = true;
+        }
+        ctx.wolvesDiedThisTick = [];
+        if (ctx.pendingBloodMoon) return;
+
+        const godCount = alive.filter(p => p.role && ROLE_DICTIONARY[p.role]?.type === 'god').length;
         const godCount = alive.filter(p => p.role && ROLE_DICTIONARY[p.role]?.type === 'god').length;
         const vilCount = alive.filter(p => p.role && ROLE_DICTIONARY[p.role]?.type === 'villager').length;
         let winner = null, reason = "";
