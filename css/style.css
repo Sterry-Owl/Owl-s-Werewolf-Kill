@@ -488,7 +488,14 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     .setup-right {
         padding-left: 0;
         border-left: none;
-        border-top: 1px solid var(--border-color); /* 手機版切換回水平分隔線 */
+        border-top: 1px solid var(--border-color);
         padding-top: 20px;
     }
+}
+#wolf-chat-modal {
+    top: auto !important; 
+    transform: translateX(-50%) !important;
+    
+    /* 重新對齊至底部，數值 = 溝通按鈕的高度(55px) + 預設底部間距(20px) + 緩衝微調(5px) + 系統安全邊界 */
+    bottom: 80px !important; 
 }
