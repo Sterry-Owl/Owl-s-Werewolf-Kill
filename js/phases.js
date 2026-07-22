@@ -9,8 +9,6 @@ window.PhaseRegistry = {
     init: function(stateMachine, ctx) {
         this.sm = stateMachine;
         const self = this; 
-        
-        // [重構] 高內聚的發言階段工廠函數，統一管理 120 秒計時與佇列推進
         const createSpeechPhase = (nextPhaseName) => ({
             onEnter: (ctx) => {
                 // 若佇列為空，自動結束發言環節，流轉至下一階段
@@ -41,11 +39,32 @@ window.PhaseRegistry = {
                 if (actionId === 'end_speech' && player.seatNumber === ctx.currentSpeaker) {
                     self.sm.clearTimer();
                     ctx.systemLog = `${player.seatNumber} 號玩家結束發言。`;
+                    
+                    // [嚴謹修復] 針對遺言階段（LAST_WORDS）進行情境分流判斷
+                    if (ctx.phase === 'LAST_WORDS' && ctx.speakingQueue.length === 0) {
+                        ctx.lastWordsTargets = [];
+                        // 判定來源：若為第一夜晨間遺言，絕不直接入夜，必須安全回歸常規日常流程 (RESUME_ROUTINE)
+                        if (ctx.routineOrigin === 'MORNING') {
+                            Engine.EventBus.emit('RESUME_ROUTINE');
+                            return;
+                        }
+                    }
+                    
                     self.sm.transitionTo(ctx.phase); // 重新進入相同階段，觸發 onEnter 提取下一位
                 }
             },
             onTimeout: (ctx) => {
                 ctx.systemLog = `${ctx.currentSpeaker} 號玩家發言時間到。`;
+                
+                // [同歩防呆] 超時強行結束時亦須套用相同的遺言來源安全判定
+                if (ctx.phase === 'LAST_WORDS' && ctx.speakingQueue.length === 0) {
+                    ctx.lastWordsTargets = [];
+                    if (ctx.routineOrigin === 'MORNING') {
+                        Engine.EventBus.emit('RESUME_ROUTINE');
+                        return;
+                    }
+                }
+                
                 self.sm.transitionTo(ctx.phase); 
             }
         });
