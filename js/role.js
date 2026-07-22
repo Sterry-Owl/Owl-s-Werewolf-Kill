@@ -32,8 +32,19 @@ window.RoleRegistry = {
                     calc.poisoned = swapMap(calc.poisoned);
                     calc.saved = swapMap(calc.saved);
                 }
+                const dhPlayer = ctx.players.find(p => p.role === '獵魔人' && !p.isDead);
+                if (dhPlayer && calc.poisoned.includes(dhPlayer.seatNumber)) {
+                    calc.poisoned = calc.poisoned.filter(s => s !== dhPlayer.seatNumber);
+                }
 
                 let deathMap = {};
+                if (ctx.nightTags?.demonHunterKill) {
+                    deathMap[ctx.nightTags.demonHunterKill] = 'killed';
+                }
+                if (ctx.nightTags?.demonHunterBackfire) {
+                    deathMap[ctx.nightTags.demonHunterBackfire] = 'skill_backfire';
+                }
+
                 let allTargets = new Set([...calc.killed, ...calc.poisoned, ...calc.dreamed]);
 
                 allTargets.forEach(targetSeat => {
@@ -70,13 +81,19 @@ window.RoleRegistry = {
             ctx.addFilter('NIGHT_ACTION_PERMISSION', (canAct, args) => {
                 const feared = args.context.fearedSeat;
                 if (feared === args.player.seatNumber) return false;
+                if (args.context.bloodMoonSilenceNight === args.context.nightCount) {
+                    const roleDef = ROLE_DICTIONARY[args.player.role];
+                    if (roleDef && roleDef.type === 'god') return false;
+                }
+
                 return canAct;
             });
         }
         Engine.EventBus.on('START_NIGHT', () => {
             if (ctx) {
-                ctx.magicianSwap = null; // 每晚重置魔術狀態
-                // 確保魔術師排在前半夜首位發動
+                ctx.magicianSwap = null;
+                ctx.nightTags.demonHunterKill = null;
+                ctx.nightTags.demonHunterBackfire = null;
                 const firstHalf = ctx.nightSequence.find(s => s.phaseId === 'first_half');
                 if (firstHalf) {
                     firstHalf.roles.sort((a, b) => a.roleName === '魔術師' ? -1 : (b.roleName === '魔術師' ? 1 : 0));
@@ -106,13 +123,22 @@ window.RoleRegistry = {
                 }
             }
             if (player.role === '機械狼' && player.data.machineState === 1 && player.data.learnedRole === '獵人' && canShootReasons.includes(reason)) {
-                context.pendingWolfKing = player.seatNumber; // 委託現有狼王開槍通道，避免重複建構 UI 邏輯
+                context.pendingWolfKing = player.seatNumber;
                 player.data.machineState = 2;
+            }
+            if (player.role === '血月使徒') {
+                const remainingWolves = context.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== player.seatNumber);
+                if (remainingWolves.length === 0) {
+                    context.pendingBloodMoon = player.seatNumber;
+                }
             }
         });
 
         Engine.EventBus.on('WOLF_EXPLODE', ({ context, player }) => {
             if (!player || player.isDead || !RoleRegistry.plugins[player.role]?.canSelfExplode) return;
+            if (player.role === '血月使徒') {
+                context.bloodMoonSilenceNight = context.nightCount + 1;
+            }
 
             player.kill('explode', context);
             player.isRevealed = true;
@@ -124,7 +150,6 @@ window.RoleRegistry = {
 
             const sheriffPhases = ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_ORDER_SELECTION', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_RE_ELECTION_BAILOUT'];
             if (sheriffPhases.includes(context.phase)) {
-                // [修復] 移除過時的 electionDay 邏輯，統一由 host.js 的封包處理器更新 isDelayedElection
                 context.systemLog = `${player.seatNumber} 號玩家自爆\n警長選舉被中斷。`;
             } else {
                 context.systemLog = `${player.seatNumber} 號玩家自爆\n天黑請閉眼。`;
@@ -1353,6 +1378,49 @@ RoleRegistry.register("狼鴉之爪", {
                 ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：狼鴉之爪發動技能，無視防禦擊殺 ${t} 號)`;
                 ctx.nightTags.clawLogWritten = true;
             }
+        }
+    }
+});
+
+RoleRegistry.register("血月使徒", {
+    canSelfExplode: true,
+    canSeeWolves: true,
+    seenAsWolf: true,
+    isAttacker: true,
+    hasWolfChatAccess: true,
+    nightPhase: "midnight",      
+    actionType: "consensus",     
+    getPrompt: () => "選擇今晚的襲擊目標 (或選擇跳過以空刀)",
+    getSelectableSeats: RoleRegistry.plugins["狼人"].getSelectableSeats,
+    getButtons: RoleRegistry.plugins["狼人"].getButtons,
+    resolveNightAction: RoleRegistry.plugins["狼人"].resolveNightAction
+});
+RoleRegistry.register("獵魔人", {
+    canSelfExplode: false,
+    nightPhase: "second_half",
+    actionType: "single_select",
+    hasAction: (ctx) => ctx.nightCount >= 2,
+    getPrompt: () => "選擇狩獵目標",
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+    getButtons: () => [{ id: 'hunt', text: '狩獵', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || act.actionId === 'pass' || !act.targets || act.targets.length === 0) return "【跳過行動】";
+
+        const target = act.targets[0];
+        const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
+        const tPlayer = ctx.getPlayer(actualTarget);
+        const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
+        const isWolf = ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
+
+        if (isWolf) {
+            ctx.nightTags = ctx.nightTags || {};
+            ctx.nightTags.demonHunterKill = actualTarget;
+            return `【狩獵: ${target}號 (狼人)】`;
+        } else {
+            ctx.nightTags = ctx.nightTags || {};
+            ctx.nightTags.demonHunterBackfire = act.player.seatNumber;
+            return `【狩獵: ${target}號 (好人，遭受反噬)】`;
         }
     }
 });
