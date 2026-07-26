@@ -66,6 +66,13 @@ function setupPlayerConnectionListeners(conn) {
                 
                 if (isNewPhase) {
                     currentActionTarget = [];
+                    lockedActionSignature = null;
+                }
+                const currentSignature = `${localState.phase}_${localState.nightStepIndex}`;
+                if (lockedActionSignature === currentSignature && localState.actionPanel) {
+                    localState.actionPanel.buttons = [];
+                    localState.actionPanel.prompt = "行動已送出，等待系統結算...";
+                    localState.actionPanel.type = 'none';
                 }
                 
                 UI.renderPlayerView(localState, handleSeatSelect, handleActionSubmit, currentActionTarget, false);
@@ -116,13 +123,11 @@ function handleActionSubmit(actionId, extraPayload = null) {
     const packetType = localState.actionPanel.submitPacketType || PACKET_TYPE.ACTION_SUBMIT;
     const isPassAction = (actionId === 'pass' || actionId === 'save');
     const finalTargets = isPassAction ? [] : currentActionTarget;
-    
-    // [純淨架構] 前端放棄思考，只負責傳遞 [目標, 動作]
     hostConnection.send({ 
         type: packetType, 
         payload: { actionId: actionId, targets: finalTargets } 
     });
-    
+    lockedActionSignature = `${localState.phase}_${localState.nightStepIndex}`;
     UI.blockActionPanel();
 }
 
