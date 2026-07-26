@@ -239,10 +239,15 @@ const UI = {
         // [升級] 動態號碼槽生成系統 (Dynamic Target Slots)
         // ===============================================
         const slotsContainer = document.getElementById('target-slots-container');
+        
+        // [新增] 讀取伺服器已確認之目標，優先級高於本地暫存，實現絕對準確的視覺殘留
+        const displayTargets = (state.actionPanel && state.actionPanel.hasActed && state.actionPanel.submittedTargets) 
+            ? state.actionPanel.submittedTargets 
+            : selectedTargets;
+
         if (slotsContainer) {
-            slotsContainer.innerHTML = ''; // 每次渲染前清空
+            slotsContainer.innerHTML = ''; 
             
-            // [修復 Bug 3] 當面板類型為 none 時 (如警長決定順序、展示投票)，強制隱藏槽位
             if (state.actionPanel && state.actionPanel.show && state.actionPanel.type !== 'none') {
                 slotsContainer.classList.remove('hidden');
 
@@ -268,21 +273,18 @@ const UI = {
                 };
 
                 if (state.myRole === '女巫' && state.phase === 'NIGHT_ACTION') {
-                    // 女巫專屬：雙槽 (解藥與毒藥)
                     const victim = state.actionPanel.preSelectedTarget;
                     createSlot(victim, victim ? '解藥 (刀口)' : '解藥 (空)', 'antidote');
                     
-                    const poisonTarget = selectedTargets.length > 0 ? selectedTargets[0] : null;
+                    const poisonTarget = displayTargets.length > 0 ? displayTargets[0] : null;
                     createSlot(poisonTarget, poisonTarget ? '毒藥' : '選擇毒藥目標', 'poison');
 
                 } else if (state.actionPanel.type === 'double_select') {
-                    // 魔術師專屬：雙槽
-                    createSlot(selectedTargets[0] || null, '目標 1', '');
-                    createSlot(selectedTargets[1] || null, '目標 2', '');
+                    createSlot(displayTargets[0] || null, '目標 1', '');
+                    createSlot(displayTargets[1] || null, '目標 2', '');
 
                 } else {
-                    // 常規單槽 (預言家、狼人、放逐投票等)
-                    const target = selectedTargets.length > 0 ? selectedTargets[0] : null;
+                    const target = displayTargets.length > 0 ? displayTargets[0] : null;
                     let alignmentLabel = target ? '目標' : '請選擇';
                     let specialClass = '';
                     
@@ -299,7 +301,6 @@ const UI = {
                     createSlot(target, alignmentLabel, specialClass);
                 }
             } else {
-                // 行動階段結束，徹底隱藏容器
                 slotsContainer.classList.add('hidden');
             }
         }
@@ -322,10 +323,9 @@ const UI = {
             
             if (p.isWolfSelected) seat.classList.add('wolf-selected');
             
-            const isSelected = selectedTargets.includes(p.seatNumber);
+            const isSelected = displayTargets.includes(p.seatNumber);
             if (isSelected) seat.classList.add('selected');
-
-            if (state.actionPanel.show && !p.isDead && state.actionPanel.selectableSeats.includes(p.seatNumber)) {
+            if (state.actionPanel.show && !p.isDead && state.actionPanel.selectableSeats.includes(p.seatNumber) && state.actionPanel.buttons && state.actionPanel.buttons.length > 0) {
                 seat.style.cursor = 'pointer';
                 seat.addEventListener('click', () => onSeatSelect(p.seatNumber));
             } else {
