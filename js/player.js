@@ -71,8 +71,9 @@ function setupPlayerConnectionListeners(conn) {
                 const currentSignature = `${localState.phase}_${localState.nightStepIndex}`;
                 if (lockedActionSignature === currentSignature && localState.actionPanel) {
                     localState.actionPanel.buttons = [];
-                    localState.actionPanel.prompt = "行動已送出，等待系統結算...";
-                    localState.actionPanel.type = 'none';
+                    if (!localState.actionPanel.hasActed) {
+                        localState.actionPanel.prompt = "行動已送出，等待系統確認...";
+                    }
                 }
                 
                 UI.renderPlayerView(localState, handleSeatSelect, handleActionSubmit, currentActionTarget, false);
