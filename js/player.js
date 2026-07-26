@@ -3,13 +3,11 @@
 // 檔案位置: js/player.js
 // ==========================================
 
-let playerPeer = null;
 let hostConnection = null;
 let mySeatNumber = null;
 let currentActionTarget = [];
 let localState = {}; 
-
-// [新增] 斷線重連狀態追蹤
+let lockedActionSignature = null;
 let savedRoomId = null;
 let savedPlayerName = null;
 let lastPingTime = Date.now();
