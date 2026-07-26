@@ -82,7 +82,7 @@ const UI = {
                     { id: 'cancel_day_skill', text: '取消', requiresTarget: false }
                 ]
             };
-        } else {
+       } else {
             // 3. 恢復或放行：取消技能時，還原原始面板狀態
             UI.isPreparingDaySkill = false;
             if (UI.originalActionPanel) {
@@ -91,52 +91,13 @@ const UI = {
             }
         }
 
-        let headerEl = document.querySelector('.app-header');
-        if (headerEl) {
-            let boardNameEl = document.getElementById('dynamic-board-name');
-            if (!boardNameEl) {
-                boardNameEl = document.createElement('div');
-                boardNameEl.id = 'dynamic-board-name';
-                boardNameEl.style.flex = '1';
-                boardNameEl.style.textAlign = 'center';
-                boardNameEl.style.color = '#fff';
-                boardNameEl.style.fontSize = '13px';
-                headerEl.insertBefore(boardNameEl, headerEl.children[1]);
-            }
+        // [重構] DOM 結構已靜態化，僅需安全注入資料，不再涉入節點創建
+        let boardNameEl = document.getElementById('dynamic-board-name');
+        if (boardNameEl) {
             boardNameEl.textContent = state.boardName || '';
         }
-        const roleNameEl = document.getElementById('player-role-name');
-        let detailsBtn = document.getElementById('btn-board-details');
-        let detailsPanel = document.getElementById('board-details-panel');
 
-        // 1. 初始化 DOM 結構與事件 (保證生命週期內只執行一次)
-        if (roleNameEl && !detailsBtn) {
-            const parent = roleNameEl.parentElement;
-            if (parent) {
-                parent.innerHTML = ''; 
-                const newRoleNameEl = document.createElement('span');
-                newRoleNameEl.id = 'player-role-name';
-                newRoleNameEl.textContent = '等待發牌';
-                
-                detailsBtn = document.createElement('span');
-                detailsBtn.id = 'btn-board-details';
-                detailsBtn.className = 'btn-board-details';
-                detailsBtn.textContent = '版型詳情 ℹ️';
-                parent.style.display = 'flex';
-                parent.style.alignItems = 'center';
-                parent.style.gap = '15px';
-                parent.appendChild(newRoleNameEl);
-                parent.appendChild(detailsBtn);
-
-                detailsPanel = document.createElement('div');
-                detailsPanel.id = 'board-details-panel';
-                detailsPanel.className = 'board-details-panel';
-                detailsPanel.style.cssText = 'display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; width: 90%; max-width: 450px; max-height: 85vh; background: #222; border: 2px solid #555; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.9); overflow: hidden;';
-                document.body.appendChild(detailsPanel);
-            }
-        }
-
-        // [新增] 採用全域事件代理 (Event Delegation)，徹底根除重繪時事件脫落之 Bug
+        // 採用全域事件代理 (Event Delegation)，徹底根除重繪時事件脫落之 Bug
         if (!window.__boardDetailsEventBound) {
             document.addEventListener('click', (e) => {
                 const btn = e.target.closest('#btn-board-details');
@@ -145,7 +106,6 @@ const UI = {
 
                 if (btn) {
                     e.stopPropagation();
-                    // 運用 getComputedStyle 精準判斷實際顯示狀態，防止 inline style 初始為空字串的判定錯誤
                     const isHidden = window.getComputedStyle(panel).display === 'none';
                     panel.style.display = isHidden ? 'block' : 'none';
                 } else if (!panel.contains(e.target)) {
@@ -155,13 +115,12 @@ const UI = {
             window.__boardDetailsEventBound = true;
         }
 
-        // 2. 僅更新資料內容 (每次狀態同步時觸發，不破壞 DOM)
+        // 僅更新資料內容 (每次狀態同步時觸發，不破壞 DOM)
+        let detailsPanel = document.getElementById('board-details-panel');
         if (detailsPanel) {
             const currentMountedBoard = detailsPanel.getAttribute('data-current-board');
-            // 若尚無版型，配置佔位符以防出現無法顯示的空面板
             const targetBoard = state.boardName || 'empty';
             
-            // [純淨架構] 只有當「尚未掛載」或「版型更換」時，才執行 DOM 渲染
             if (currentMountedBoard !== targetBoard) {
                 detailsPanel.setAttribute('data-current-board', targetBoard);
                 
