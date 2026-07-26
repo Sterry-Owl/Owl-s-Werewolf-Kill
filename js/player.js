@@ -153,6 +153,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnBailout = document.getElementById('btn-bailout');
     if (btnBailout) {
         btnBailout.addEventListener('click', () => {
+            if (hostConnection) {
+                hostConnection.send({ type: PACKET_TYPE.SHERIFF_BAILOUT });
+                btnBailout.classList.add('hidden');
+            }
         });
     }
 });
