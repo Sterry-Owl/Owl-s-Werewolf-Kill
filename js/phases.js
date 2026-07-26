@@ -414,7 +414,11 @@ stateMachine.registerPhase('HUNTER_ACTION', {
         
         currentPhase.roles.forEach(roleObj => {
             const plugin = RoleRegistry.plugins[roleObj.roleName];
-            const roleActions = ctx.currentStepActions.filter(act => act.player.role === roleObj.roleName);
+            const roleActions = ctx.currentStepActions.filter(act => {
+                if (act.player.role === roleObj.roleName) return true;
+                if (act.player.data && act.player.data.virtualRoles && act.player.data.virtualRoles.includes(roleObj.roleName)) return true;
+                return false;
+            });
             
             let result = "【未定義】";
             if (plugin && typeof plugin.resolveNightAction === 'function') {
