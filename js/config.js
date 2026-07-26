@@ -118,7 +118,7 @@ const BOARD_TEMPLATES = [
     { id: "standard_9", name: "9人 標準局", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "wbt_kn_9", name: "9人 狼美人騎士(商榷)", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "騎士", "狼美人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "nim_dgr_9", name: "9人 夢魘攝夢人(商榷)", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "攝夢人", "噩夢之影", "狼人", "狼人", "平民", "平民", "平民"] },
-    { id: "wind_9", name: "9人 風聲諜影", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "魔鏡少女", "攝夢人", "獵人", "狼人", "狼人", "狼鴉之爪", "石像鬼"] },
+    { id: "wind_9", name: "9人 風聲諜影", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "魔鏡少女", "守墓人", "獵人", "狼人", "狼王", "隱狼", "石像鬼"] },
     { id: "cool_9", name: "9人 連連看", category: 'fun', playerCount: 9, deck: ["預言家", "預言家", "預言家", "魔鏡少女", "魔鏡少女", "機械狼", "石像鬼", "石像鬼", "狼人"] },
     { id: "noeye_9", name: "9人 無目之夜", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "攝夢人", "狼人", "狼鴉之爪", "石像鬼", "平民", "平民", "平民"] },
     { id: "standard_10", name: "10人 標準局", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
