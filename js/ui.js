@@ -131,16 +131,8 @@ const UI = {
                 detailsPanel = document.createElement('div');
                 detailsPanel.id = 'board-details-panel';
                 detailsPanel.className = 'board-details-panel';
-                detailsPanel.style.display = 'none'; 
-                
-                const appContainer = document.querySelector('.player-app-container');
-                if (appContainer) {
-                    appContainer.appendChild(detailsPanel);
-                } else {
-                    document.body.appendChild(detailsPanel);
-                }
-
-                // [移除] 舊版綁定於單一實體的局部事件監聽器
+                detailsPanel.style.cssText = 'display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; width: 90%; max-width: 450px; max-height: 85vh; background: #222; border: 2px solid #555; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.9); overflow: hidden;';
+                document.body.appendChild(detailsPanel);
             }
         }
 
