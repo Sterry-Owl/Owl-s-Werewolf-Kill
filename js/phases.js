@@ -11,12 +11,28 @@ window.PhaseRegistry = {
         const self = this; 
         const createSpeechPhase = (nextPhaseName) => ({
             onEnter: (ctx) => {
-                // 若佇列為空，自動結束發言環節，流轉至下一階段
-                if (!ctx.speakingQueue || ctx.speakingQueue.length === 0) {
+                // [修復 Bug 5] 動態發言權驗證 (Dynamic Speech Filter)
+                // 從佇列中尋找下一位「仍然具備發言資格」的玩家
+                let nextSpeaker = null;
+                while (ctx.speakingQueue && ctx.speakingQueue.length > 0) {
+                    const candidateSeat = ctx.speakingQueue.shift();
+                    const p = ctx.getPlayer(candidateSeat);
+                    
+                    if (!p || p.isDead) continue; // 已死亡，失去資格
+                    
+                    if (ctx.phase === 'SHERIFF_SPEECH' || ctx.phase === 'SHERIFF_PK_SPEECH') {
+                        if (!(ctx.sheriff.candidates || []).includes(candidateSeat)) continue; // 已退水，失去資格
+                    }
+                    if (ctx.phase === 'DAY_PK_SPEECH') {
+                        if (!(ctx.pkTargets || []).includes(candidateSeat)) continue; // 不在 PK 名單中
+                    }
+                    
+                    nextSpeaker = candidateSeat;
+                    break;
+                }
+                if (nextSpeaker === null) {
                     ctx.currentSpeaker = null;
                     ctx.systemLog = "發言環節結束。";
-                    
-                    // [修復 Bug 4] 安全截斷：當遺言發言完畢，清空狀態避免常規排程迴圈卡死
                     if (ctx.phase === 'LAST_WORDS') {
                         ctx.lastWordsTargets = [];
                     }
@@ -30,9 +46,9 @@ window.PhaseRegistry = {
                 }
                 
                 // 推進至下一位發言者
-                ctx.currentSpeaker = ctx.speakingQueue.shift();
+                ctx.currentSpeaker = nextSpeaker;
                 ctx.systemLog = `現在由 ${ctx.currentSpeaker} 號玩家發言`;
-                self.sm.setTimer(120000); // 120秒發言限制
+                self.sm.setTimer(120000);
             },
             onAction: (ctx, player, actionId) => {
                 // 僅允許當前發言者主動結束發言
@@ -181,10 +197,12 @@ window.PhaseRegistry = {
                 if (ctx.sheriff.candidates.length === 0) {
                     ctx.sheriff.badgeLost = true;
                     ctx.systemLog = "參與競選的玩家均已死亡，警徽流失。";
+                    self.sm.clearTimer();
                     Engine.EventBus.emit('DAWN_ANNOUNCE');
                 } else if (ctx.sheriff.candidates.length === 1) {
                     ctx.sheriff.seat = ctx.sheriff.candidates[0];
                     ctx.systemLog = `僅剩 ${ctx.sheriff.seat} 號玩家參選，自動當選警長！`;
+                    self.sm.clearTimer();
                     Engine.EventBus.emit('DAWN_ANNOUNCE');
                 } else {
                     ctx.currentStepActions = [];
