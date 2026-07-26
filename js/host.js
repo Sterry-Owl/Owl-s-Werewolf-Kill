@@ -443,7 +443,7 @@ function syncStateToAll() {
 }
 
 function buildUIStateForPlayer(ctx, player, isDayPhase) {
-    const isSheriffPhase = ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING'].includes(ctx.phase);
+    const isSheriffPhase = ['SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING'].includes(ctx.phase);
 
     // ==========================================
     // 1. 處理每個玩家座位上的標籤與狀態
@@ -520,10 +520,10 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                         submittedTargets = myAct.targets || [];
                         if (isAttacker) {
                             actionText = "等待隊友決定。";
-                        } else if (myAct.actionId === 'pass' || submittedTargets.length === 0) {
-                            actionText = "已選擇跳過行動。";
                         } else if (myAct.actionId === 'save') {
                             actionText = "已選擇使用解藥。";
+                        } else if (myAct.actionId === 'pass' || submittedTargets.length === 0) {
+                            actionText = "已選擇跳過行動。";
                         } else if (myAct.actionId === 'swap' && submittedTargets.length === 2) {
                             actionText = `已選擇交換 ${submittedTargets[0]} 號與 ${submittedTargets[1]} 號。`;
                         } else {
