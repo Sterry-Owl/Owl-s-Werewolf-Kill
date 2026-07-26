@@ -512,8 +512,41 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                 }
 
                 if (hasActed) {
-                    actionPanel.prompt = isAttacker ? "等待隊友決定。" : "行動已送出。";
-                    actionPanel.buttons = []; actionPanel.deadline = null;
+                    const myAct = ctx.currentStepActions.find(act => act.player.seatNumber === player.seatNumber);
+                    let actionText = "行動已送出。";
+                    let submittedTargets = [];
+                    
+                    if (myAct) {
+                        submittedTargets = myAct.targets || [];
+                        if (isAttacker) {
+                            actionText = "等待隊友決定。";
+                        } else if (myAct.actionId === 'pass' || submittedTargets.length === 0) {
+                            actionText = "已選擇跳過行動。";
+                        } else if (myAct.actionId === 'save') {
+                            actionText = "已選擇使用解藥。";
+                        } else if (myAct.actionId === 'swap' && submittedTargets.length === 2) {
+                            actionText = `已選擇交換 ${submittedTargets[0]} 號與 ${submittedTargets[1]} 號。`;
+                        } else {
+                            const map = {
+                                'poison': '毒殺', 'guard': '守護', 'charm': '魅惑', 'fear': '恐懼',
+                                'dream': '攝夢', 'curse': '詛咒', 'hunt': '狩獵', 'crush': '暗戀',
+                                'learn': '學習', 'check': '查驗', 'give_check': '贈與查驗', 
+                                'give_poison': '贈與毒藥', 'give_guard': '贈與守護', 'claw_kill': '發動利爪'
+                            };
+                            let actName = map[myAct.actionId];
+                            if (!actName && myAct.actionId === 'confirm' && ['預言家', '燈影預言家', '魔鏡少女'].includes(player.role)) {
+                                actName = '查驗';
+                            }
+                            actName = actName || '指定';
+                            actionText = `已選擇${actName} ${submittedTargets.join('、')} 號玩家。`;
+                        }
+                    }
+
+                    actionPanel.prompt = actionText;
+                    actionPanel.buttons = []; 
+                    actionPanel.deadline = null;
+                    actionPanel.hasActed = true; 
+                    actionPanel.submittedTargets = submittedTargets; 
                 } else {
                     actionPanel.prompt = plugin.getPrompt(ctx, player.seatNumber);
                 }
