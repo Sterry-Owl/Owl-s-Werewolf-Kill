@@ -36,20 +36,12 @@ const UI = {
         if(btnContainer) btnContainer.innerHTML = '';
         const promptEl = document.getElementById('action-prompt');
         if(promptEl) {
-            promptEl.innerHTML = '行動已送出，等待系統結算...';
+            promptEl.innerHTML = '行動已送出，等待系統確認...';
         }
         clearInterval(UI.countdownInterval);
         document.querySelectorAll('.player-seat').forEach(s => {
             s.style.pointerEvents = 'none';
         });
-        const slotsContainer = document.getElementById('target-slots-container');
-        if (slotsContainer) {
-            setTimeout(() => {
-                if (promptEl && promptEl.innerHTML.includes('等待系統結算')) {
-                    slotsContainer.classList.add('hidden');
-                }
-            }, 1500);
-        }
     },
 
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = [], showVoteHistory = false) {
