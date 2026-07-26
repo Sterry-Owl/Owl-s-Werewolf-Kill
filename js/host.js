@@ -101,15 +101,13 @@ function handleIncomingPacket(peerId, data) {
     else if (data.type === PACKET_TYPE.ACTION_SUBMIT || data.type === PACKET_TYPE.VOTE_SUBMIT) {
         const player = engineContext.getPlayerByPeer(peerId);
         if (player) {
-            // 讀取當前階段的邏輯設定
             const currentPhaseLogic = stateMachine.currentPhase;
-            
-            // 如果玩家已死，且當前階段沒有開放死者行動權限，則丟棄封包
             if (player.isDead && (!currentPhaseLogic || !currentPhaseLogic.allowDeadAction)) {
                 return;
             }
             
             stateMachine.handleAction(player, data.payload.actionId, data.payload.targets);
+            syncStateToAll();
         }
     }
     else if (data.type === PACKET_TYPE.SHERIFF_BAILOUT && ['SHERIFF_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT'].includes(engineContext.phase)) {
