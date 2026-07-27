@@ -249,8 +249,13 @@ RoleRegistry.register("女巫", {
         const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
         if (act.actionId === 'save' && !ctx.witchState.antidoteUsed) {
             if (ctx.nightTags?.killed?.length > 0) {
-                ctx.witchState.savedSeat = ctx.nightTags.killed[0]; 
-                ctx.witchState.silverWater = ctx.nightTags.killed[0]; 
+                const victim = ctx.nightTags.killed[0];
+                if (victim === act.player.seatNumber) {
+                    if (ctx.rules.witchSave === 'never') return "【無效行動】違反不可自救規則";
+                    if (ctx.rules.witchSave === 'first_night' && ctx.nightCount > 1) return "【無效行動】違反僅首夜可自救規則";
+                } 
+                ctx.witchState.savedSeat = victim; 
+                ctx.witchState.silverWater = victim; 
                 ctx.nightTags.witchUsedSaveTonight = true;
                 ctx.witchState.antidoteUsed = true;
                 return "使用解藥";
@@ -462,7 +467,7 @@ RoleRegistry.register("騎士", {
         getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
         resolve: (ctx, player, targetSeat) => {
             const targetPlayer = ctx.getPlayer(targetSeat);
-            player.isRevealed = true; // 騎士翻牌自證
+            player.isRevealed = true;
             ctx.systemLog = `${player.seatNumber} 號玩家是騎士，向${targetSeat} 號玩家發起決鬥。`;
             Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
             const isWolf = ROLE_DICTIONARY[targetPlayer.role]?.faction === 'wolf';
@@ -480,23 +485,30 @@ RoleRegistry.register("騎士", {
                 }
                 ctx.isResolvingAsync = true;
                 setTimeout(() => {
-                    ctx.isResolvingAsync = false;
-                    Engine.EventBus.emit('BROADCAST_MESSAGE', `決鬥結束，${targetSeat} 號玩家是狼人\n天黑請閉眼。`);
-                    Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
-                    if (ctx.phase !== 'GAME_OVER') {
-                        ctx.destinationPhase = 'NIGHT_TRANSITION'; 
-                        Engine.EventBus.emit('RESUME_ROUTINE');
+                    try {
+                        Engine.EventBus.emit('BROADCAST_MESSAGE', `決鬥結束，${targetSeat} 號玩家是狼人\n天黑請閉眼。`);
+                        Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+                        if (ctx.phase !== 'GAME_OVER') {
+                            ctx.destinationPhase = 'NIGHT_TRANSITION'; 
+                            Engine.EventBus.emit('RESUME_ROUTINE');
+                        }
+                    } finally {
+                        ctx.isResolvingAsync = false;
                     }
                 }, 5000);
             } else {
                 player.kill('dueled', ctx);
+                ctx.isResolvingAsync = true;
                 setTimeout(() => {
-                    ctx.isResolvingAsync = false;
-                    Engine.EventBus.emit('BROADCAST_MESSAGE', `決鬥結束，${targetSeat} 號玩家是好人，決鬥失敗，請玩家繼續發言。`);
-                    Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
-                    if (ctx.phase !== 'GAME_OVER') {
-                        ctx.destinationPhase = ctx.phase; 
-                        Engine.EventBus.emit('RESUME_ROUTINE'); 
+                    try {
+                        Engine.EventBus.emit('BROADCAST_MESSAGE', `決鬥結束，${targetSeat} 號玩家是好人，決鬥失敗，請玩家繼續發言。`);
+                        Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+                        if (ctx.phase !== 'GAME_OVER') {
+                            ctx.destinationPhase = ctx.phase; 
+                            Engine.EventBus.emit('RESUME_ROUTINE'); 
+                        }
+                    } finally {
+                        ctx.isResolvingAsync = false;
                     }
                 }, 5000);
             }
