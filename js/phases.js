@@ -619,6 +619,7 @@ stateMachine.registerPhase('HUNTER_ACTION', {
 
         // ================= 4. 常規放逐與放逐PK結算 =================
         ctx.isPK = false;
+        ctx.pkTargets = [];
         let header = isTie ? "投票結果出爐，平票或全數棄票，無人出局" : `投票結果出爐，${finalTarget} 號玩家出局`;
 
         ctx.pendingHunter = null;
@@ -626,8 +627,6 @@ stateMachine.registerPhase('HUNTER_ACTION', {
 
         if (!isTie && finalTarget) {
             const tPlayer = ctx.getPlayer(finalTarget);
-            
-            // [重構] 導入生命週期鉤子：徹底消除硬編碼，將免死邏輯交還給 role.js
             const plugin = RoleRegistry.plugins[tPlayer.role];
             if (plugin && typeof plugin.onVotedOut === 'function') {
                 const hookResult = plugin.onVotedOut(ctx, tPlayer);
