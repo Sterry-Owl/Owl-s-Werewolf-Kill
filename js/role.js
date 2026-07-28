@@ -1442,3 +1442,47 @@ RoleRegistry.register("獵魔人", {
         }
     }
 });
+RoleRegistry.register("熊", {
+    canSelfExplode: false
+});
+
+RoleRegistry.register("河豚", {
+    canSelfExplode: false,
+    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        if (deathMap[player.seatNumber] === 'killed' && ctx.nightTags?.clawKilled !== player.seatNumber) {
+            player.isRevealed = true;
+            ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：河豚遭到狼人擊殺，翻牌自證)`;
+        }
+    },
+    daySkill: {
+        id: 'pufferfish_blow', 
+        buttonText: '翻牌發動反傷', 
+        requiresTarget: false,
+        allowDead: true,
+        allowedPhases: ['LAST_WORDS'], 
+        getSelectableSeats: () => [],
+        resolve: (ctx, player) => {
+            player.isRevealed = true;
+            const targets = ctx.dailyVotes ? (ctx.dailyVotes[player.seatNumber] || []) : [];
+            
+            if (targets.length === 0) {
+                ctx.systemLog = `${player.seatNumber} 號玩家是河豚，翻牌發動河豚爆炸。\n但當天沒有任何人投票給他，無事發生。`;
+                Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
+                return;
+            }
+            
+            let killedSeats = [];
+            targets.forEach(seat => {
+                const t = ctx.getPlayer(seat);
+                if (t && !t.isDead) {
+                    t.kill('shot', ctx); 
+                    killedSeats.push(seat);
+                }
+            });
+            
+            ctx.systemLog = `${player.seatNumber} 號玩家是河豚，翻牌發動河豚爆炸\n炸死了曾投票給他的：${killedSeats.join('、')} 號玩家。`;
+            Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
+            Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+        }
+    }
+});
