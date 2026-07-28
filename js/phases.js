@@ -503,13 +503,18 @@ stateMachine.registerPhase('HUNTER_ACTION', {
         Object.entries(ctx.votes).forEach(([voterSeatStr, t]) => {
             const voterSeat = parseInt(voterSeatStr);
             if (!voteGroups[t]) voteGroups[t] = [];
-            
-            const voteWeight = (t !== 'pass') ? ctx.applyFilter('VOTE_WEIGHT', 1, { voterSeat, isSheriffPhase: isSheriff }) : 0;
-            
+            const voteWeight = (t !== 'pass') ? ctx.applyFilter('VOTE_WEIGHT', 1, { voterSeat, isSheriffPhase: isSheriff }) : 0;  
             voteGroups[t].push(voteWeight === 1.5 ? `${voterSeat}(1.5票)*` : `${voterSeat}`);
             if (t !== 'pass') {
                 voteCounts[t] = (voteCounts[t] || 0) + voteWeight;
                 validVotesCount++;
+                if (!isSheriff) {
+                    ctx.dailyVotes = ctx.dailyVotes || {};
+                    ctx.dailyVotes[t] = ctx.dailyVotes[t] || [];
+                    if (!ctx.dailyVotes[t].includes(voterSeat)) {
+                        ctx.dailyVotes[t].push(voterSeat);
+                    }
+                }
             }
         });
 
