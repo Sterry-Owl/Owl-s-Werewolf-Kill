@@ -97,13 +97,35 @@ window.PhaseRegistry = {
                 self.sm.setTimer(5000); 
             },
             onTimeout: (ctx) => {
-                if (ctx.nextPhaseAfterVoteDisplay === 'DAWN_RESUME') Engine.EventBus.emit('DAWN_ANNOUNCE');
+                if (ctx.nextPhaseAfterVoteDisplay === 'DAWN_RESUME') Engine.EventBus.emit('TRIGGER_DEATH_ANNOUNCE');
                 else if (ctx.nextPhaseAfterVoteDisplay === 'RESUME_ROUTINE') Engine.EventBus.emit('RESUME_ROUTINE');
                 else if (ctx.nextPhaseAfterVoteDisplay) self.sm.transitionTo(ctx.nextPhaseAfterVoteDisplay);
             }
         });
+
+        stateMachine.registerPhase('BEAR_ROAR_ANNOUNCE', {
+            onEnter: (ctx) => {
+                self.sm.setTimer(5000);
+            },
+            onTimeout: (ctx) => {
+                if (ctx.rules.sheriff === 'enabled' && !ctx.sheriff.seat && !ctx.sheriff.badgeLost) {
+                    if (!ctx.sheriff.isDelayedElection) self.sm.transitionTo('SHERIFF_CANDIDACY');
+                    else self.sm.transitionTo('SHERIFF_RE_ELECTION_BAILOUT');
+                } else {
+                    Engine.EventBus.emit('TRIGGER_DEATH_ANNOUNCE');
+                }
+            }
+        });
+
+        stateMachine.registerPhase('DAWN_DEATH_ANNOUNCE', {
+            onEnter: (ctx) => {
+                self.sm.setTimer(5000);
+            },
+            onTimeout: (ctx) => {
+                Engine.EventBus.emit('AFTER_DEATH_ANNOUNCE_ROUTINE');
+            }
+        });
         
-        // [新增] 警長決定發言順序階段
         stateMachine.registerPhase('SHERIFF_ORDER_SELECTION', {
             onEnter: (ctx) => {
                 ctx.systemLog = "等待警長決定白天發言順序 (30秒)...";
@@ -200,12 +222,12 @@ window.PhaseRegistry = {
                     ctx.sheriff.badgeLost = true;
                     ctx.systemLog = "參與競選的玩家均已死亡，警徽流失。";
                     self.sm.clearTimer();
-                    Engine.EventBus.emit('DAWN_ANNOUNCE');
+                    Engine.EventBus.emit('TRIGGER_DEATH_ANNOUNCE');
                 } else if (ctx.sheriff.candidates.length === 1) {
                     ctx.sheriff.seat = ctx.sheriff.candidates[0];
                     ctx.systemLog = `僅剩 ${ctx.sheriff.seat} 號玩家參選，自動當選警長！`;
                     self.sm.clearTimer();
-                    Engine.EventBus.emit('DAWN_ANNOUNCE');
+                    Engine.EventBus.emit('TRIGGER_DEATH_ANNOUNCE');
                 } else {
                     ctx.currentStepActions = [];
                     ctx.systemLog = "【延遲再選舉】退水時間 (10秒)...";
@@ -462,14 +484,14 @@ stateMachine.registerPhase('HUNTER_ACTION', {
             ctx.sheriff.electionFinishedToday = true;
             ctx.systemLog = `由於全體上警/無人上警，本局警徽流失。`;
             Engine.EventBus.emit('MASTER_LOG', ctx.systemLog); // [新增] 將結果寫入全知紀錄
-            Engine.EventBus.emit('DAWN_ANNOUNCE');
+            Engine.EventBus.emit('TRIGGER_DEATH_ANNOUNCE');
         } else if (ctx.sheriff.candidates.length === 1) {
             // [新增] 單人上警，自動當選
             ctx.sheriff.seat = ctx.sheriff.candidates[0];
             ctx.sheriff.electionFinishedToday = true;
             ctx.systemLog = `僅 ${ctx.sheriff.seat} 號玩家上警，自動當選警長！`;
             Engine.EventBus.emit('MASTER_LOG', ctx.systemLog); // [新增] 將結果寫入全知紀錄
-            Engine.EventBus.emit('DAWN_ANNOUNCE');
+            Engine.EventBus.emit('TRIGGER_DEATH_ANNOUNCE');
         } else {
             ctx.sheriff.candidates.sort((a,b) => a-b);
             const startSeat = ctx.sheriff.candidates[Math.floor(Math.random() * ctx.sheriff.candidates.length)];
