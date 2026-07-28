@@ -243,7 +243,7 @@ const UI = {
         if (actionPanelEl) {
             if (state.actionPanel && state.actionPanel.bgImage) {
                 actionPanelEl.classList.add('image-mode');
-                actionPanelEl.style.backgroundImage = `url('./img/${state.actionPanel.bgImage}.webp')`;
+                actionPanelEl.style.backgroundImage = `url('./img/act/${state.actionPanel.bgImage}.webp')`;
             } else {
                 actionPanelEl.classList.remove('image-mode');
                 actionPanelEl.style.backgroundImage = 'none';
