@@ -179,17 +179,20 @@ function handleIncomingPacket(peerId, data) {
             }
         }
     }    
-    else if (data.type === 'DAY_SKILL_SUBMIT') { // 注意：前端發送封包時 type 需對應
+    else if (data.type === 'DAY_SKILL_SUBMIT') {
         const player = engineContext.getPlayerByPeer(peerId);
         const plugin = RoleRegistry.plugins[player?.role];
-        
-        // 防呆：玩家活著 + 擁有該技能 + 技能ID吻合
-        if (player && !player.isDead && plugin?.daySkill && plugin.daySkill.id === data.payload.skillId) {
+        if (player && plugin?.daySkill && plugin.daySkill.id === data.payload.skillId) {
+            if (player.isDead && !plugin.daySkill.allowDead) return;
             if (!plugin.daySkill.allowedPhases.includes(engineContext.phase)) return;
-            const validTargets = plugin.daySkill.getSelectableSeats(engineContext, player.seatNumber);
-            if (!validTargets.includes(data.payload.target)) return;
+            
+            if (plugin.daySkill.requiresTarget) {
+                const validTargets = plugin.daySkill.getSelectableSeats(engineContext, player.seatNumber);
+                if (!validTargets.includes(data.payload.target)) return;
+            }
             plugin.daySkill.resolve(engineContext, player, data.payload.target);
-            Engine.EventBus.emit('MASTER_LOG', `【技能發動】${player.seatNumber}號(${player.role}) 對 ${data.payload.target}號 使用了 ${plugin.daySkill.buttonText}`);
+            const targetText = plugin.daySkill.requiresTarget ? ` 對 ${data.payload.target}號` : "";
+            Engine.EventBus.emit('MASTER_LOG', `【技能發動】${player.seatNumber}號(${player.role})${targetText} 使用了 ${plugin.daySkill.buttonText}`);
             syncStateToAll();
         }
     }
@@ -217,6 +220,7 @@ function setupEngineFlowControllers() {
         engineContext.nightTags = { killed: [], poisoned: [], witchUsedSaveTonight: false };
         engineContext.wolfPreviews = {};
         engineContext.wolfChatHistory = [];
+        engineContext.dailyVotes = {};
         engineContext.cursedSeat = null;
         engineContext.lastFearedSeat = engineContext.fearedSeat || null;
         engineContext.fearedSeat = null;
@@ -289,15 +293,11 @@ function setupEngineFlowControllers() {
         };
 
         const deathMap = engineContext.applyFilter('DAWN_DEATH_EVALUATION', calculation);
-        
-        // [乾淨架構 2] 觸發死亡：若發生殉情，連鎖事件會在此迴圈執行期間同步改變目標狀態
         engineContext.players.forEach(p => {
             if (!p.isDead && deathMap[p.seatNumber]) {
                 p.kill(deathMap[p.seatNumber], engineContext);
             }
         });
-
-        // [乾淨架構 3] 狀態比對：自動收集本次結算中所有轉為死亡的玩家（精準涵蓋被刀、被毒、殉情等所有死因）
         engineContext.deadThisNight = engineContext.players
             .filter(p => p.isDead && !deadBefore.includes(p.seatNumber))
             .map(p => p.seatNumber);
@@ -309,11 +309,29 @@ function setupEngineFlowControllers() {
         Engine.EventBus.emit('CHECK_WIN_CONDITION', engineContext);
         if (engineContext.phase === 'GAME_OVER') return;
 
+        let bearRoarText = "";
+        const bearPlayer = engineContext.players.find(p => p.role === '熊' && !p.isDead);
+        if (bearPlayer) {
+            const leftSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, -1);
+            const rightSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, 1);
+            const isWolf = (p) => {
+                if (!p) return false;
+                const roleName = p.data.camouflageRole || p.role;
+                return ROLE_DICTIONARY[roleName]?.faction === 'wolf';
+            };
+            if (isWolf(engineContext.getPlayer(leftSeat)) || isWolf(engineContext.getPlayer(rightSeat))) {
+                bearRoarText = "\n【熊有咆哮】";
+            } else {
+                bearRoarText = "\n【熊沒有咆哮】";
+            }
+            Engine.EventBus.emit('MASTER_LOG', `【熊判定】左側${leftSeat}號，右側${rightSeat}號 ${bearRoarText}`);
+        }
+
         const dead = engineContext.deadThisNight;
         engineContext.lastWordsTargets = (engineContext.nightCount === 1 && dead.length > 0) ? [...dead] : [];
         const msg = dead.length > 0 ? `昨晚，${dead.join(' 號、')} 號玩家死亡。` : `昨晚是平安夜。`;
-        engineContext.systemLog = msg;
-        Engine.EventBus.emit('BROADCAST_MESSAGE', msg);
+        engineContext.systemLog = msg + bearRoarText;
+        Engine.EventBus.emit('BROADCAST_MESSAGE', msg + bearRoarText);
         
         // ===============================================
         // [新增] 白天發言順序與動態文本計算
@@ -675,11 +693,11 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         canUseWolfChat: canUseWolfChat,
         isMidnight: isMidnight,
         wolfChatHistory: canUseWolfChat ? (ctx.wolfChatHistory || []) : [],
-        daySkill: (!player.isDead && isDayPhase && RoleRegistry.plugins[player.role]?.daySkill && RoleRegistry.plugins[player.role].daySkill.allowedPhases.includes(ctx.phase)) ? {
+        daySkill: (isDayPhase && RoleRegistry.plugins[player.role]?.daySkill && RoleRegistry.plugins[player.role].daySkill.allowedPhases.includes(ctx.phase) && (!player.isDead || RoleRegistry.plugins[player.role].daySkill.allowDead)) ? {
             id: RoleRegistry.plugins[player.role].daySkill.id,
             buttonText: RoleRegistry.plugins[player.role].daySkill.buttonText,
             requiresTarget: RoleRegistry.plugins[player.role].daySkill.requiresTarget,
-            selectableSeats: RoleRegistry.plugins[player.role].daySkill.getSelectableSeats(ctx, player.seatNumber)
+            selectableSeats: RoleRegistry.plugins[player.role].daySkill.requiresTarget ? RoleRegistry.plugins[player.role].daySkill.getSelectableSeats(ctx, player.seatNumber) : []
         } : null,
         allowBailout: !player.isDead && ['SHERIFF_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT'].includes(ctx.phase) && (ctx.sheriff.candidates || []).includes(player.seatNumber),
         allowEndSpeech: player.seatNumber === ctx.currentSpeaker
