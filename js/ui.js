@@ -239,16 +239,23 @@ const UI = {
         // [升級] 動態號碼槽生成系統 (Dynamic Target Slots)
         // ===============================================
         const slotsContainer = document.getElementById('target-slots-container');
-        
-        // [新增] 讀取伺服器已確認之目標，優先級高於本地暫存，實現絕對準確的視覺殘留
-        const displayTargets = (state.actionPanel && state.actionPanel.hasActed && state.actionPanel.submittedTargets) 
+        const actionPanelEl = document.querySelector('.action-panel');
+        if (actionPanelEl) {
+            if (state.actionPanel && state.actionPanel.bgImage) {
+                actionPanelEl.classList.add('image-mode');
+                actionPanelEl.style.backgroundImage = `url('./img/${state.actionPanel.bgImage}.webp')`;
+            } else {
+                actionPanelEl.classList.remove('image-mode');
+                actionPanelEl.style.backgroundImage = 'none';
+            }
+        }
+        const displayTargets = (state.actionPanel && (state.actionPanel.hasActed || state.actionPanel.forceTargets) && state.actionPanel.submittedTargets) 
             ? state.actionPanel.submittedTargets 
             : selectedTargets;
 
         if (slotsContainer) {
             slotsContainer.innerHTML = ''; 
-            
-            if (state.actionPanel && state.actionPanel.show && state.actionPanel.type !== 'none') {
+            if (state.actionPanel && state.actionPanel.show && (state.actionPanel.type !== 'none' || state.actionPanel.forceTargets)) {
                 slotsContainer.classList.remove('hidden');
 
                 const createSlot = (seatNum, labelText, specialClass) => {
