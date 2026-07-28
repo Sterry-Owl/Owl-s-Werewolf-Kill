@@ -337,11 +337,12 @@ function setupEngineFlowControllers() {
         // [新增] 白天發言順序與動態文本計算
         // ===============================================
         const deadPrompt = dead.length === 0 ? "昨晚是平安夜" : `昨晚 ${[...dead].sort((a, b) => a - b).join(' 號、')} 號玩家死亡`;
-        engineContext.systemLog = deadPrompt;
+        engineContext.systemLog = deadPrompt + bearRoarText;
         
         if (engineContext.sheriff.seat && !engineContext.sheriff.badgeLost) {
             // 有警長：流轉至警長決定順序階段
-            engineContext.dayDiscussionPrompt = `${deadPrompt}\n請警長決定發言順序`;
+            // [修復] 精準拼接 bearRoarText
+            engineContext.dayDiscussionPrompt = `${deadPrompt}${bearRoarText}\n請警長決定發言順序`;
             engineContext.destinationPhase = 'SHERIFF_ORDER_SELECTION';
         } else {
             // 無警長：系統隨機決定起點與順逆，並直接建構佇列
@@ -360,7 +361,8 @@ function setupEngineFlowControllers() {
             }
             
             // 將計算結果寫入 UI 文本，供全體玩家查看
-            engineContext.dayDiscussionPrompt = `${deadPrompt}\n請從 ${startSeat} 號開始${dirStr}序發言`;
+            // [修復] 精準拼接 bearRoarText
+            engineContext.dayDiscussionPrompt = `${deadPrompt}${bearRoarText}\n請從 ${startSeat} 號開始${dirStr}序發言`;
             engineContext.buildSpeakingQueue(startSeat, dirNum);
             engineContext.destinationPhase = 'DAY_DISCUSSION';
         }
