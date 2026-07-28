@@ -19,6 +19,7 @@ window.PhaseRegistry = {
                     const p = ctx.getPlayer(candidateSeat);
                     
                     if (!p) continue;
+                    // [核心修復] 遺言階段必須允許死亡玩家保有發言權
                     if (p.isDead && ctx.phase !== 'LAST_WORDS') continue; 
                     
                     if (ctx.phase === 'SHERIFF_SPEECH' || ctx.phase === 'SHERIFF_PK_SPEECH') {
@@ -268,20 +269,20 @@ window.PhaseRegistry = {
                 if (actionId === 'transfer' && targets.length > 0) {
                     ctx.sheriff.seat = targets[0];
                     ctx.systemLog = `【警長傳承】前任警長將警徽交給了 ${ctx.sheriff.seat} 號玩家。`;
-                    Engine.EventBus.emit('MASTER_LOG', ctx.systemLog);
-                    ctx.dayDiscussionPrompt = ctx.prompt_Sheriff; 
                 } else {
                     ctx.sheriff.seat = null;
                     ctx.sheriff.badgeLost = true;
                     ctx.systemLog = `【警徽流失】前任警長選擇撕毀警徽。`;
-                    Engine.EventBus.emit('MASTER_LOG', ctx.systemLog);
-                    ctx.dayDiscussionPrompt = ctx.prompt_NoSheriff; 
                 }
+                Engine.EventBus.emit('MASTER_LOG', ctx.systemLog);
+                
+                // [核心修復] 避免以 undefined 覆寫變數，改為安全拼接，保留死訊與熊咆哮
+                if (ctx.dayDiscussionPrompt) ctx.dayDiscussionPrompt += `\n${ctx.systemLog}`;
+                else ctx.dayDiscussionPrompt = ctx.systemLog;
                 
                 Engine.EventBus.emit('RESUME_ROUTINE');
             },
             onTimeout: (ctx) => {
-                // [修復崩潰與清理狀態] 必須先取得原警長實例，避免 player is not defined 報錯
                 const oldSheriff = ctx.getPlayer(ctx.sheriff.seat);
                 if (oldSheriff && oldSheriff.data) oldSheriff.data.mustTransferBadge = false;
 
@@ -289,7 +290,8 @@ window.PhaseRegistry = {
                 ctx.sheriff.badgeLost = true;
                 ctx.systemLog = `【警徽流失】超時未動作，警徽強制流失。`;
                 Engine.EventBus.emit('MASTER_LOG', ctx.systemLog);
-                ctx.dayDiscussionPrompt = ctx.prompt_NoSheriff;
+                if (ctx.dayDiscussionPrompt) ctx.dayDiscussionPrompt += `\n${ctx.systemLog}`;
+                else ctx.dayDiscussionPrompt = ctx.systemLog;
                 
                 Engine.EventBus.emit('RESUME_ROUTINE');
             }
