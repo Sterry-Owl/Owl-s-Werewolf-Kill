@@ -678,6 +678,59 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     }
 
     // ==========================================
+    // [視覺革新] 白天面板圖片路由與強制號碼槽映射
+    // ==========================================
+    if (isDayPhase && actionPanel.show) {
+        let bg = null;
+        let forcedTargets = null;
+
+        switch(ctx.phase) {
+            case 'BEAR_ROAR_ANNOUNCE':
+                bg = ctx.bearRoarResult === '【熊有咆哮】' ? 'act_1' : 'act_2';
+                forcedTargets = [];
+                break;
+            case 'DAWN_DEATH_ANNOUNCE':
+                const d = ctx.deadThisNight || [];
+                bg = d.length === 0 ? 'act_11' : 'act_12';
+                forcedTargets = d; 
+                break;
+            case 'SHERIFF_CANDIDACY': bg = 'act_3'; break;
+            case 'SHERIFF_SPEECH': bg = 'act_4'; forcedTargets = [ctx.currentSpeaker]; break;
+            case 'SHERIFF_VOTING': bg = 'act_5'; break;
+            case 'SHERIFF_PK_SPEECH': bg = 'act_6'; forcedTargets = [ctx.currentSpeaker]; break;
+            case 'SHERIFF_PK_VOTING': bg = 'act_7'; break;
+            case 'SHERIFF_TRANSFER': bg = 'act_9'; break;
+            case 'SHERIFF_ORDER_SELECTION': bg = 'act_10'; break;
+            case 'DAY_DISCUSSION': case 'LAST_WORDS': bg = 'act_13'; forcedTargets = [ctx.currentSpeaker]; break;
+            case 'DAY_VOTING': bg = 'act_14'; break;
+            case 'DAY_PK_SPEECH': bg = 'act_15'; forcedTargets = [ctx.currentSpeaker]; break;
+            case 'DAY_PK_VOTING': bg = 'act_14'; break;
+            case 'VOTE_RESULT_DISPLAY':
+                const str = ctx.currentVoteResultString || '';
+                if (str.includes('平票')) {
+                    if (str.includes('警長')) { bg = 'act_6'; forcedTargets = ctx.sheriff.pkTargets || []; }
+                    else { bg = 'act_15'; forcedTargets = ctx.pkTargets || []; }
+                } else if (str.includes('警長誕生')) {
+                    bg = 'act_8'; forcedTargets = [ctx.sheriff.seat];
+                } else if (str.includes('無人出局')) {
+                    bg = 'act_17'; forcedTargets = [];
+                } else {
+                    bg = 'act_16'; forcedTargets = ctx.votedOutToday ? [ctx.votedOutToday] : [];
+                }
+                break;
+        }
+
+        if (bg) {
+            actionPanel.bgImage = bg;
+            actionPanel.prompt = "";
+            if (forcedTargets !== null) {
+                actionPanel.forceTargets = true;
+                actionPanel.submittedTargets = forcedTargets;
+            }
+        }
+    }
+
+    // ==========================================
     // 3. 打包回傳封包給前端渲染
     // ==========================================
     const roleCounts = {};
