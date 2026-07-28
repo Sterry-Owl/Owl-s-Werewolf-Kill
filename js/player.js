@@ -112,10 +112,13 @@ function handleSeatSelect(seatNumber) {
 function handleActionSubmit(actionId, extraPayload = null) {
     if (!localState.actionPanel || !localState.actionPanel.show) return;
     if (actionId === 'SPECIAL_DAY_SKILL_SUBMIT') {
-        if (currentActionTarget.length === 0) return alert('請先選擇目標！');
+        const skillDef = localState.daySkill;
+        if (skillDef && skillDef.requiresTarget && currentActionTarget.length === 0) {
+            return alert('請先選擇目標！');
+        }
         hostConnection.send({ 
             type: 'DAY_SKILL_SUBMIT', 
-            payload: { skillId: extraPayload, target: currentActionTarget[0] } 
+            payload: { skillId: extraPayload, target: currentActionTarget.length > 0 ? currentActionTarget[0] : null } 
         });
         UI.blockActionPanel();
         return; 
