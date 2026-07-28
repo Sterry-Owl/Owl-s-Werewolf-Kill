@@ -695,15 +695,15 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                 forcedTargets = d; 
                 break;
             case 'SHERIFF_CANDIDACY': bg = 'act_3'; break;
-            case 'SHERIFF_SPEECH': bg = 'act_4'; forcedTargets = [ctx.currentSpeaker]; break;
+            case 'SHERIFF_SPEECH': bg = 'act_4'; forcedTargets = ctx.currentSpeaker ? [ctx.currentSpeaker] : []; break;
             case 'SHERIFF_VOTING': bg = 'act_5'; break;
-            case 'SHERIFF_PK_SPEECH': bg = 'act_6'; forcedTargets = [ctx.currentSpeaker]; break;
+            case 'SHERIFF_PK_SPEECH': bg = 'act_6'; forcedTargets = ctx.currentSpeaker ? [ctx.currentSpeaker] : []; break;
             case 'SHERIFF_PK_VOTING': bg = 'act_7'; break;
             case 'SHERIFF_TRANSFER': bg = 'act_9'; break;
             case 'SHERIFF_ORDER_SELECTION': bg = 'act_10'; break;
-            case 'DAY_DISCUSSION': case 'LAST_WORDS': bg = 'act_13'; forcedTargets = [ctx.currentSpeaker]; break;
+            case 'DAY_DISCUSSION': case 'LAST_WORDS': bg = 'act_13'; forcedTargets = ctx.currentSpeaker ? [ctx.currentSpeaker] : []; break;
             case 'DAY_VOTING': bg = 'act_14'; break;
-            case 'DAY_PK_SPEECH': bg = 'act_15'; forcedTargets = [ctx.currentSpeaker]; break;
+            case 'DAY_PK_SPEECH': bg = 'act_15'; forcedTargets = ctx.currentSpeaker ? [ctx.currentSpeaker] : []; break;
             case 'DAY_PK_VOTING': bg = 'act_14'; break;
             case 'VOTE_RESULT_DISPLAY':
                 const str = ctx.currentVoteResultString || '';
