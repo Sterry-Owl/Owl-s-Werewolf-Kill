@@ -497,3 +497,52 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     background-color: rgba(0, 0, 0, 0.75);
     bottom: 80px !important; 
 }
+/* ==================================================== */
+/* 圖片渲染模式 (Image Mode) 專屬視圖設定 */
+/* ==================================================== */
+.action-panel.image-mode {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: relative;
+    min-height: 240px; 
+    padding: 0;
+    pointer-events: auto;
+}
+
+/* 號碼槽精準落於圖片中央的框框區 */
+.action-panel.image-mode .target-slots-container {
+    position: absolute;
+    top: 45%; /* 根據圖片框框高度微調 */
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    z-index: 10;
+}
+
+/* 按鈕貼齊於圖片底部邊緣 */
+.action-panel.image-mode .action-buttons-row {
+    position: absolute;
+    bottom: 12%; /* 根據圖片底部空間微調 */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 85%;
+    z-index: 10;
+}
+
+/* 倒數計時器浮動於圖片頂端 */
+.action-panel.image-mode #action-timer-display {
+    position: absolute;
+    top: -5px; 
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+}
+
+/* 隱藏殘留的 prompt 容器以避免阻擋點擊 */
+.action-panel.image-mode .action-prompt {
+    display: none;
+}
