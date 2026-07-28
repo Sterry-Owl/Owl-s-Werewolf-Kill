@@ -18,13 +18,14 @@ window.PhaseRegistry = {
                     const candidateSeat = ctx.speakingQueue.shift();
                     const p = ctx.getPlayer(candidateSeat);
                     
-                    if (!p || p.isDead) continue; // 已死亡，失去資格
+                    if (!p) continue;
+                    if (p.isDead && ctx.phase !== 'LAST_WORDS') continue; 
                     
                     if (ctx.phase === 'SHERIFF_SPEECH' || ctx.phase === 'SHERIFF_PK_SPEECH') {
-                        if (!(ctx.sheriff.candidates || []).includes(candidateSeat)) continue; // 已退水，失去資格
+                        if (!(ctx.sheriff.candidates || []).includes(candidateSeat)) continue;
                     }
                     if (ctx.phase === 'DAY_PK_SPEECH') {
-                        if (!(ctx.pkTargets || []).includes(candidateSeat)) continue; // 不在 PK 名單中
+                        if (!(ctx.pkTargets || []).includes(candidateSeat)) continue;
                     }
                     
                     nextSpeaker = candidateSeat;
