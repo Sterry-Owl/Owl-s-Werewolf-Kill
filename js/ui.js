@@ -285,6 +285,24 @@ const UI = {
                     
                     const poisonTarget = displayTargets.length > 0 ? displayTargets[0] : null;
                     createSlot(poisonTarget, poisonTarget ? '毒藥' : '選擇毒藥目標', 'poison');
+                } else if (state.actionPanel.forceTargets) {
+                    if (displayTargets.length === 0) {
+                        slotsContainer.classList.add('hidden');
+                    } else {
+                        displayTargets.forEach(target => {
+                            let alignmentLabel = '目標';
+                            let specialClass = '';
+                            const tData = state.players.find(p => p.seatNumber === target);
+                            if (tData && tData.sideTag) {
+                                alignmentLabel = tData.sideTag;
+                                if (alignmentLabel === '狼人') specialClass = 'wolf';
+                                else if (alignmentLabel === '好人') specialClass = 'good';
+                                else if (alignmentLabel === '警長') specialClass = 'sheriff';
+                                else if (alignmentLabel === '銀水') specialClass = 'silver';
+                            }
+                            createSlot(target, alignmentLabel, specialClass);
+                        });
+                    }
 
                 } else if (state.actionPanel.type === 'double_select') {
                     createSlot(displayTargets[0] || null, '目標 1', '');
