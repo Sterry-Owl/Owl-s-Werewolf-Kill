@@ -269,7 +269,38 @@ function setupEngineFlowControllers() {
     });
 
     Engine.EventBus.on('PROCESS_DAWN', () => {
-        // [架構重構] 將天亮死亡與熊咆哮的「資訊結算」提前至白天起點，實現「警上已知死訊與狀態」
+        // [階段 1] 時間軸最前端：判定熊咆哮並觸發獨立階段
+        let bearRoarText = null;
+        const bearPlayer = engineContext.players.find(p => p.role === '熊' && !p.isDead);
+        if (bearPlayer) {
+            const leftSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, -1);
+            const rightSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, 1);
+            const isWolf = (p) => {
+                if (!p) return false;
+                const roleName = p.data.camouflageRole || p.role;
+                return ROLE_DICTIONARY[roleName]?.faction === 'wolf';
+            };
+            bearRoarText = (isWolf(engineContext.getPlayer(leftSeat)) || isWolf(engineContext.getPlayer(rightSeat))) 
+                ? "【熊有咆哮】" : "【熊沒有咆哮】";
+            
+            Engine.EventBus.emit('MASTER_LOG', `【熊判定】左側${leftSeat}號，右側${rightSeat}號 ${bearRoarText}`);
+            engineContext.bearRoarResult = bearRoarText;
+            engineContext.systemLog = bearRoarText;
+            stateMachine.transitionTo('BEAR_ROAR_ANNOUNCE');
+        } else {
+            // 無熊則直接進行下一個階段分流
+            engineContext.bearRoarResult = null;
+            if (engineContext.rules.sheriff === 'enabled' && !engineContext.sheriff.seat && !engineContext.sheriff.badgeLost) {
+                if (!engineContext.sheriff.isDelayedElection) stateMachine.transitionTo('SHERIFF_CANDIDACY');
+                else stateMachine.transitionTo('SHERIFF_RE_ELECTION_BAILOUT');
+            } else {
+                Engine.EventBus.emit('TRIGGER_DEATH_ANNOUNCE');
+            }
+        }
+    });
+
+    Engine.EventBus.on('TRIGGER_DEATH_ANNOUNCE', () => {
+        // [階段 2] 警長選完後：正式結算昨夜死亡並觸發死訊獨立階段
         const deadBefore = engineContext.players.filter(p => p.isDead).map(p => p.seatNumber);
         engineContext.hunterDiedThisNight = false;
         const calculation = {
@@ -283,9 +314,7 @@ function setupEngineFlowControllers() {
 
         const deathMap = engineContext.applyFilter('DAWN_DEATH_EVALUATION', calculation);
         engineContext.players.forEach(p => {
-            if (!p.isDead && deathMap[p.seatNumber]) {
-                p.kill(deathMap[p.seatNumber], engineContext);
-            }
+            if (!p.isDead && deathMap[p.seatNumber]) p.kill(deathMap[p.seatNumber], engineContext);
         });
         engineContext.deadThisNight = engineContext.players
             .filter(p => p.isDead && !deadBefore.includes(p.seatNumber))
@@ -298,50 +327,23 @@ function setupEngineFlowControllers() {
         Engine.EventBus.emit('CHECK_WIN_CONDITION', engineContext);
         if (engineContext.phase === 'GAME_OVER') return;
 
-        let bearRoarText = "";
-        const bearPlayer = engineContext.players.find(p => p.role === '熊' && !p.isDead);
-        if (bearPlayer) {
-            const leftSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, -1);
-            const rightSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, 1);
-            const isWolf = (p) => {
-                if (!p) return false;
-                const roleName = p.data.camouflageRole || p.role;
-                return ROLE_DICTIONARY[roleName]?.faction === 'wolf';
-            };
-            if (isWolf(engineContext.getPlayer(leftSeat)) || isWolf(engineContext.getPlayer(rightSeat))) {
-                bearRoarText = "\n【熊有咆哮】";
-            } else {
-                bearRoarText = "\n【熊沒有咆哮】";
-            }
-            Engine.EventBus.emit('MASTER_LOG', `【熊判定】左側${leftSeat}號，右側${rightSeat}號 ${bearRoarText}`);
-        }
-
         const dead = engineContext.deadThisNight;
-        const deadPrompt = dead.length === 0 ? "昨晚是平安夜" : `昨晚 ${[...dead].sort((a, b) => a - b).join(' 號、')} 號玩家死亡`;
+        const msg = dead.length > 0 ? `昨晚，${dead.join(' 號、')} 號玩家死亡。` : `昨晚是平安夜。`;
         
-        // [全域封裝] 建立貫穿全白天的早晨宣告文本
-        engineContext.morningAnnouncement = deadPrompt + bearRoarText;
-        engineContext.systemLog = engineContext.morningAnnouncement;
-        Engine.EventBus.emit('BROADCAST_MESSAGE', engineContext.morningAnnouncement);
-
-        if (engineContext.rules.sheriff === 'enabled' && !engineContext.sheriff.seat && !engineContext.sheriff.badgeLost) {
-            if (!engineContext.sheriff.isDelayedElection) {
-                stateMachine.transitionTo('SHERIFF_CANDIDACY');
-            } else {
-                stateMachine.transitionTo('SHERIFF_RE_ELECTION_BAILOUT');
-            }
-        } else {
-            Engine.EventBus.emit('DAWN_ANNOUNCE');
-        }
+        engineContext.deathAnnounceText = msg;
+        engineContext.systemLog = msg;
+        Engine.EventBus.emit('BROADCAST_MESSAGE', msg);
+        
+        stateMachine.transitionTo('DAWN_DEATH_ANNOUNCE');
     });
 
-    Engine.EventBus.on('DAWN_ANNOUNCE', () => {
-        // [職責收斂] 此階段僅負責分發白天討論順序與遺言過渡
+    Engine.EventBus.on('AFTER_DEATH_ANNOUNCE_ROUTINE', () => {
+        // [階段 3] 死訊宣告完畢：分配白天發言權並進入常規環節
         const dead = engineContext.deadThisNight || [];
         engineContext.lastWordsTargets = (engineContext.nightCount === 1 && dead.length > 0) ? [...dead] : [];
         
         if (engineContext.sheriff.seat && !engineContext.sheriff.badgeLost) {
-            engineContext.dayDiscussionPrompt = `${engineContext.morningAnnouncement}\n請警長決定發言順序`;
+            engineContext.dayDiscussionPrompt = `請警長決定發言順序`;
             engineContext.destinationPhase = 'SHERIFF_ORDER_SELECTION';
         } else {
             let startSeat;
@@ -356,7 +358,7 @@ function setupEngineFlowControllers() {
                 startSeat = engineContext.getNextAliveSeat(randomDeadSeat, dirNum);
             }
             
-            engineContext.dayDiscussionPrompt = `${engineContext.morningAnnouncement}\n請從 ${startSeat} 號開始${dirStr}序發言`;
+            engineContext.dayDiscussionPrompt = `請從 ${startSeat} 號開始${dirStr}序發言`;
             engineContext.buildSpeakingQueue(startSeat, dirNum);
             engineContext.destinationPhase = 'DAY_DISCUSSION';
         }
@@ -432,8 +434,7 @@ function resumeRoutinePhase() {
 
 function syncStateToAll() {
     const ctx = engineContext;
-    const isDayPhase = ['DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'SHERIFF_ORDER_SELECTION', 'DAY_DISCUSSION', 'DAY_VOTING', 'DAY_PK_SPEECH', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION', 'BLOODMOON_ACTION'].includes(ctx.phase);
-
+    const isDayPhase = ['BEAR_ROAR_ANNOUNCE', 'DAWN_DEATH_ANNOUNCE', 'DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'SHERIFF_ORDER_SELECTION', 'DAY_DISCUSSION', 'DAY_VOTING', 'DAY_PK_SPEECH', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION', 'BLOODMOON_ACTION'].includes(ctx.phase);
     const hostState = {
         systemLog: ctx.systemLog,
         masterLog: ctx.masterLog || [],
@@ -622,6 +623,12 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         actionPanel.show = true; actionPanel.prompt = ctx.currentVoteResultString;
         actionPanel.deadline = ctx.deadline;
     }
+    else if (['BEAR_ROAR_ANNOUNCE', 'DAWN_DEATH_ANNOUNCE'].includes(ctx.phase)) {
+        actionPanel.show = true; 
+        actionPanel.deadline = ctx.deadline;
+        actionPanel.prompt = ctx.phase === 'BEAR_ROAR_ANNOUNCE' ? ctx.bearRoarResult : ctx.deathAnnounceText;
+        actionPanel.buttons = [];
+    }
     else if (ctx.phase === 'SHERIFF_ORDER_SELECTION') {
         actionPanel.show = true; actionPanel.deadline = ctx.deadline;
         if (player.seatNumber === ctx.sheriff.seat) {
@@ -707,11 +714,11 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
 function getPhaseMessageForPlayer(phase, ctx) {
     const dict = { 
         'NIGHT_TRANSITION': "天黑請閉眼...", 'NIGHT_ACTION': "夜間行動中...", 
-        'SHERIFF_CANDIDACY': "登記上警意願...", 
-        'SHERIFF_ORDER_SELECTION': "決定發言順序中...",
+        'BEAR_ROAR_ANNOUNCE': "熊咆哮結果展示...", 'DAWN_DEATH_ANNOUNCE': "宣告昨晚死訊...",
+        'SHERIFF_CANDIDACY': "登記上警意願...", 'SHERIFF_ORDER_SELECTION': "決定發言順序中...",
         'SHERIFF_SPEECH': ctx ? (ctx.sheriffSpeechPrompt || "警長發言中...") : "警長發言中...", 
-        'SHERIFF_RE_ELECTION_BAILOUT': "延遲選舉退水時間...", 
-        'SHERIFF_PK_SPEECH': "警長 PK 發言...", 'SHERIFF_VOTING': "警長首次投票...", 'SHERIFF_PK_VOTING': "警長 PK 投票...", 
+        'SHERIFF_RE_ELECTION_BAILOUT': "延遲選舉退水時間...", 'SHERIFF_PK_SPEECH': "警長 PK 發言...", 
+        'SHERIFF_VOTING': "警長首次投票...", 'SHERIFF_PK_VOTING': "警長 PK 投票...", 
         'SHERIFF_TRANSFER': "移交警徽中...", 'DAY_DISCUSSION': ctx ? (ctx.dayDiscussionPrompt || "白天發言階段。") : "白天發言階段。",
         'DAY_VOTING': "放逐投票...", 'DAY_PK_SPEECH': "放逐 PK 發言...", 'DAY_PK_VOTING': "放逐 PK 投票...", 
         'VOTE_RESULT_DISPLAY': "展示投票結果...", 'LAST_WORDS': "遺言發表。", 'HUNTER_ACTION': "系統結算中...", 
@@ -721,12 +728,12 @@ function getPhaseMessageForPlayer(phase, ctx) {
 }
 
 function getDayBtnText(phase) {
-    const dict = { 'SHERIFF_CANDIDACY': "強制結束上警登記", 'SHERIFF_VOTING': "強制結算投票", 'SHERIFF_PK_VOTING': "強制結算投票", 'SHERIFF_SPEECH': "發起警長投票", 'SHERIFF_PK_SPEECH': "發起警長 PK 投票", 'DAY_DISCUSSION': "發起放逐投票", 'DAY_PK_SPEECH': "發起放逐 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入下一階段", 'LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍...", 'WOLFKING_ACTION': "等待狼王開槍...", 'BLOODMOON_ACTION': "等待血月使徒發動技能..." };
+    const dict = { 'BEAR_ROAR_ANNOUNCE': "結束展示，進入下一階段", 'DAWN_DEATH_ANNOUNCE': "結束展示，進入下一階段", 'SHERIFF_CANDIDACY': "強制結束上警登記", 'SHERIFF_VOTING': "強制結算投票", 'SHERIFF_PK_VOTING': "強制結算投票", 'SHERIFF_SPEECH': "發起警長投票", 'SHERIFF_PK_SPEECH': "發起警長 PK 投票", 'DAY_DISCUSSION': "發起放逐投票", 'DAY_PK_SPEECH': "發起放逐 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入下一階段", 'LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍...", 'WOLFKING_ACTION': "等待狼王開槍...", 'BLOODMOON_ACTION': "等待血月使徒發動技能..." };
     return dict[phase] || "投票/行動進行中...";
 }
 
 function getDayBtnCommand(phase) {
-    const dict = { 'SHERIFF_CANDIDACY': "FORCE_TIMEOUT", 'SHERIFF_VOTING': "FORCE_TIMEOUT", 'SHERIFF_PK_VOTING': "FORCE_TIMEOUT", 'SHERIFF_SPEECH': "START_SHERIFF_VOTE", 'SHERIFF_PK_SPEECH': "START_SHERIFF_PK_VOTE", 'DAY_DISCUSSION': "START_VOTE", 'DAY_PK_SPEECH': "START_DAY_PK_VOTE", 'VOTE_RESULT_DISPLAY': "END_VOTE_DISPLAY", 'LAST_WORDS': "END_LAST_WORDS" };
+    const dict = { 'BEAR_ROAR_ANNOUNCE': "FORCE_TIMEOUT", 'DAWN_DEATH_ANNOUNCE': "FORCE_TIMEOUT", 'SHERIFF_CANDIDACY': "FORCE_TIMEOUT", 'SHERIFF_VOTING': "FORCE_TIMEOUT", 'SHERIFF_PK_VOTING': "FORCE_TIMEOUT", 'SHERIFF_SPEECH': "START_SHERIFF_VOTE", 'SHERIFF_PK_SPEECH': "START_SHERIFF_PK_VOTE", 'DAY_DISCUSSION': "START_VOTE", 'DAY_PK_SPEECH': "START_DAY_PK_VOTE", 'VOTE_RESULT_DISPLAY': "END_VOTE_DISPLAY", 'LAST_WORDS': "END_LAST_WORDS" };
     return dict[phase] || "";
 }
 
@@ -736,11 +743,11 @@ function handleHostCommand(cmd) {
         if (stateMachine.currentPhase && stateMachine.currentPhase.onTimeout) stateMachine.currentPhase.onTimeout(engineContext);
     } 
     else if (cmd === 'START_SHERIFF_VOTE') stateMachine.transitionTo('SHERIFF_VOTING');
-    else if (cmd === 'START_SHERIFF_PK_VOTE') stateMachine.transitionTo('SHERIFF_PK_VOTING'); // 新增
+    else if (cmd === 'START_SHERIFF_PK_VOTE') stateMachine.transitionTo('SHERIFF_PK_VOTING'); 
     else if (cmd === 'START_VOTE') { engineContext.routineOrigin = 'AFTERNOON'; stateMachine.transitionTo('DAY_VOTING'); }
-    else if (cmd === 'START_DAY_PK_VOTE') { engineContext.routineOrigin = 'AFTERNOON'; stateMachine.transitionTo('DAY_PK_VOTING'); } // 修改
+    else if (cmd === 'START_DAY_PK_VOTE') { engineContext.routineOrigin = 'AFTERNOON'; stateMachine.transitionTo('DAY_PK_VOTING'); } 
     else if (cmd === 'END_VOTE_DISPLAY') {
-        if (engineContext.nextPhaseAfterVoteDisplay === 'DAWN_RESUME') Engine.EventBus.emit('DAWN_ANNOUNCE');
+        if (engineContext.nextPhaseAfterVoteDisplay === 'DAWN_RESUME') Engine.EventBus.emit('TRIGGER_DEATH_ANNOUNCE');
         else if (engineContext.nextPhaseAfterVoteDisplay === 'RESUME_ROUTINE') resumeRoutinePhase();
         else if (engineContext.nextPhaseAfterVoteDisplay) stateMachine.transitionTo(engineContext.nextPhaseAfterVoteDisplay);
     }
