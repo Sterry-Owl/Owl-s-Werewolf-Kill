@@ -269,18 +269,7 @@ function setupEngineFlowControllers() {
     });
 
     Engine.EventBus.on('PROCESS_DAWN', () => {
-        if (engineContext.rules.sheriff === 'enabled' && !engineContext.sheriff.seat && !engineContext.sheriff.badgeLost) {
-            if (!engineContext.sheriff.isDelayedElection) {
-                stateMachine.transitionTo('SHERIFF_CANDIDACY');
-            } else {
-                stateMachine.transitionTo('SHERIFF_RE_ELECTION_BAILOUT');
-            }
-        } else {
-            Engine.EventBus.emit('DAWN_ANNOUNCE');
-        }
-    });
-
-    Engine.EventBus.on('DAWN_ANNOUNCE', () => {
+        // [架構重構] 將天亮死亡與熊咆哮的「資訊結算」提前至白天起點，實現「警上已知死訊與狀態」
         const deadBefore = engineContext.players.filter(p => p.isDead).map(p => p.seatNumber);
         engineContext.hunterDiedThisNight = false;
         const calculation = {
@@ -328,48 +317,51 @@ function setupEngineFlowControllers() {
         }
 
         const dead = engineContext.deadThisNight;
-        engineContext.lastWordsTargets = (engineContext.nightCount === 1 && dead.length > 0) ? [...dead] : [];
-        const msg = dead.length > 0 ? `昨晚，${dead.join(' 號、')} 號玩家死亡。` : `昨晚是平安夜。`;
-        engineContext.systemLog = msg + bearRoarText;
-        Engine.EventBus.emit('BROADCAST_MESSAGE', msg + bearRoarText);
-        
-        // ===============================================
-        // [新增] 白天發言順序與動態文本計算
-        // ===============================================
         const deadPrompt = dead.length === 0 ? "昨晚是平安夜" : `昨晚 ${[...dead].sort((a, b) => a - b).join(' 號、')} 號玩家死亡`;
-        engineContext.systemLog = deadPrompt + bearRoarText;
+        
+        // [全域封裝] 建立貫穿全白天的早晨宣告文本
+        engineContext.morningAnnouncement = deadPrompt + bearRoarText;
+        engineContext.systemLog = engineContext.morningAnnouncement;
+        Engine.EventBus.emit('BROADCAST_MESSAGE', engineContext.morningAnnouncement);
+
+        if (engineContext.rules.sheriff === 'enabled' && !engineContext.sheriff.seat && !engineContext.sheriff.badgeLost) {
+            if (!engineContext.sheriff.isDelayedElection) {
+                stateMachine.transitionTo('SHERIFF_CANDIDACY');
+            } else {
+                stateMachine.transitionTo('SHERIFF_RE_ELECTION_BAILOUT');
+            }
+        } else {
+            Engine.EventBus.emit('DAWN_ANNOUNCE');
+        }
+    });
+
+    Engine.EventBus.on('DAWN_ANNOUNCE', () => {
+        // [職責收斂] 此階段僅負責分發白天討論順序與遺言過渡
+        const dead = engineContext.deadThisNight || [];
+        engineContext.lastWordsTargets = (engineContext.nightCount === 1 && dead.length > 0) ? [...dead] : [];
         
         if (engineContext.sheriff.seat && !engineContext.sheriff.badgeLost) {
-            // 有警長：流轉至警長決定順序階段
-            // [修復] 精準拼接 bearRoarText
-            engineContext.dayDiscussionPrompt = `${deadPrompt}${bearRoarText}\n請警長決定發言順序`;
+            engineContext.dayDiscussionPrompt = `${engineContext.morningAnnouncement}\n請警長決定發言順序`;
             engineContext.destinationPhase = 'SHERIFF_ORDER_SELECTION';
         } else {
-            // 無警長：系統隨機決定起點與順逆，並直接建構佇列
             let startSeat;
             const dirNum = Math.random() < 0.5 ? 1 : -1;
             const dirStr = dirNum === 1 ? '順' : '逆';
             
             if (dead.length === 0) {
-                // 狀況 A：無人死亡 -> 隨機存活者，隨機順逆
                 const aliveSeats = engineContext.getAlivePlayers().map(p => p.seatNumber);
                 startSeat = aliveSeats[Math.floor(Math.random() * aliveSeats.length)];
             } else {
-                // 狀況 B：有人死亡 -> 隨機一名死者，依據順逆序尋找其存活之下家或上家
                 const randomDeadSeat = dead[Math.floor(Math.random() * dead.length)];
                 startSeat = engineContext.getNextAliveSeat(randomDeadSeat, dirNum);
             }
             
-            // 將計算結果寫入 UI 文本，供全體玩家查看
-            // [修復] 精準拼接 bearRoarText
-            engineContext.dayDiscussionPrompt = `${deadPrompt}${bearRoarText}\n請從 ${startSeat} 號開始${dirStr}序發言`;
+            engineContext.dayDiscussionPrompt = `${engineContext.morningAnnouncement}\n請從 ${startSeat} 號開始${dirStr}序發言`;
             engineContext.buildSpeakingQueue(startSeat, dirNum);
             engineContext.destinationPhase = 'DAY_DISCUSSION';
         }
-        // ===============================================
 
         engineContext.isPK = false;
-        
         engineContext.routineOrigin = 'MORNING'; 
         resumeRoutinePhase();
     });
