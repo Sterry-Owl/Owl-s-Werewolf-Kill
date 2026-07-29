@@ -983,13 +983,9 @@ RoleRegistry.register("機械狼", {
         player.data.learnedThisNight = false;
         player.data.mwGuardedSeat = null;
     },
-    // [新增] 機械狼強化守護結算鉤子
     onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
         if (player.data.mwGuardedSeat) {
-            // 動態解析實體座位，相容魔術師換位邏輯
             const gSeat = ctx.getActualTarget ? ctx.getActualTarget(player.data.mwGuardedSeat) : player.data.mwGuardedSeat;
-            
-            // 1. 抵禦狼刀 (相容標準機制的同守同救與真假守衛衝突)
             if (calc.killed.includes(gSeat)) {
                 if (calc.saved.includes(gSeat) || calc.guarded.includes(gSeat)) {
                     deathMap[gSeat] = 'killed'; 
@@ -997,8 +993,6 @@ RoleRegistry.register("機械狼", {
                     if (deathMap[gSeat] === 'killed') delete deathMap[gSeat];
                 }
             }
-            
-            // 2. 抵禦毒藥 (強化守護特有邏輯)
             if (calc.poisoned.includes(gSeat)) {
                 if (deathMap[gSeat] === 'poisoned') delete deathMap[gSeat];
             }
@@ -1006,11 +1000,7 @@ RoleRegistry.register("機械狼", {
             player.data.mwGuardedSeat = null;
         }
     },
-    isAttacker: (ctx, mySeat) => {
-        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId !== 'midnight') return false;
-        const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
-        return otherWolves.length === 0;
-    },
+    isAttacker: false
     hasAction: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         const p = ctx.getPlayer(mySeat);
@@ -1033,7 +1023,7 @@ RoleRegistry.register("機械狼", {
         }
         return false;
     },
-    actionType: (ctx) => ctx.nightSequence[ctx.currentNightStepIndex].phaseId === 'midnight' ? 'consensus' : 'single_select',
+    actionType: "single_select",
     getPrompt: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         if (step === 'midnight') return "其餘狼人均已出局\n請選擇襲擊目標";
@@ -1501,14 +1491,10 @@ RoleRegistry.register("尋香魅影", {
     canSelfExplode: false,
     canSeeWolves: false,
     seenAsWolf: false,
-    isAttacker: (ctx, mySeat) => {
-        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId !== 'midnight') return false;
-        const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
-        return otherWolves.length === 0;
-    },
+    isAttacker: false,        
     hasWolfChatAccess: false,
     nightPhase: ["midnight", "second_half"],
-    actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'double_select',
+    actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'single_select' : 'double_select',
     onNightStart: (ctx, player) => {
         if (ctx.nightCount === 1 && !player.data.knownWolf) {
             const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== player.seatNumber);
@@ -1548,7 +1534,7 @@ RoleRegistry.register("尋香魅影", {
     getButtons: (ctx) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         if (step === 'midnight') {
-            return [{ id: 'kill', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
+            return [{ id: 'kill', text: '襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
         }
         return [
             { id: 'link', text: '連繫', requiresTarget: true },
