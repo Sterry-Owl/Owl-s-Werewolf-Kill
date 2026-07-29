@@ -12,12 +12,12 @@ const PEER_CONFIG = {
                 urls: [
                     'stun:stun.l.google.com:19302',
                     'stun:stun1.l.google.com:19302',
-                    'stun:stun2.l.google.com:19302',  // [擴充] Google 備用節點
-                    'stun:stun3.l.google.com:19302',  // [擴充] Google 備用節點
-                    'stun:stun.cloudflare.com:3478'   // [擴充] Cloudflare 節點 (DNS 解析優化)
+                    'stun:stun2.l.google.com:19302',  
+                    'stun:stun3.l.google.com:19302',  
+                    'stun:stun.cloudflare.com:3478'
                 ] 
             },
-            // 2. TURN 首選伺服器 (Metered)
+            
             {
                 urls: [
                     'turn:global.relay.metered.ca:80',
@@ -100,7 +100,6 @@ const BOARD_TEMPLATES = [
     { id: "survivorstd_7", name: "7人 生還者", category: 'fun', playerCount: 7, deck: ["預言家", "守衛", "女巫", "獵人", "白狼王", "狼人", "平民"] },
     { id: "lastday_8", name: "8人 末日狂徒", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "騎士", "狼人", "狼人", "狼人", "平民", "平民"] },
     { id: "evening_8", name: "8人 諸神黃昏", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "獵人", "女巫", "白痴", "惡靈騎士", "狼王", "白狼王"] },
-    { id: "evening2_8", name: "8人 次世代諸神黃昏", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "魔術師", "女巫", "騎士", "惡靈騎士", "狼美人", "血月使徒"] },
     { id: "test-2_6", name: "6人 狼王守衛(測試)", category: 'test', playerCount: 6, deck: ["預言家", "守衛", "狼王", "狼人", "平民", "平民"] },
     { id: "test-3_6", name: "6人 狼王魔術師(測試)", category: 'test', playerCount: 6, deck: ["預言家", "魔術師", "狼王", "狼人", "女巫", "平民"] },    
     { id: "test-4_6", name: "6人 白狼王騎士(測試)", category: 'test', playerCount: 6, deck: ["預言家", "騎士", "白狼王", "狼人", "平民", "平民"] },
@@ -120,9 +119,9 @@ const BOARD_TEMPLATES = [
     { id: "standard_9", name: "9人 標準局", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "wbt_kn_9", name: "9人 狼美人騎士(商榷)", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "騎士", "狼美人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "nim_dgr_9", name: "9人 夢魘攝夢人(商榷)", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "攝夢人", "噩夢之影", "狼人", "狼人", "平民", "平民", "平民"] },
-    { id: "wind_9", name: "9人 風聲諜影", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "魔鏡少女", "守墓人", "獵人", "狼人", "狼王", "隱狼", "石像鬼"] },
-    { id: "cool_9", name: "9人 連連看", category: 'fun', playerCount: 9, deck: ["預言家", "預言家", "預言家", "魔鏡少女", "魔鏡少女", "機械狼", "石像鬼", "石像鬼", "狼人"] },
-    { id: "noeye_9", name: "9人 無目之夜", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "攝夢人", "狼人", "狼鴉之爪", "石像鬼", "平民", "平民", "平民"] },
+    { id: "cloud_10", name: "10人 雲端探查", category: 'fun', playerCount: 10, deck: ["預言家", "女巫", "魔鏡少女", "河豚", "獵人", "攝夢人", "狼人", "狼人", "狼王", "尋香魅影"] },
+    { id: "whip_10", name: "10人 連連看", category: 'fun', playerCount: 10, deck: ["獵魔人", "獵魔人", "獵魔人", "獵魔人", "獵魔人", "獵魔人", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影"] },
+    { id: "leave_10", name: "10人 離群眾狼", category: 'fun', playerCount: 10, deck: ["預言家", "女巫", "攝夢人", "狼人", "隱狼", "尋香魅影", "平民", "平民", "平民", "平民"] },
     { id: "standard_10", name: "10人 標準局", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_grd_10", name: "10人 狼王守衛", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "守衛", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_mag_10", name: "10人 狼王魔術師", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "魔術師", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
@@ -133,6 +132,7 @@ const BOARD_TEMPLATES = [
     { id: "nim_dgr_10", name: "10人 夢魘攝夢人", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "攝夢人", "噩夢之影", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "crush_10", name: "10人 暗戀者", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "暗戀者"] },
     { id: "noeye_10", name: "10人 無目之夜", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "攝夢人", "狼人", "狼鴉之爪", "石像鬼", "平民", "平民", "平民", "平民"] },
+    { id: "phantom_10", name: "10人 魅影覺醒預", category: 'quick', playerCount: 10, deck: ["覺醒預言家", "女巫", "守衛", "尋香魅影", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "standard_12", name: "12人 標準局", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_grd_12", name: "12人 狼王守衛", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_mag_12", name: "12人 狼王魔術師", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "魔術師", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }, 
