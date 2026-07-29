@@ -644,7 +644,10 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     }
     else if (['DAY_DISCUSSION', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'DAY_PK_SPEECH', 'LAST_WORDS'].includes(ctx.phase)) {
         actionPanel.show = true; actionPanel.deadline = ctx.deadline;
-        const dirStr = ctx.speakingDirection ? `\n當前發言順序：${ctx.speakingDirection}序` : "";
+        if (ctx.speakingDirection) {
+            actionPanel.speakingDirection = ctx.speakingDirection;
+        }
+
         let prefixPrompt = "";
         if (ctx.phase === 'DAY_DISCUSSION' && ctx.dayDiscussionPrompt) {
             prefixPrompt = `${ctx.dayDiscussionPrompt}\n\n`;
@@ -653,11 +656,11 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         }
 
         if (player.seatNumber === ctx.currentSpeaker) {
-            actionPanel.prompt = `${prefixPrompt}現在是你的發言時間\n發言完畢請點擊結束發言${dirStr}`;
+            actionPanel.prompt = `${prefixPrompt}現在是你的發言時間\n發言完畢請點擊結束發言`;
             actionPanel.buttons = []; 
         } else {
             const speakerStr = ctx.currentSpeaker ? `${ctx.currentSpeaker} 號` : "系統計算中";
-            actionPanel.prompt = `${prefixPrompt}現在由 ${speakerStr} 玩家發言...${dirStr}`;
+            actionPanel.prompt = `${prefixPrompt}現在由 ${speakerStr} 玩家發言...`;
             actionPanel.buttons = [];
         }
     }
