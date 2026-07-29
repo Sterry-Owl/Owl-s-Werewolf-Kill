@@ -34,10 +34,18 @@ const UI = {
     blockActionPanel: function() {
         const btnContainer = document.getElementById('dynamic-buttons-container');
         if(btnContainer) btnContainer.innerHTML = '';
+        
         const promptEl = document.getElementById('action-prompt');
+        const actionPanelEl = document.getElementById('dynamic-action-panel');
+        
         if(promptEl) {
-            promptEl.innerHTML = '行動已送出，等待系統確認...';
+            if (actionPanelEl && actionPanelEl.classList.contains('image-mode')) {
+                promptEl.innerHTML = ''; 
+            } else {
+                promptEl.innerHTML = '行動已送出，等待系統確認...';
+            }
         }
+        
         clearInterval(UI.countdownInterval);
         document.querySelectorAll('.player-seat').forEach(s => {
             s.style.pointerEvents = 'none';
@@ -289,9 +297,9 @@ const UI = {
                     if (displayTargets.length === 0) {
                         slotsContainer.classList.add('hidden');
                     } else {
-                        displayTargets.forEach(target => {
-                            let alignmentLabel = '目標';
-                            let specialClass = '';
+                    const target = displayTargets.length > 0 ? displayTargets[0] : null;
+                    let alignmentLabel = target ? '' : '請選擇';
+                    let specialClass = '';
                             const tData = state.players.find(p => p.seatNumber === target);
                             if (tData && tData.sideTag) {
                                 alignmentLabel = tData.sideTag;
