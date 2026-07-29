@@ -535,7 +535,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 
 .action-panel.image-mode #action-timer-display {
     position: absolute;
-    top: -20px; 
+    top: 15px; 
     left: 50%;
     transform: translateX(-50%);
     z-index: 20;
