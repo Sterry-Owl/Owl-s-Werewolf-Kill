@@ -485,19 +485,10 @@ RoleRegistry.register("騎士", {
             player.isRevealed = true;
             ctx.systemLog = `${player.seatNumber} 號玩家是騎士，向${targetSeat} 號玩家發起決鬥。`;
             Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
+            
             const isWolf = ROLE_DICTIONARY[targetPlayer.role]?.faction === 'wolf';
             if (isWolf) {
                 targetPlayer.kill('dueled', ctx);
-                const sheriffPhases = ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_ORDER_SELECTION', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_RE_ELECTION_BAILOUT'];
-                if (sheriffPhases.includes(ctx.phase)) {
-                    ctx.sheriff.explodeDelayCount++;
-                    const maxExplode = ctx.rules.sheriffExplodeRule === 'double' ? 2 : 1;
-                    if (ctx.sheriff.explodeDelayCount >= maxExplode) {
-                        ctx.sheriff.badgeLost = true;
-                    } else {
-                        ctx.sheriff.isDelayedElection = true;
-                    }
-                }
                 ctx.isResolvingAsync = true;
                 setTimeout(() => {
                     try {
@@ -1427,26 +1418,32 @@ RoleRegistry.register("獵魔人", {
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [{ id: 'hunt', text: '狩獵', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
-        const act = actions[0];
-        if (!act || act.actionId === 'pass' || !act.targets || act.targets.length === 0) return "【跳過行動】";
+        let logs = [];
+        actions.forEach(act => {
+            if (!act || act.actionId === 'pass' || !act.targets || act.targets.length === 0) {
+                logs.push(`【${act.player.seatNumber}號 跳過行動】`);
+                return;
+            }
 
-        const target = act.targets[0];
-        const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
-        const tPlayer = ctx.getPlayer(actualTarget);
-        const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
-        const isWolf = ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
+            const target = act.targets[0];
+            const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
+            const tPlayer = ctx.getPlayer(actualTarget);
+            const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
+            const isWolf = ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
 
-        if (isWolf) {
-            ctx.nightTags = ctx.nightTags || {};
-            ctx.nightTags.demonHunterKills = ctx.nightTags.demonHunterKills || [];
-            ctx.nightTags.demonHunterKills.push(actualTarget);
-            return `【狩獵: ${target}號 (狼人)】`;
-        } else {
-            ctx.nightTags = ctx.nightTags || {};
-            ctx.nightTags.demonHunterBackfires = ctx.nightTags.demonHunterBackfires || [];
-            ctx.nightTags.demonHunterBackfires.push(act.player.seatNumber);
-            return `【狩獵: ${target}號 (好人，遭受反噬)】`;
-        }
+            if (isWolf) {
+                ctx.nightTags = ctx.nightTags || {};
+                ctx.nightTags.demonHunterKills = ctx.nightTags.demonHunterKills || [];
+                ctx.nightTags.demonHunterKills.push(actualTarget);
+                logs.push(`【${act.player.seatNumber}號 狩獵: ${target}號 (狼人)】`);
+            } else {
+                ctx.nightTags = ctx.nightTags || {};
+                ctx.nightTags.demonHunterBackfires = ctx.nightTags.demonHunterBackfires || [];
+                ctx.nightTags.demonHunterBackfires.push(act.player.seatNumber);
+                logs.push(`【${act.player.seatNumber}號 狩獵: ${target}號 (好人，遭受反噬)】`);
+            }
+        });
+        return logs.join('\n');
     }
 });
 RoleRegistry.register("熊", {
@@ -1553,28 +1550,37 @@ RoleRegistry.register("尋香魅影", {
     },
     resolveNightAction: (ctx, actions) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
-        const act = actions[0];
-        const player = act.player;
-
+        let logs = [];
         if (step === 'midnight') {
-            if (!act || act.actionId === 'pass') return "【空刀】";
-            const target = act.targets[0];
-            if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
-            ctx.nightTags.killed.push(parseInt(target));
-            return `【襲擊: ${target}號】`;
+            actions.forEach(act => {
+                if (!act || act.actionId === 'pass') {
+                    logs.push(`【${act.player.seatNumber}號 空刀】`);
+                    return;
+                }
+                const target = act.targets[0];
+                if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
+                ctx.nightTags.killed.push(parseInt(target));
+                logs.push(`【${act.player.seatNumber}號 襲擊: ${target}號】`);
+            });
+            return logs.join('\n');
         }
 
         if (step === 'second_half') {
-            if (!act || act.actionId === 'pass' || !act.targets || act.targets.length === 0) {
-                player.data.phantomLinked = [];
-                return "【不發動技能】";
-            }
-            const t1 = parseInt(act.targets[0]);
-            const t2 = act.targets.length > 1 ? parseInt(act.targets[1]) : t1;
-            
-            player.data.phantomLinked = [t1, t2];
-            player.data.phantomLinkNight = ctx.nightCount;
-            return `【連繫: ${t1}號 與 ${t2}號】`;
+            actions.forEach(act => {
+                const player = act.player;
+                if (!act || act.actionId === 'pass' || !act.targets || act.targets.length === 0) {
+                    player.data.phantomLinked = [];
+                    logs.push(`【${player.seatNumber}號 不發動技能】`);
+                    return;
+                }
+                const t1 = parseInt(act.targets[0]);
+                const t2 = act.targets.length > 1 ? parseInt(act.targets[1]) : t1;
+                
+                player.data.phantomLinked = [t1, t2];
+                player.data.phantomLinkNight = ctx.nightCount;
+                logs.push(`【${player.seatNumber}號 連繫: ${t1}號 與 ${t2}號】`);
+            });
+            return logs.join('\n');
         }
     }
 });
