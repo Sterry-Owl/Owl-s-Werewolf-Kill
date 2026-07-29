@@ -32,17 +32,19 @@ window.RoleRegistry = {
                     calc.poisoned = swapMap(calc.poisoned);
                     calc.saved = swapMap(calc.saved);
                 }
-                const dhPlayer = ctx.players.find(p => p.role === '獵魔人' && !p.isDead);
-                if (dhPlayer && calc.poisoned.includes(dhPlayer.seatNumber)) {
-                    calc.poisoned = calc.poisoned.filter(s => s !== dhPlayer.seatNumber);
-                }
+                const dhPlayers = ctx.players.filter(p => p.role === '獵魔人' && !p.isDead);
+                dhPlayers.forEach(dh => {
+                    if (calc.poisoned.includes(dh.seatNumber)) {
+                        calc.poisoned = calc.poisoned.filter(s => s !== dh.seatNumber);
+                    }
+                });
 
                 let deathMap = {};
-                if (ctx.nightTags?.demonHunterKill) {
-                    deathMap[ctx.nightTags.demonHunterKill] = 'killed';
+                if (ctx.nightTags?.demonHunterKills) {
+                    ctx.nightTags.demonHunterKills.forEach(seat => deathMap[seat] = 'killed');
                 }
-                if (ctx.nightTags?.demonHunterBackfire) {
-                    deathMap[ctx.nightTags.demonHunterBackfire] = 'skill_backfire';
+                if (ctx.nightTags?.demonHunterBackfires) {
+                    ctx.nightTags.demonHunterBackfires.forEach(seat => deathMap[seat] = 'skill_backfire');
                 }
 
                 let allTargets = new Set([...calc.killed, ...calc.poisoned, ...calc.dreamed]);
@@ -92,8 +94,8 @@ window.RoleRegistry = {
         Engine.EventBus.on('START_NIGHT', () => {
             if (ctx) {
                 ctx.magicianSwap = null;
-                ctx.nightTags.demonHunterKill = null;
-                ctx.nightTags.demonHunterBackfire = null;
+                ctx.nightTags.demonHunterKills = [];
+                ctx.nightTags.demonHunterBackfires = [];
                 const firstHalf = ctx.nightSequence.find(s => s.phaseId === 'first_half');
                 if (firstHalf) {
                     firstHalf.roles.sort((a, b) => a.roleName === '魔術師' ? -1 : (b.roleName === '魔術師' ? 1 : 0));
@@ -122,17 +124,19 @@ window.RoleRegistry = {
                     }
                 }
             }
-            if (context.phantomLinked && context.phantomLinked.includes(player.seatNumber) && !context.phantomTriggered) {
-                const otherSeat = context.phantomLinked.find(s => s !== player.seatNumber);
-                if (otherSeat) {
-                    const otherPlayer = context.getPlayer(otherSeat);
-                    if (otherPlayer && !otherPlayer.isDead) {
-                        context.phantomTriggered = true; 
-                        context.systemLog = (context.systemLog || '') + `\n(系統紀錄：尋香魅影連繫生效，${otherSeat} 號玩家殉情出局)`;
-                        otherPlayer.kill('martyr', context); 
+            context.players.filter(p => p.role === '尋香魅影').forEach(phantom => {
+                if (phantom.data.phantomLinked && phantom.data.phantomLinked.includes(player.seatNumber) && !phantom.data.phantomTriggered) {
+                    const otherSeat = phantom.data.phantomLinked.find(s => s !== player.seatNumber);
+                    if (otherSeat) {
+                        const otherPlayer = context.getPlayer(otherSeat);
+                        if (otherPlayer && !otherPlayer.isDead) {
+                            phantom.data.phantomTriggered = true; 
+                            context.systemLog = (context.systemLog || '') + `\n(系統紀錄：尋香魅影連繫生效，${otherSeat} 號玩家殉情出局)`;
+                            otherPlayer.kill('martyr', context); 
+                        }
                     }
                 }
-            }
+            });
             if (player.role === '機械狼' && player.data.machineState === 1 && player.data.learnedRole === '獵人' && canShootReasons.includes(reason)) {
                 context.pendingWolfKing = player.seatNumber;
                 player.data.machineState = 2;
@@ -1434,11 +1438,13 @@ RoleRegistry.register("獵魔人", {
 
         if (isWolf) {
             ctx.nightTags = ctx.nightTags || {};
-            ctx.nightTags.demonHunterKill = actualTarget;
+            ctx.nightTags.demonHunterKills = ctx.nightTags.demonHunterKills || [];
+            ctx.nightTags.demonHunterKills.push(actualTarget);
             return `【狩獵: ${target}號 (狼人)】`;
         } else {
             ctx.nightTags = ctx.nightTags || {};
-            ctx.nightTags.demonHunterBackfire = act.player.seatNumber;
+            ctx.nightTags.demonHunterBackfires = ctx.nightTags.demonHunterBackfires || [];
+            ctx.nightTags.demonHunterBackfires.push(act.player.seatNumber);
             return `【狩獵: ${target}號 (好人，遭受反噬)】`;
         }
     }
@@ -1496,8 +1502,8 @@ RoleRegistry.register("尋香魅影", {
     nightPhase: ["midnight", "second_half"],
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'single_select' : 'double_select',
     onNightStart: (ctx, player) => {
-        if (ctx.phantomLinkNight && ctx.nightCount > ctx.phantomLinkNight) {
-            ctx.phantomLinked = [];
+        if (player.data.phantomLinkNight && ctx.nightCount > player.data.phantomLinkNight) {
+            player.data.phantomLinked = [];
         }
         if (ctx.nightCount === 1 && !player.data.knownWolf) {
             const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== player.seatNumber);
@@ -1511,12 +1517,13 @@ RoleRegistry.register("尋香魅影", {
     },
     hasAction: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        const player = ctx.getPlayer(mySeat);
         if (step === 'midnight') {
             const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
             return otherWolves.length === 0;
         }
         if (step === 'second_half') {
-            return !ctx.phantomTriggered;
+            return !player.data.phantomTriggered;
         }
         return false;
     },
@@ -1547,6 +1554,7 @@ RoleRegistry.register("尋香魅影", {
     resolveNightAction: (ctx, actions) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         const act = actions[0];
+        const player = act.player;
 
         if (step === 'midnight') {
             if (!act || act.actionId === 'pass') return "【空刀】";
@@ -1558,17 +1566,15 @@ RoleRegistry.register("尋香魅影", {
 
         if (step === 'second_half') {
             if (!act || act.actionId === 'pass' || !act.targets || act.targets.length === 0) {
-                ctx.phantomLinked = [];
+                player.data.phantomLinked = [];
                 return "【不發動技能】";
             }
             const t1 = parseInt(act.targets[0]);
             const t2 = act.targets.length > 1 ? parseInt(act.targets[1]) : t1;
             
-            ctx.phantomLinked = [t1, t2];
-            ctx.phantomLinkNight = ctx.nightCount;
+            player.data.phantomLinked = [t1, t2];
+            player.data.phantomLinkNight = ctx.nightCount;
             return `【連繫: ${t1}號 與 ${t2}號】`;
-        }
-    }
         }
     }
 });
