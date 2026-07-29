@@ -297,9 +297,8 @@ const UI = {
                     if (displayTargets.length === 0) {
                         slotsContainer.classList.add('hidden');
                     } else {
-                        // [修復] 補回遺失的迴圈宣告
+                        // [語法修復] 補回遺失的迴圈宣告，解決白屏崩潰
                         displayTargets.forEach(target => {
-                            // [視覺優化] 移除強制目標預設的「目標」標籤
                             let alignmentLabel = '';
                             let specialClass = '';
                             const tData = state.players.find(p => p.seatNumber === target);
@@ -437,12 +436,12 @@ const UI = {
                     const now = Date.now();
                     const remain = Math.max(0, Math.ceil((state.actionPanel.deadline - now) / 1000));
                     if (timerDisplay) {
-                        timerDisplay.textContent = remain + 's';
+                        const dirPrefix = state.actionPanel.speakingDirection ? `[${state.actionPanel.speakingDirection}序] ` : "";
+                        timerDisplay.textContent = dirPrefix + remain + 's';
                         if (remain <= 5) timerDisplay.style.color = 'var(--accent-red)';
                     }
                     if (remain <= 0) clearInterval(UI.countdownInterval);
                 }, 200);
-
             } else {
                 if(promptEl) promptEl.textContent = state.actionPanel.prompt;
             }
