@@ -1000,7 +1000,7 @@ RoleRegistry.register("機械狼", {
             player.data.mwGuardedSeat = null;
         }
     },
-    isAttacker: false
+    isAttacker: false,
     hasAction: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         const p = ctx.getPlayer(mySeat);
