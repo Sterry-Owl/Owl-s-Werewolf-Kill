@@ -549,3 +549,18 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     margin: 0;
     padding: 0;
 }
+.action-panel.image-mode .target-slot {
+    width: 40px;
+    height: 40px;
+}
+
+.action-panel.image-mode .target-slot-label {
+    bottom: -15px;
+    font-size: 9px;
+    padding: 2px 5px;
+}
+
+.action-panel.image-mode .action-buttons-row button {
+    padding: 8px 5px;
+    font-size: 10px;
+}
