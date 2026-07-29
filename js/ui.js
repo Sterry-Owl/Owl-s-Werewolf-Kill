@@ -28,7 +28,14 @@ const UI = {
 
     updateStatusMessage: function(msg) {
         const el = document.getElementById('action-prompt');
-        if (el) el.textContent = msg;
+        const actionPanelEl = document.getElementById('dynamic-action-panel');
+        
+        if (el) {
+            if (actionPanelEl && actionPanelEl.classList.contains('image-mode')) {
+                return; 
+            }
+            el.textContent = msg;
+        }
     },
 
     blockActionPanel: function() {
@@ -40,7 +47,6 @@ const UI = {
         
         if(promptEl) {
             if (actionPanelEl && actionPanelEl.classList.contains('image-mode')) {
-                promptEl.innerHTML = ''; 
             } else {
                 promptEl.innerHTML = '行動已送出，等待系統確認...';
             }
