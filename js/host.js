@@ -710,7 +710,10 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             case 'DAY_PK_VOTING': bg = 'act_14'; break;
             case 'VOTE_RESULT_DISPLAY':
                 const str = ctx.currentVoteResultString || '';
-                if (str.includes('平票')) {
+                if (str.includes('無人出局') || str.includes('平安')) {
+                    bg = 'act_17'; 
+                    forcedTargets = [];
+                } else if (str.includes('平票')) {
                     if (str.includes('警徽流失') || str.includes('延後至明日')) {
                         bg = 'act_17';
                         forcedTargets = [];
@@ -720,8 +723,6 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                     else { bg = 'act_15'; forcedTargets = ctx.pkTargets || []; }
                 } else if (str.includes('警長誕生')) {
                     bg = 'act_8'; forcedTargets = [ctx.sheriff.seat];
-                } else if (str.includes('無人出局')) {
-                    bg = 'act_17'; forcedTargets = [];
                 } else {
                     bg = 'act_16'; forcedTargets = ctx.votedOutToday ? [ctx.votedOutToday] : [];
                 }
