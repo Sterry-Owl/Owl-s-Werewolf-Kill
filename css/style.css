@@ -44,7 +44,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 
 .app-header { 
     background: #4a1c1c; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;
-    font-weight: bold; color: #ffcccc; font-size: 16px; border-bottom: 2px solid #2a0b0b; 
+    font-weight: bold; color: #ffcccc; font-size: 12px; border-bottom: 2px solid #2a0b0b; 
     flex-shrink: 0; z-index: 10;
 }
 
@@ -364,7 +364,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     cursor: pointer; 
     color: var(--accent-gold, #ffdb4d); 
     font-weight: bold; 
-    font-size: 14px; 
+    font-size: 12px; 
     user-select: none; 
 }
 
