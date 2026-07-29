@@ -239,7 +239,7 @@ const UI = {
         // [升級] 動態號碼槽生成系統 (Dynamic Target Slots)
         // ===============================================
         const slotsContainer = document.getElementById('target-slots-container');
-        const actionPanelEl = document.querySelector('.action-panel');
+        const actionPanelEl = document.getElementById('dynamic-action-panel');
         if (actionPanelEl) {
             if (state.actionPanel && state.actionPanel.bgImage) {
                 actionPanelEl.classList.add('image-mode');
