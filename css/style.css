@@ -533,16 +533,19 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     z-index: 10;
 }
 
-/* 倒數計時器浮動於圖片頂端 */
 .action-panel.image-mode #action-timer-display {
     position: absolute;
-    top: -5px; 
+    top: -20px; 
     left: 50%;
     transform: translateX(-50%);
     z-index: 20;
+    background: rgba(0,0,0,0.6); 
+    padding: 4px 12px; 
+    border-radius: 12px;
 }
 
-/* 隱藏殘留的 prompt 容器以避免阻擋點擊 */
 .action-panel.image-mode .action-prompt {
-    display: none;
+    display: block;
+    margin: 0;
+    padding: 0;
 }
