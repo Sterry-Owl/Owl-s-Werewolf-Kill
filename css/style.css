@@ -516,7 +516,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 /* 號碼槽精準落於圖片中央的框框區 */
 .action-panel.image-mode .target-slots-container {
     position: absolute;
-    top: 45%; /* 根據圖片框框高度微調 */
+    top: 50%; /* [精準置中] 改為 50% 完美貼合圖片中心 */
     left: 50%;
     transform: translate(-50%, -50%);
     margin: 0;
