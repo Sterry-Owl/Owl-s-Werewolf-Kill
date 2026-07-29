@@ -1496,6 +1496,9 @@ RoleRegistry.register("尋香魅影", {
     nightPhase: ["midnight", "second_half"],
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'single_select' : 'double_select',
     onNightStart: (ctx, player) => {
+        if (ctx.phantomLinkNight && ctx.nightCount > ctx.phantomLinkNight) {
+            ctx.phantomLinked = [];
+        }
         if (ctx.nightCount === 1 && !player.data.knownWolf) {
             const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== player.seatNumber);
             if (otherWolves.length > 0) {
@@ -1562,7 +1565,10 @@ RoleRegistry.register("尋香魅影", {
             const t2 = act.targets.length > 1 ? parseInt(act.targets[1]) : t1;
             
             ctx.phantomLinked = [t1, t2];
+            ctx.phantomLinkNight = ctx.nightCount;
             return `【連繫: ${t1}號 與 ${t2}號】`;
+        }
+    }
         }
     }
 });
