@@ -121,6 +121,7 @@ const BOARD_TEMPLATES = [
     { id: "nim_dgr_9", name: "9人 夢魘攝夢人(商榷)", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "攝夢人", "噩夢之影", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "cloud_10", name: "10人 雲端探查", category: 'fun', playerCount: 10, deck: ["預言家", "女巫", "魔鏡少女", "河豚", "獵人", "攝夢人", "狼人", "狼人", "狼王", "尋香魅影"] },
     { id: "whip_10", name: "10人 連連看", category: 'fun', playerCount: 10, deck: ["獵魔人", "獵魔人", "獵魔人", "獵魔人", "獵魔人", "獵魔人", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影"] },
+    { id: "whip_8", name: "8人 連連看", category: 'fun', playerCount: 8, deck: ["獵魔人", "獵魔人", "獵魔人", "獵魔人", "獵魔人", "尋香魅影", "尋香魅影", "尋香魅影"] },
     { id: "leave_10", name: "10人 離群眾狼", category: 'fun', playerCount: 10, deck: ["預言家", "女巫", "攝夢人", "狼人", "隱狼", "尋香魅影", "平民", "平民", "平民", "平民"] },
     { id: "standard_10", name: "10人 標準局", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_grd_10", name: "10人 狼王守衛", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "守衛", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
