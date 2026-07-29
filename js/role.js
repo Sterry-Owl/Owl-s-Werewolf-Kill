@@ -122,6 +122,17 @@ window.RoleRegistry = {
                     }
                 }
             }
+            if (context.phantomLinked && context.phantomLinked.includes(player.seatNumber) && !context.phantomTriggered) {
+                const otherSeat = context.phantomLinked.find(s => s !== player.seatNumber);
+                if (otherSeat) {
+                    const otherPlayer = context.getPlayer(otherSeat);
+                    if (otherPlayer && !otherPlayer.isDead) {
+                        context.phantomTriggered = true; 
+                        context.systemLog = (context.systemLog || '') + `\n(系統紀錄：尋香魅影連繫生效，${otherSeat} 號玩家殉情出局)`;
+                        otherPlayer.kill('martyr', context); 
+                    }
+                }
+            }
             if (player.role === '機械狼' && player.data.machineState === 1 && player.data.learnedRole === '獵人' && canShootReasons.includes(reason)) {
                 context.pendingWolfKing = player.seatNumber;
                 player.data.machineState = 2;
@@ -1484,5 +1495,142 @@ RoleRegistry.register("河豚", {
             Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
             Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
         }
+    }
+});
+RoleRegistry.register("尋香魅影", {
+    canSelfExplode: false,
+    canSeeWolves: false,
+    seenAsWolf: false,
+    isAttacker: (ctx, mySeat) => {
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId !== 'midnight') return false;
+        const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
+        return otherWolves.length === 0;
+    },
+    hasWolfChatAccess: false,
+    nightPhase: ["midnight", "second_half"],
+    actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'double_select',
+    onNightStart: (ctx, player) => {
+        if (ctx.nightCount === 1 && !player.data.knownWolf) {
+            const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== player.seatNumber);
+            if (otherWolves.length > 0) {
+                const randomWolf = otherWolves[Math.floor(Math.random() * otherWolves.length)];
+                player.data.knownWolf = randomWolf.seatNumber;
+                player.data.customTopTags = player.data.customTopTags || {};
+                player.data.customTopTags[randomWolf.seatNumber] = '狼人';
+            }
+        }
+    },
+    hasAction: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') {
+            const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
+            return otherWolves.length === 0;
+        }
+        if (step === 'second_half') {
+            return !ctx.phantomTriggered;
+        }
+        return false;
+    },
+    getPrompt: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return "其他狼同伴皆已出局\n請選擇今晚的襲擊目標 (或跳過以空刀)";
+        
+        const known = ctx.getPlayer(mySeat).data.knownWolf;
+        const knownStr = known ? `(已知狼同伴: ${known}號)\n` : "";
+        return `${knownStr}請選擇兩名玩家進行連繫\n(其中一人出局，另一人將殉情。成功觸發後技能失效)`;
+    },
+    getSelectableSeats: (ctx, mySeat) => {
+        if (ctx.nightSequence[ctx.currentNightStepIndex].phaseId === 'midnight') {
+            return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
+        }
+        return ctx.getAlivePlayers().map(p => p.seatNumber);
+    },
+    getButtons: (ctx) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') {
+            return [{ id: 'kill', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
+        }
+        return [
+            { id: 'link', text: '連繫', requiresTarget: true },
+            { id: 'pass', text: '不發動', requiresTarget: false }
+        ];
+    },
+    resolveNightAction: (ctx, actions) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        const act = actions[0];
+
+        if (step === 'midnight') {
+            if (!act || act.actionId === 'pass') return "【空刀】";
+            const target = act.targets[0];
+            if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
+            ctx.nightTags.killed.push(parseInt(target));
+            return `【襲擊: ${target}號】`;
+        }
+
+        if (step === 'second_half') {
+            if (!act || act.actionId === 'pass' || !act.targets || act.targets.length === 0) {
+                ctx.phantomLinked = [];
+                return "【不發動技能】";
+            }
+            const t1 = parseInt(act.targets[0]);
+            const t2 = act.targets.length > 1 ? parseInt(act.targets[1]) : t1;
+            
+            ctx.phantomLinked = [t1, t2];
+            return `【連繫: ${t1}號 與 ${t2}號】`;
+        }
+    }
+});
+RoleRegistry.register("覺醒預言家", {
+    canSelfExplode: false,
+    nightPhase: "second_half",
+    actionType: "double_select",
+    isSeer: true,
+    getPrompt: () => "選擇今晚的兩名查驗目標\n(包含自己，可重複選擇)",
+    getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
+    getButtons: () => [
+        { id: 'check', text: '查驗', requiresTarget: true },
+        { id: 'pass', text: '跳過', requiresTarget: false }
+    ],
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || act.actionId === 'pass' || !act.targets || act.targets.length === 0) {
+            return "【跳過行動】";
+        }
+        
+        const t1 = parseInt(act.targets[0]);
+        const t2 = act.targets.length > 1 ? parseInt(act.targets[1]) : t1;
+        const checkAlignment = (target) => {
+            const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
+            const tPlayer = ctx.getPlayer(actualTarget);
+            const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
+            const isWolf = (checkRole && ROLE_DICTIONARY[checkRole]?.faction === 'wolf');
+            let alignment = isWolf ? "狼人" : "好人";
+            
+            const pluginDef = RoleRegistry.plugins[tPlayer.role];
+            if (pluginDef && typeof pluginDef.seenBySeerAsGood !== 'undefined') {
+                const isCamouflaged = typeof pluginDef.seenBySeerAsGood === 'function' ? pluginDef.seenBySeerAsGood(ctx, target) : pluginDef.seenBySeerAsGood;
+                if (isCamouflaged) alignment = "好人";
+            }
+            return alignment;
+        };
+
+        const align1 = checkAlignment(t1);
+        const align2 = checkAlignment(t2);
+        let finalResult = "兩人都是好人";
+        if (align1 === "狼人" || align2 === "狼人") {
+            finalResult = "疑似狼人";
+        }
+        act.player.data.seerRecords = act.player.data.seerRecords || {};
+        act.player.data.seerRecords[t1] = finalResult;
+        act.player.data.seerRecords[t2] = finalResult;
+        
+        act.player.data.latestCheckResult = { seat: t1, seat2: t2, alignment: finalResult, isSeerAction: true };
+        if (t1 === t2) {
+            act.player.data.tempPrivateMessage = `${t1}號 的查驗結果為：【${align1}】。`;
+        } else {
+            act.player.data.tempPrivateMessage = `${t1}號與${t2}號 的查驗結果為：【${finalResult}】。`;
+        }
+        
+        return `查驗: ${t1}號, ${t2}號`;
     }
 });
