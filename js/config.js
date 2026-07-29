@@ -116,6 +116,7 @@ const BOARD_TEMPLATES = [
     { id: "test-14_6", name: "6人 無目之夜(測試)", category: 'test', playerCount: 6, deck: ["攝夢人", "女巫", "狼鴉之爪", "狼人", "石像鬼", "隱狼"] },
     { id: "test-15_6", name: "6人 血月獵魔人(測試)", category: 'test', playerCount: 6, deck: ["預言家", "獵魔人", "血月使徒", "狼人", "女巫", "平民"] },
     { id: "test-16_6", name: "6人 熊河豚(測試)", category: 'test', playerCount: 6, deck: ["熊", "河豚", "狼人", "狼人", "平民", "平民"] },
+    { id: "test-17_6", name: "6人 魅影覺醒預(測試)", category: 'test', playerCount: 6, deck: ["覺醒預言家", "女巫", "尋香魅影", "狼人", "狼人", "獵人"] },
     { id: "standard_9", name: "9人 標準局", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "wbt_kn_9", name: "9人 狼美人騎士(商榷)", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "騎士", "狼美人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "nim_dgr_9", name: "9人 夢魘攝夢人(商榷)", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "攝夢人", "噩夢之影", "狼人", "狼人", "平民", "平民", "平民"] },
@@ -146,6 +147,7 @@ const BOARD_TEMPLATES = [
     { id: "mirc_12", name: "12人 奇蹟商人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "奇蹟商人", "狼王", "惡靈騎士", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "noeye_12", name: "12人 無目之夜", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "攝夢人", "狼人", "狼鴉之爪", "隱狼", "石像鬼", "平民", "平民", "平民", "平民"] },
     { id: "bloodmoon_12", name: "12人 血月使徒獵魔人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "白痴", "血月使徒", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "phantom_12", name: "12人 魅影覺醒預", category: 'standard', playerCount: 12, deck: ["覺醒預言家", "女巫", "獵人", "守衛", "尋香魅影", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
 ];
 
 const ROLE_DICTIONARY = {
@@ -178,4 +180,6 @@ const ROLE_DICTIONARY = {
     "獵魔人": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "獵魔人請行動\n選擇今晚狩獵的目標", description:"神職；從第二晚開始每晚可狩獵一名玩家。若目標為狼人則該狼人死亡；若目標為好人則獵魔人自身死亡。免疫女巫的毒藥。" },
     "熊": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "熊請睜眼", description:"神職；相鄰兩位玩家有狼人則白天將公告熊咆哮，否則公告熊沒有咆哮" },
     "河豚": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "河豚請睜眼", description:"神職；僅可發動一次技能，白天將所有投票給自己的玩家炸死。被狼人襲擊時將翻牌然後出局" },
+    "尋香魅影": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "double_select", prompt: "尋香魅影請行動\n請選擇兩名玩家進行連繫", description:"狼人陣營；不與其他狼人見面、不可自爆。每晚可綁定兩名玩家，其中一人出局則另一人殉情，成功觸發後技能失效。最後一狼時可參與襲擊。" },
+    "覺醒預言家": { faction: "good", type: "god", nightPhase: "second_half", actionType: "double_select", prompt: "覺醒預言家請行動\n請選擇兩名查驗目標", description:"神職；每晚可以選擇兩名玩家進行複合查驗。若兩人皆為好人則顯示兩人皆為好人，若其中包含狼人則顯示疑似狼人。" },
 };
