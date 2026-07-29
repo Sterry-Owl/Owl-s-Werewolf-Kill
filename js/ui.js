@@ -297,9 +297,11 @@ const UI = {
                     if (displayTargets.length === 0) {
                         slotsContainer.classList.add('hidden');
                     } else {
-                    const target = displayTargets.length > 0 ? displayTargets[0] : null;
-                    let alignmentLabel = target ? '' : '請選擇';
-                    let specialClass = '';
+                        // [修復] 補回遺失的迴圈宣告
+                        displayTargets.forEach(target => {
+                            // [視覺優化] 移除強制目標預設的「目標」標籤
+                            let alignmentLabel = '';
+                            let specialClass = '';
                             const tData = state.players.find(p => p.seatNumber === target);
                             if (tData && tData.sideTag) {
                                 alignmentLabel = tData.sideTag;
@@ -318,7 +320,7 @@ const UI = {
 
                 } else {
                     const target = displayTargets.length > 0 ? displayTargets[0] : null;
-                    let alignmentLabel = target ? '目標' : '請選擇';
+                    let alignmentLabel = target ? '' : '請選擇';
                     let specialClass = '';
                     
                     if (target) {
