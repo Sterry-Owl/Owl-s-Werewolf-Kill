@@ -124,12 +124,6 @@ window.PhaseRegistry = {
                 else if (ctx.nextPhaseAfterVoteDisplay) self.sm.transitionTo(ctx.nextPhaseAfterVoteDisplay);
             }
         });
-            onTimeout: (ctx) => {
-                if (ctx.nextPhaseAfterVoteDisplay === 'DAWN_RESUME') Engine.EventBus.emit('TRIGGER_DEATH_ANNOUNCE');
-                else if (ctx.nextPhaseAfterVoteDisplay === 'RESUME_ROUTINE') Engine.EventBus.emit('RESUME_ROUTINE');
-                else if (ctx.nextPhaseAfterVoteDisplay) self.sm.transitionTo(ctx.nextPhaseAfterVoteDisplay);
-            }
-        });
 
         stateMachine.registerPhase('BEAR_ROAR_ANNOUNCE', {
             onEnter: (ctx) => {
