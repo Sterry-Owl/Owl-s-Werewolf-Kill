@@ -74,6 +74,7 @@ class GameContext {
         
         this.nightSequence = [];
         this.lastWordsTargets = [];
+        this.exiledHistory = []; // [新增] 定序王子全域放逐歷史紀錄
         this.nightTags = { killed: [], poisoned: [], witchUsedSaveTonight: false };
         this.destinationPhase = 'DAY_DISCUSSION'; 
         this.filters = {};
