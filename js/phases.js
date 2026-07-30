@@ -92,10 +92,38 @@ window.PhaseRegistry = {
         stateMachine.registerPhase('SHERIFF_PK_SPEECH', createSpeechPhase('SHERIFF_PK_VOTING'));
         stateMachine.registerPhase('DAY_PK_SPEECH', createSpeechPhase('DAY_PK_VOTING'));
         stateMachine.registerPhase('LAST_WORDS', createSpeechPhase('RESUME_ROUTINE'));
+        stateMachine.registerPhase('PRINCE_SPEECH', createSpeechPhase('DAY_VOTING')); // [擴充] 定序王子額外發言階段，結束後回歸投票
+        
+        stateMachine.registerPhase('POST_VOTE_SKILL', { // [擴充] 投票後技能階段
+            onEnter: (ctx) => {
+                ctx.systemLog = "等待發動投票後技能 (15秒)...";
+                self.sm.setTimer(15000);
+            },
+            onTimeout: (ctx) => {
+                if (ctx.nextPhaseAfterVoteDisplay === 'DAWN_RESUME') Engine.EventBus.emit('TRIGGER_DEATH_ANNOUNCE');
+                else if (ctx.nextPhaseAfterVoteDisplay === 'RESUME_ROUTINE') Engine.EventBus.emit('RESUME_ROUTINE');
+                else if (ctx.nextPhaseAfterVoteDisplay) self.sm.transitionTo(ctx.nextPhaseAfterVoteDisplay);
+            }
+        });
+
         stateMachine.registerPhase('VOTE_RESULT_DISPLAY', {
             onEnter: (ctx) => {
                 self.sm.setTimer(5000); 
             },
+            onTimeout: (ctx) => {
+                if (ctx.postVoteSkillPhasePending) {
+                    ctx.postVoteSkillPhasePending = false;
+                    const hasSpecialRoles = ctx.players.some(p => RoleRegistry.plugins[p.role]?.hasPostVoteSkill);
+                    if (hasSpecialRoles) {
+                        self.sm.transitionTo('POST_VOTE_SKILL');
+                        return;
+                    }
+                }
+                if (ctx.nextPhaseAfterVoteDisplay === 'DAWN_RESUME') Engine.EventBus.emit('TRIGGER_DEATH_ANNOUNCE');
+                else if (ctx.nextPhaseAfterVoteDisplay === 'RESUME_ROUTINE') Engine.EventBus.emit('RESUME_ROUTINE');
+                else if (ctx.nextPhaseAfterVoteDisplay) self.sm.transitionTo(ctx.nextPhaseAfterVoteDisplay);
+            }
+        });
             onTimeout: (ctx) => {
                 if (ctx.nextPhaseAfterVoteDisplay === 'DAWN_RESUME') Engine.EventBus.emit('TRIGGER_DEATH_ANNOUNCE');
                 else if (ctx.nextPhaseAfterVoteDisplay === 'RESUME_ROUTINE') Engine.EventBus.emit('RESUME_ROUTINE');
@@ -594,6 +622,7 @@ stateMachine.registerPhase('HUNTER_ACTION', {
                 Engine.EventBus.emit('MASTER_LOG', `【投票結算】(警長選舉) 第 ${ctx.nightCount} 天\n${ctx.currentVoteResultString}`);
                 ctx.nextPhaseAfterVoteDisplay = 'DAWN_RESUME';
             }
+            ctx.postVoteSkillPhasePending = false;
             this.sm.transitionTo('VOTE_RESULT_DISPLAY');
             return;
         }
@@ -621,6 +650,7 @@ stateMachine.registerPhase('HUNTER_ACTION', {
                 Engine.EventBus.emit('MASTER_LOG', `【投票結算】(警長對決投票) 第 ${ctx.nightCount} 天\n${ctx.currentVoteResultString}`);
                 ctx.nextPhaseAfterVoteDisplay = 'DAWN_RESUME';
             }
+            ctx.postVoteSkillPhasePending = false;
             this.sm.transitionTo('VOTE_RESULT_DISPLAY');
             return;
         }
@@ -642,6 +672,7 @@ stateMachine.registerPhase('HUNTER_ACTION', {
                 // [新增] 全知紀錄
                 Engine.EventBus.emit('MASTER_LOG', `【投票結算】(放逐首次投票) 第 ${ctx.nightCount} 天\n${ctx.currentVoteResultString}`);
                 ctx.nextPhaseAfterVoteDisplay = 'DAY_PK_SPEECH';
+                ctx.postVoteSkillPhasePending = false;
                 this.sm.transitionTo('VOTE_RESULT_DISPLAY');
                 return; 
             }
@@ -657,6 +688,10 @@ stateMachine.registerPhase('HUNTER_ACTION', {
 
         if (!isTie && finalTarget) {
             const tPlayer = ctx.getPlayer(finalTarget);
+            
+            if (!ctx.exiledHistory) ctx.exiledHistory = [];
+            ctx.exiledHistory.push(finalTarget);
+            
             const plugin = RoleRegistry.plugins[tPlayer.role];
             if (plugin && typeof plugin.onVotedOut === 'function') {
                 const hookResult = plugin.onVotedOut(ctx, tPlayer);
@@ -689,6 +724,7 @@ stateMachine.registerPhase('HUNTER_ACTION', {
         ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】\n${ctx.currentVoteResultString}`);
         ctx.systemLog = header.replace('\n', '');
         
+        ctx.postVoteSkillPhasePending = true;
         Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
         if (ctx.phase !== 'GAME_OVER') {
             ctx.destinationPhase = 'NIGHT_TRANSITION';
