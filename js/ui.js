@@ -179,18 +179,21 @@ const UI = {
         }
 
         const btnDaySkill = document.getElementById('btn-day-skill');
-        
-        // [清理] 徹底移除舊版硬編碼的 local-day-skill-panel DOM 節點
+
         const localPanel = document.getElementById('local-day-skill-panel');
         if (localPanel) localPanel.remove(); 
 
         if (btnDaySkill) {
-            // [修復] 取消對 state.daySkill 的破壞性操作，改以邏輯判斷是否進入準備狀態
             if (state.daySkill && !UI.isPreparingDaySkill) { 
                 btnDaySkill.classList.remove('hidden');
-                btnDaySkill.style.backgroundImage = state.myRole === '騎士' ? "url('./img/btn-knight.webp')" : "url('./img/btn-explode.webp')"; 
-                
-                // [新增] 點擊時，開啟過渡視圖並觸發即時重新渲染
+                const daySkillIconMap = {
+                    '騎士': 'btn-knight.webp',
+                    '河豚': 'btn-fish.webp',
+                    '定序王子': 'btn-prince.webp',
+                    '白狼王': 'btn-explode.webp'
+                };
+                const iconFile = daySkillIconMap[state.myRole] || 'btn-explode.webp';
+                btnDaySkill.style.backgroundImage = `url('./img/${iconFile}')`;
                 btnDaySkill.onclick = () => {
                     UI.isPreparingDaySkill = true;
                     UI.renderPlayerView(state, onSeatSelect, onActionSubmit, [], showVoteHistory);
