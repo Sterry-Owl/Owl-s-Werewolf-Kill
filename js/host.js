@@ -773,18 +773,22 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                 actionPanel.forceTargets = true;
                 actionPanel.submittedTargets = forcedTargets;
             }
-        }
+        }}
+
+    // ==========================================
+    // [擴充] 全域防呆過濾：過濾帶有「不可被指定」狀態的玩家
+    // 完全解耦，host.js 不涉入任何角色邏輯
+    // ==========================================
+    if (actionPanel.selectableSeats && actionPanel.selectableSeats.length > 0) {
+        actionPanel.selectableSeats = actionPanel.selectableSeats.filter(seat => {
+            const targetPlayer = ctx.players.find(p => p.seatNumber === seat);
+            return !(targetPlayer && targetPlayer.data.isUntargetable);
+        });
     }
 
     // ==========================================
     // 3. 打包回傳封包給前端渲染
     // ==========================================
-    if (actionPanel.selectableSeats && actionPanel.selectableSeats.length > 0) {
-        actionPanel.selectableSeats = actionPanel.selectableSeats.filter(seat => {
-            const targetPlayer = ctx.players.find(p => p.seatNumber === seat);
-            return !(targetPlayer && targetPlayer.data.isWhiteCatSurviving);
-        });
-    }
     const roleCounts = {};
     ctx.players.forEach(p => {
         if (p.role) roleCounts[p.role] = (roleCounts[p.role] || 0) + 1; 
