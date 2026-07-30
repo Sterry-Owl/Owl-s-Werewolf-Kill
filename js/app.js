@@ -24,8 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
             filteredTemplates.forEach((tpl, index) => {
                 const item = document.createElement('div');
                 item.className = 'template-item';
-                if (index === 0) item.classList.add('active');
-                item.innerHTML = `<img src="img/choose/${tpl.id}.webp" alt="${tpl.name}" onerror="this.outerHTML='<div class=\\'template-fallback\\'>${tpl.name}</div>'">`;
+                if (index === 0) item.classList.add('active'); 
+                item.innerHTML = `<img src="img/choose/${tpl.name}.webp" alt="${tpl.name}" onerror="this.outerHTML='<div class=\\'template-fallback\\'>${tpl.name}</div>'">`;
                 
                 item.addEventListener('click', () => {
                     boardContainer.querySelectorAll('.template-item').forEach(b => b.classList.remove('active'));
