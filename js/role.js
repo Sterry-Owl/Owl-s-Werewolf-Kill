@@ -113,7 +113,38 @@ window.RoleRegistry = {
                 }
             });
         });
+
+        // [新增] 白貓大限判定：偵測放逐投票展示階段
+        Engine.EventBus.on('PHASE_CHANGED', (phase) => {
+            if (phase === 'VOTE_RESULT_DISPLAY' && ctx) {
+                let roleExpired = false;
+                ctx.players.filter(p => p.role === '白貓' && p.data.isUntargetable && !p.isDead).forEach(p => {
+                    if (ctx.nightCount >= p.data.expireNight) {
+                        p.data.isUntargetable = false; // 移除不可指定標籤
+                        p.kill('skill_expired', ctx);
+                        ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：白貓 ${p.seatNumber} 號大限已至，倒牌出局)`;
+                        roleExpired = true;
+                    }
+                });
+                if (roleExpired) Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+            }
+        });
+
         Engine.EventBus.on('PLAYER_DIED', ({ context, player, reason }) => {
+            // [新增] 白貓翻牌續命攔截 (寫入通用不可指定標籤)
+            if (player.role === '白貓' && !player.data.hasTriggeredSurvive && reason !== 'skill_expired') {
+                player.isDead = false;
+                player.isRevealed = true;
+                player.data.hasTriggeredSurvive = true;
+                player.data.isUntargetable = true; // 寫入通用標籤，交由 UI 層過濾
+                
+                const isAfterVote = ['DAY_VOTING', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'LAST_WORDS', 'HUNTER_ACTION', 'WOLFKING_ACTION', 'BLOODMOON_ACTION'].includes(context.phase);
+                player.data.expireNight = context.nightCount + (isAfterVote ? 1 : 0);
+                
+                context.systemLog = (context.systemLog || '') + `\n(系統紀錄：白貓 ${player.seatNumber} 號受到致命傷，翻牌並續命至下一次放逐投票後)`;
+                return; // 終止後續死亡連動
+            }
+
             const canShootReasons = ['killed', 'voted', 'shot'];
             if (player.role === '獵人' && canShootReasons.includes(reason)) {
                 context.pendingHunter = player.seatNumber; 
@@ -1691,4 +1722,7 @@ RoleRegistry.register("子狐", {
         });
         return logs.join('\n');
     }
+});
+RoleRegistry.register("白貓", {
+    canSelfExplode: false
 });
