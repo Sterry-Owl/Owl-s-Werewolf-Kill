@@ -22,18 +22,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             filteredTemplates.forEach((tpl, index) => {
-                const btn = document.createElement('button');
-                btn.className = 'template-btn';
-                if (index === 0) btn.classList.add('active'); // 預設選中該分類的第一個
-                btn.textContent = tpl.name;
+                const item = document.createElement('div');
+                item.className = 'template-item';
+                if (index === 0) item.classList.add('active');
+                item.innerHTML = `<img src="img/choose/${tpl.id}.webp" alt="${tpl.name}" onerror="this.outerHTML='<div class=\\'template-fallback\\'>${tpl.name}</div>'">`;
                 
-                btn.addEventListener('click', () => {
-                    boardContainer.querySelectorAll('.template-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
+                item.addEventListener('click', () => {
+                    boardContainer.querySelectorAll('.template-item').forEach(b => b.classList.remove('active'));
+                    item.classList.add('active');
                     hiddenSelectBoard.value = tpl.id;
                     deckPreview.innerHTML = `<strong>配置內容：</strong><br>${tpl.deck.join('、')}`;
                 });
-                boardContainer.appendChild(btn);
+                boardContainer.appendChild(item);
             });
             
             // 切換分類時，強制作業系統選中該分類的第一個版型 (防止資料不同步 Bug)
