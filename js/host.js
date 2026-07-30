@@ -858,6 +858,14 @@ function handleHostCommand(cmd) {
     else if (cmd === 'START_VOTE') { engineContext.routineOrigin = 'AFTERNOON'; stateMachine.transitionTo('DAY_VOTING'); }
     else if (cmd === 'START_DAY_PK_VOTE') { engineContext.routineOrigin = 'AFTERNOON'; stateMachine.transitionTo('DAY_PK_VOTING'); } 
     else if (cmd === 'END_VOTE_DISPLAY') {
+        if (engineContext.postVoteSkillPhasePending) {
+            engineContext.postVoteSkillPhasePending = false;
+            const hasSpecialRoles = engineContext.players.some(p => RoleRegistry.plugins[p.role]?.hasPostVoteSkill);
+            if (hasSpecialRoles) {
+                stateMachine.transitionTo('POST_VOTE_SKILL');
+                return;
+            }
+        }
         if (engineContext.nextPhaseAfterVoteDisplay === 'DAWN_RESUME') Engine.EventBus.emit('TRIGGER_DEATH_ANNOUNCE');
         else if (engineContext.nextPhaseAfterVoteDisplay === 'RESUME_ROUTINE') resumeRoutinePhase();
         else if (engineContext.nextPhaseAfterVoteDisplay) stateMachine.transitionTo(engineContext.nextPhaseAfterVoteDisplay);
