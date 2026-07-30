@@ -445,8 +445,7 @@ function resumeRoutinePhase() {
 
 function syncStateToAll() {
     const ctx = engineContext;
-    const isDayPhase = ['BEAR_ROAR_ANNOUNCE', 'DAWN_DEATH_ANNOUNCE', 'DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'SHERIFF_ORDER_SELECTION', 'DAY_DISCUSSION', 'DAY_VOTING', 'DAY_PK_SPEECH', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION', 'BLOODMOON_ACTION'].includes(ctx.phase);
-    const hostState = {
+    const isDayPhase = ['BEAR_ROAR_ANNOUNCE', 'DAWN_DEATH_ANNOUNCE', 'DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'SHERIFF_ORDER_SELECTION', 'DAY_DISCUSSION', 'DAY_VOTING', 'DAY_PK_SPEECH', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'POST_VOTE_SKILL', 'PRINCE_SPEECH', 'LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION', 'BLOODMOON_ACTION'].includes(ctx.phase);
         systemLog: ctx.systemLog,
         masterLog: ctx.masterLog || [],
         players: ctx.players.map(p => ({ ...p })),
@@ -809,7 +808,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         canUseWolfChat: canUseWolfChat,
         isMidnight: isMidnight,
         wolfChatHistory: canUseWolfChat ? (ctx.wolfChatHistory || []) : [],
-        daySkill: (isDayPhase && RoleRegistry.plugins[player.role]?.daySkill && RoleRegistry.plugins[player.role].daySkill.allowedPhases.includes(ctx.phase) && (!player.isDead || RoleRegistry.plugins[player.role].daySkill.allowDead)) ? {
+        daySkill: (isDayPhase && RoleRegistry.plugins[player.role]?.daySkill && RoleRegistry.plugins[player.role].daySkill.allowedPhases.includes(ctx.phase) && (!player.isDead || RoleRegistry.plugins[player.role].daySkill.allowDead) && !player.data.hasUsedDaySkill) ? {
             id: RoleRegistry.plugins[player.role].daySkill.id,
             buttonText: RoleRegistry.plugins[player.role].daySkill.buttonText,
             requiresTarget: RoleRegistry.plugins[player.role].daySkill.requiresTarget,
