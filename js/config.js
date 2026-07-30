@@ -191,5 +191,5 @@ const ROLE_DICTIONARY = {
     "子狐": { faction: "good", type: "god", nightPhase: "first_half", actionType: "single_select", prompt: "子狐請行動\n選擇迷惑目標", description:"神職；每局限用一次，迷惑一名玩家。若目標為狼人，則當晚整個狼隊無法襲擊；若為噩夢之影或狼美人，其夜間技能也會失效。" },
     "白貓": {faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "", description:"神職；因任何原因出局時，白貓都會翻牌並存活到下一個放逐投票結束之後才出局。(翻牌的白貓不能被任何技能選中)"},
     "蝕時狼妃": { faction: "wolf", type: "wolf", nightPhase: ["first_half", "midnight"], actionType: "dynamic", prompt: "蝕時狼妃請行動", description:"狼人陣營；與狼隊見面。前半夜可發動技能封鎖一名玩家，該玩家當晚若被查驗、毒殺或守護，技能效果將反彈回施放者身上。每局每個號碼僅能被封鎖一次。若成功反彈技能，下一晚將失去技能。" },
-    "定序王子": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "", description:"神職；每局限用一次。白天投票結果公示後，可翻牌發動定序使該次投票作廢，並獲得一次額外發言機會後重新投票。發動技能後的下一個夜晚，可得知自遊戲開始至今的所有放逐目標(含作廢)中共有幾名狼人。" },
+    "定序王子": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "定序王子請行動\n(確認被動資訊)", description:"神職；每局限用一次。白天投票後，可翻牌逆轉時光使該次投票作廢，並獲得一次額外發言機會後重新投票。發動技能後的下一個夜晚，可得知從遊戲開始至今的所有放逐目標(含作廢)中共有幾名狼人。" },
 };
