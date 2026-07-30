@@ -256,15 +256,26 @@ function setupEngineFlowControllers() {
     });
 
     Engine.EventBus.on('NIGHT_STEP_COMPLETE', () => {
-        engineContext.currentNightStepIndex++;
-        if (engineContext.currentNightStepIndex >= engineContext.nightSequence.length) {
-            Engine.EventBus.emit('PROCESS_DAWN');
+        const previousStep = engineContext.nightSequence[engineContext.currentNightStepIndex];
+        
+        const advanceNightStep = () => {
+            engineContext.currentNightStepIndex++;
+            if (engineContext.currentNightStepIndex >= engineContext.nightSequence.length) {
+                Engine.EventBus.emit('PROCESS_DAWN');
+            } else {
+                const currentStep = engineContext.nightSequence[engineContext.currentNightStepIndex];
+                engineContext.dynamicNightDuration = (currentStep.phaseId === 'midnight') ? 45000 : 20000;
+                stateMachine.transitionTo('NIGHT_ACTION');
+            }
+        };
+        if (previousStep && previousStep.phaseId === 'midnight') {
+            engineContext.phase = 'MIDNIGHT_RESULT_DISPLAY';
+            syncStateToAll();
+            setTimeout(() => {
+                advanceNightStep();
+            }, 3000);
         } else {
-            // [乾淨架構] 寫入環境變數，由 DTO 傳遞動態時長 (毫秒)
-            const currentStep = engineContext.nightSequence[engineContext.currentNightStepIndex];
-            engineContext.dynamicNightDuration = (currentStep.phaseId === 'midnight') ? 45000 : 20000;
-            
-            stateMachine.transitionTo('NIGHT_ACTION');
+            advanceNightStep();
         }
     });
 
@@ -563,9 +574,35 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                 } else {
                     actionPanel.prompt = plugin.getPrompt(ctx, player.seatNumber);
                 }
+            } else {
+                // [擴充] 神職被恐懼的專屬靜態 UI 回饋
+                const isFeared = ctx.fearedSeat === player.seatNumber;
+                const isGod = typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[player.role]?.type === 'god';
+                
+                if (isFeared && isGod) {
+                    actionPanel.show = true;
+                    actionPanel.deadline = ctx.deadline;
+                    actionPanel.type = 'none';
+                    actionPanel.prompt = "【技能失效】你被恐懼了，今晚無法使用技能";
+                    actionPanel.buttons = [];
+                    actionPanel.hasActed = true; // 鎖定狀態，防止惡意互動
+                }
             }
         }
     } 
+    else if (ctx.phase === 'MIDNIGHT_RESULT_DISPLAY') {
+        const plugin = RoleRegistry.plugins[player.role];
+        const hasWolfChat = plugin?.hasWolfChatAccess === true || (typeof plugin?.hasWolfChatAccess === 'function' && plugin.hasWolfChatAccess(ctx, player));
+        
+        if (!player.isDead && hasWolfChat) {
+            actionPanel.show = true;
+            actionPanel.type = 'none';
+            actionPanel.prompt = "已確認今晚的襲擊目標";
+            actionPanel.forceTargets = true;
+            actionPanel.submittedTargets = ctx.nightTags.killed || [];
+            actionPanel.buttons = [];
+        }
+    }
     else if (ctx.phase === 'SHERIFF_CANDIDACY' && !player.isDead) {
         actionPanel.show = true; actionPanel.deadline = ctx.deadline;
         if (ctx.currentStepActions.some(act => act.player.seatNumber === player.seatNumber)) {
@@ -776,6 +813,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
 function getPhaseMessageForPlayer(phase, ctx) {
     const dict = { 
         'NIGHT_TRANSITION': "天黑請閉眼...", 'NIGHT_ACTION': "夜間行動中...", 
+        'MIDNIGHT_RESULT_DISPLAY': "夜間行動中...",
         'BEAR_ROAR_ANNOUNCE': "熊咆哮結果展示...", 'DAWN_DEATH_ANNOUNCE': "宣告昨晚死訊...",
         'SHERIFF_CANDIDACY': "登記上警意願...", 'SHERIFF_ORDER_SELECTION': "決定發言順序中...",
         'SHERIFF_SPEECH': ctx ? (ctx.sheriffSpeechPrompt || "警長發言中...") : "警長發言中...", 
