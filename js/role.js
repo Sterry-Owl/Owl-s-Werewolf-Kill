@@ -107,6 +107,7 @@ window.RoleRegistry = {
         Engine.EventBus.on('START_NIGHT', () => {
             if (ctx) {
                 ctx.magicianSwap = null;
+                ctx.postVoteSkillTriggeredThisDay = false;
                 ctx.nightTags.demonHunterKills = [];
                 ctx.nightTags.demonHunterBackfires = [];
                 ctx.nightTags.wolfTeamConfused = false;
@@ -1814,26 +1815,43 @@ RoleRegistry.register("蝕時狼妃", {
 RoleRegistry.register("定序王子", {
     canSelfExplode: false,
     hasPostVoteSkill: true,
-    nightPhase: "none", 
+    nightPhase: "second_half", // [修復] 將定序王子加入夜間排程，確保能獲得專屬面板接收資訊
     onNightStart: (ctx, player) => {
         if (player.data.hasUsedDaySkill && !player.data.hasReceivedPrinceInfo) {
-            player.data.hasReceivedPrinceInfo = true;
             let wolfCount = 0;
             if (ctx.exiledHistory) {
                 ctx.exiledHistory.forEach(seat => {
                     const targetPlayer = ctx.getPlayer(seat);
                     if (targetPlayer) {
                         const checkRole = targetPlayer.data.camouflageRole || targetPlayer.role;
-                        if (ROLE_DICTIONARY[checkRole]?.faction === 'wolf') {
+                        if (typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[checkRole]?.faction === 'wolf') {
                             wolfCount++;
                         }
                     }
                 });
             }
-            player.data.tempPrivateMessage = `(定序王子被動) 自遊戲開始至今被放逐的目標中，共有 【${wolfCount}】 名狼人。`;
+            player.data.princeWolfCount = wolfCount; // 預計算結果存入狀態
         }
     },
+    hasAction: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        return p.data.hasUsedDaySkill && !p.data.hasReceivedPrinceInfo;
+    },
+    getPrompt: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        return `【被動技能】\n自遊戲開始至今被放逐的目標中，\n共有 【${p.data.princeWolfCount || 0}】 名狼人。`;
+    },
+    getSelectableSeats: () => [],
+    getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: false }],
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (act) {
+            act.player.data.hasReceivedPrinceInfo = true; // 確認後註記為已接收
+        }
+        return "確認資訊";
+    },
     daySkill: {
+// ... 以下維持原有的 daySkill 設定不變 ...
         id: 'prince_reverse',
         buttonText: '翻牌定序',
         requiresTarget: false,
@@ -1850,7 +1868,6 @@ RoleRegistry.register("定序王子", {
                     target.isDead = false;
                     target.deathReason = null;
                     
-                    // 防禦與清除連鎖死因：避免定序復活後意外開槍
                     ctx.lastWordsTargets = ctx.lastWordsTargets.filter(s => s !== ctx.votedOutToday);
                     if (target.role === '血月使徒') { ctx.bloodMoonSeat = null; ctx.pendingBloodMoon = null; }
                     if (target.role === '獵人') ctx.pendingHunter = null;
@@ -1863,7 +1880,7 @@ RoleRegistry.register("定序王子", {
             }
             
             ctx.votedOutToday = null;
-            ctx.systemLog = `${player.seatNumber} 號玩家是定序王子，翻牌發動定序！\n本次放逐投票作廢，由定序王子發言後，重新投票。`;
+            ctx.systemLog = `${player.seatNumber} 號玩家是定序王子，翻牌逆轉時光。\n本次放逐投票作廢，由定序王子發言後，重新投票。`;
             Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
             
             ctx.dayDiscussionPrompt = `【定序王子發動技能】\n現在由 ${player.seatNumber} 號玩家進行額外發言`;
