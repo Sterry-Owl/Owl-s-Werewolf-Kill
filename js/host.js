@@ -446,6 +446,7 @@ function resumeRoutinePhase() {
 function syncStateToAll() {
     const ctx = engineContext;
     const isDayPhase = ['BEAR_ROAR_ANNOUNCE', 'DAWN_DEATH_ANNOUNCE', 'DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'SHERIFF_ORDER_SELECTION', 'DAY_DISCUSSION', 'DAY_VOTING', 'DAY_PK_SPEECH', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'POST_VOTE_SKILL', 'PRINCE_SPEECH', 'LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION', 'BLOODMOON_ACTION'].includes(ctx.phase);
+    const hostState = { // [修復] 補回遺失的物件宣告
         systemLog: ctx.systemLog,
         masterLog: ctx.masterLog || [],
         players: ctx.players.map(p => ({ ...p })),
@@ -772,7 +773,8 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                 actionPanel.forceTargets = true;
                 actionPanel.submittedTargets = forcedTargets;
             }
-        }}
+        }
+    }
 
     // ==========================================
     // [擴充] 全域防呆過濾：過濾帶有「不可被指定」狀態的玩家
