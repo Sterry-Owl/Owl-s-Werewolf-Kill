@@ -134,7 +134,8 @@ const BOARD_TEMPLATES = [
     { id: "nim_dgr_10", name: "10人 夢魘攝夢人", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "攝夢人", "噩夢之影", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "crush_10", name: "10人 暗戀者", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "暗戀者"] },
     { id: "noeye_10", name: "10人 無目之夜", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "攝夢人", "狼人", "狼鴉之爪", "石像鬼", "平民", "平民", "平民", "平民"] },
-    { id: "phantom_10", name: "10人 魅影覺醒預", category: 'quick', playerCount: 10, deck: ["覺醒預言家", "女巫", "守衛", "尋香魅影", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "phantom_10", name: "10人 尋香識命", category: 'quick', playerCount: 10, deck: ["覺醒預言家", "女巫", "守衛", "尋香魅影", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "deswhl_10", name: "10人 永序之輪", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "定序王子", "蝕時狼妃", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "animal_10", name: "10人 動物夢境", category: 'quick', playerCount: 10, deck: ["熊", "河豚", "子狐", "狼美人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "standard_12", name: "12人 標準局", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_grd_12", name: "12人 狼王守衛", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
@@ -150,7 +151,7 @@ const BOARD_TEMPLATES = [
     { id: "mirc_12", name: "12人 奇蹟商人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "奇蹟商人", "狼王", "惡靈騎士", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "noeye_12", name: "12人 無目之夜", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "攝夢人", "狼人", "狼鴉之爪", "隱狼", "石像鬼", "平民", "平民", "平民", "平民"] },
     { id: "bloodmoon_12", name: "12人 血月使徒獵魔人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "白痴", "血月使徒", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
-    { id: "phantom_12", name: "12人 魅影覺醒預", category: 'standard', playerCount: 12, deck: ["覺醒預言家", "女巫", "獵人", "守衛", "尋香魅影", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "phantom_12", name: "12人 尋香識命", category: 'standard', playerCount: 12, deck: ["覺醒預言家", "女巫", "獵人", "守衛", "尋香魅影", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "animal_12", name: "12人 動物夢境", category: 'standard', playerCount: 12, deck: ["熊", "河豚", "子狐", "白貓", "狼美人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "deswhl_12", name: "12人 永序之輪", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "定序王子", "蝕時狼妃", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
 ];
