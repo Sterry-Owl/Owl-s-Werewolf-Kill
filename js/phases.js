@@ -114,7 +114,8 @@ window.PhaseRegistry = {
                 if (ctx.postVoteSkillPhasePending) {
                     ctx.postVoteSkillPhasePending = false;
                     const hasSpecialRoles = ctx.players.some(p => RoleRegistry.plugins[p.role]?.hasPostVoteSkill);
-                    if (hasSpecialRoles) {
+                    if (hasSpecialRoles && !ctx.postVoteSkillTriggeredThisDay) {
+                        ctx.postVoteSkillTriggeredThisDay = true;
                         self.sm.transitionTo('POST_VOTE_SKILL');
                         return;
                     }
