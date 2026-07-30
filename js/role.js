@@ -1752,19 +1752,15 @@ RoleRegistry.register("蝕時狼妃", {
     hasWolfChatAccess: true,
     nightPhase: ["first_half", "midnight"],
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half' ? 'single_select' : 'consensus',
-    
-    // 高內聚機制：天亮時結算反彈狀態，賦予冷卻標記
     onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
         if (ctx.nightTags?.sealBounced) {
-            player.data.sealCooldownNextNight = true;
+            player.data.sealPermanentlyLost = true;
         }
     },
-    // 高內聚機制：入夜時讀取冷卻標記，決定今晚是否能發動
     onNightStart: (ctx, player) => {
         player.data.usedSealTargets = player.data.usedSealTargets || [];
-        if (player.data.sealCooldownNextNight) {
+        if (player.data.sealPermanentlyLost) {
             player.data.canSealTonight = false;
-            player.data.sealCooldownNextNight = false; // 消耗冷卻
         } else {
             player.data.canSealTonight = true;
         }
