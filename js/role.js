@@ -1837,6 +1837,7 @@ RoleRegistry.register("定序王子", {
         id: 'prince_reverse',
         buttonText: '翻牌定序',
         requiresTarget: false,
+        allowDead: true,
         allowedPhases: ['POST_VOTE_SKILL'],
         getSelectableSeats: () => [],
         resolve: (ctx, player) => {
