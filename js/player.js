@@ -162,6 +162,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    const btnWolfChat = document.getElementById('btn-wolf-chat');
+    const wolfChatModal = document.getElementById('wolf-chat-modal');
+    if (btnWolfChat && wolfChatModal) {
+        btnWolfChat.addEventListener('click', () => {
+            const isHidden = wolfChatModal.style.display === 'none' || wolfChatModal.classList.contains('hidden');
+            if (isHidden) {
+                wolfChatModal.style.display = 'block';
+                wolfChatModal.classList.remove('hidden');
+            } else {
+                wolfChatModal.style.display = 'none';
+                wolfChatModal.classList.add('hidden');
+            }
+        });
+    }
 });
 window.addEventListener('WOLF_CHAT_OUTGOING', (e) => {
     if (hostConnection) { 
