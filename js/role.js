@@ -1461,6 +1461,7 @@ RoleRegistry.register("血月使徒", {
     seenAsWolf: true,
     isAttacker: true,
     hasWolfChatAccess: true,
+    hasPostVoteSkill: true,
     nightPhase: "midnight",      
     actionType: "consensus",     
     getPrompt: () => "選擇今晚的襲擊目標 (或選擇跳過以空刀)",
@@ -1511,6 +1512,7 @@ RoleRegistry.register("熊", {
 
 RoleRegistry.register("河豚", {
     canSelfExplode: false,
+    hasPostVoteSkill: true,
     onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
         if (deathMap[player.seatNumber] === 'killed' && ctx.nightTags?.clawKilled !== player.seatNumber) {
             player.isRevealed = true;
@@ -1522,7 +1524,7 @@ RoleRegistry.register("河豚", {
         buttonText: '翻牌發動反傷', 
         requiresTarget: false,
         allowDead: true,
-        allowedPhases: ['LAST_WORDS'], 
+        allowedPhases: ['POST_VOTE_SKILL'],
         getSelectableSeats: () => [],
         resolve: (ctx, player) => {
             player.isRevealed = true;
@@ -1807,5 +1809,67 @@ RoleRegistry.register("蝕時狼妃", {
         ctx.nightTags.sealedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
 
         return `【封鎖: ${target}號】`;
+    }
+});
+RoleRegistry.register("定序王子", {
+    canSelfExplode: false,
+    hasPostVoteSkill: true,
+    nightPhase: "none", 
+    onNightStart: (ctx, player) => {
+        if (player.data.hasUsedDaySkill && !player.data.hasReceivedPrinceInfo) {
+            player.data.hasReceivedPrinceInfo = true;
+            let wolfCount = 0;
+            if (ctx.exiledHistory) {
+                ctx.exiledHistory.forEach(seat => {
+                    const targetPlayer = ctx.getPlayer(seat);
+                    if (targetPlayer) {
+                        const checkRole = targetPlayer.data.camouflageRole || targetPlayer.role;
+                        if (ROLE_DICTIONARY[checkRole]?.faction === 'wolf') {
+                            wolfCount++;
+                        }
+                    }
+                });
+            }
+            player.data.tempPrivateMessage = `(定序王子被動) 自遊戲開始至今被放逐的目標中，共有 【${wolfCount}】 名狼人。`;
+        }
+    },
+    daySkill: {
+        id: 'prince_reverse',
+        buttonText: '翻牌定序',
+        requiresTarget: false,
+        allowedPhases: ['POST_VOTE_SKILL'],
+        getSelectableSeats: () => [],
+        resolve: (ctx, player) => {
+            player.isRevealed = true;
+            player.data.hasUsedDaySkill = true; 
+            
+            if (ctx.votedOutToday) {
+                const target = ctx.getPlayer(ctx.votedOutToday);
+                if (target && target.isDead && target.deathReason === 'voted') {
+                    target.isDead = false;
+                    target.deathReason = null;
+                    
+                    // 防禦與清除連鎖死因：避免定序復活後意外開槍
+                    ctx.lastWordsTargets = ctx.lastWordsTargets.filter(s => s !== ctx.votedOutToday);
+                    if (target.role === '血月使徒') { ctx.bloodMoonSeat = null; ctx.pendingBloodMoon = null; }
+                    if (target.role === '獵人') ctx.pendingHunter = null;
+                    if (target.role === '狼王') ctx.pendingWolfKing = null;
+                    if (target.role === '白貓' && target.data.hasTriggeredSurvive) {
+                        target.data.hasTriggeredSurvive = false;
+                        target.data.isUntargetable = false;
+                    }
+                }
+            }
+            
+            ctx.votedOutToday = null;
+            ctx.systemLog = `${player.seatNumber} 號玩家是定序王子，翻牌發動定序！\n本次放逐投票作廢，由定序王子發言後，重新投票。`;
+            Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
+            
+            ctx.dayDiscussionPrompt = `【定序王子發動技能】\n現在由 ${player.seatNumber} 號玩家進行額外發言`;
+            ctx.buildSpeakingQueue(player.seatNumber, 1, [player.seatNumber]);
+            
+            ctx.destinationPhase = 'PRINCE_SPEECH';
+            PhaseRegistry.sm.transitionTo('PRINCE_SPEECH');
+        }
     }
 });
