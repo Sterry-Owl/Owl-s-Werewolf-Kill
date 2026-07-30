@@ -317,6 +317,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .template-item {
     width: 75%; 
     height: 135px;
+    margin: 0 auto;
     background-color: #2a2a2a;
     border: 2px solid transparent;
     border-radius: 8px;
