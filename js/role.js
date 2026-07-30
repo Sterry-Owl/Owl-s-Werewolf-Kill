@@ -18,6 +18,19 @@ window.RoleRegistry = {
                 return parseInt(seat);
             };
 
+            // [擴充] 通用技能尋址器：自動處理蝕時狼妃的技能反彈邏輯，達成零髒代碼
+            ctx.getSkillTarget = function(targetSeat, skillType, actorSeat) {
+                let actual = ctx.getActualTarget ? ctx.getActualTarget(targetSeat) : parseInt(targetSeat);
+                if (this.nightTags && this.nightTags.sealedSeat === actual) {
+                    if (['check', 'poison', 'guard'].includes(skillType)) {
+                        this.nightTags.sealBounced = true;
+                        this.systemLog = (this.systemLog || '') + `\n(系統紀錄：蝕時狼妃封鎖生效，技能反彈至 ${actorSeat} 號)`;
+                        return parseInt(actorSeat);
+                    }
+                }
+                return actual;
+            };
+
             ctx.addFilter('DAWN_DEATH_EVALUATION', (calc) => {
                 const sanitize = (arr) => (arr || []).map(x => parseInt(x));
                 calc.killed = sanitize(calc.killed);
@@ -101,7 +114,7 @@ window.RoleRegistry = {
                 const firstHalf = ctx.nightSequence.find(s => s.phaseId === 'first_half');
                 if (firstHalf) {
                     firstHalf.roles.sort((a, b) => {
-                        const getOrder = name => name === '魔術師' ? 1 : (name === '子狐' ? 2 : 3);
+                        const getOrder = name => name === '魔術師' ? 1 : (name === '子狐' ? 2 : (name === '蝕時狼妃' ? 3 : 4));
                         return getOrder(a.roleName) - getOrder(b.roleName);
                     });
                 }
@@ -316,7 +329,8 @@ RoleRegistry.register("女巫", {
                 return "解藥尚未使用時，不可毒殺被襲擊者。";
             }
             if (target) {
-                ctx.nightTags.poisoned.push(parseInt(target));
+                const finalTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'poison', act.player.seatNumber) : parseInt(target);
+                ctx.nightTags.poisoned.push(finalTarget);
                 ctx.witchState.poisonUsed = true;
                 ctx.nightTags.poisonerSeat = act.player.seatNumber;
                 return `毒殺${target}號玩家`;
@@ -340,7 +354,7 @@ RoleRegistry.register("預言家", {
         if (!act) return "【跳過行動】";
         const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
         if (act.actionId === 'confirm' && target) {
-            const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
+            const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
             const tPlayer = ctx.getPlayer(actualTarget);
             // 優先讀取掩護身分 (供機械狼偽裝使用)
             const checkRole = tPlayer.data.camouflageRole || tPlayer.role; 
@@ -379,7 +393,7 @@ RoleRegistry.register("燈影預言家", {
         if (!act) return "【跳過行動】";
         const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
         if (act.actionId === 'confirm' && target) {
-            const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
+            const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
             const tPlayer = ctx.getPlayer(actualTarget);
             // 優先讀取掩護身分 (供機械狼偽裝使用)
             const checkRole = tPlayer.data.camouflageRole || tPlayer.role; 
@@ -457,7 +471,7 @@ RoleRegistry.register("守衛", {
             return "【空守】";
         }
         const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
-        ctx.guardedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
+        ctx.guardedSeat = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'guard', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
         ctx.lastGuardedSeat = target;
         return `【守護: ${target}號】`;
     }
@@ -997,7 +1011,7 @@ RoleRegistry.register("魔鏡少女", {
             const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
             
             if (act.actionId === 'confirm' && target) {
-                const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
+                const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
                 const tPlayer = ctx.getPlayer(actualTarget);
                 
                 const exactRole = tPlayer.data.camouflageRole || tPlayer.role; 
@@ -1290,7 +1304,7 @@ RoleRegistry.register("幸運兒", {
         p.data.grantedSkillUsed = true; 
 
         if (skill === '查驗' && act.actionId === 'check') {
-            const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
+            const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
             const tPlayer = ctx.getPlayer(actualTarget);
             const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
             const isWolf = ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
@@ -1309,13 +1323,14 @@ RoleRegistry.register("幸運兒", {
 
         if (skill === '毒藥' && act.actionId === 'poison') {
             if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
-            ctx.nightTags.poisoned.push(parseInt(target));
+            const finalTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'poison', act.player.seatNumber) : parseInt(target);
+            ctx.nightTags.poisoned.push(finalTarget);
             ctx.nightTags.poisonerSeat = p.seatNumber; 
             return `【毒殺: ${target}號】`;
         }
 
         if (skill === '守護' && act.actionId === 'guard') {
-            p.data.luckyGuardedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : target; 
+            p.data.luckyGuardedSeat = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'guard', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
             return `【守護: ${target}號】`;
         }
     }
@@ -1648,7 +1663,7 @@ RoleRegistry.register("覺醒預言家", {
         const t1 = parseInt(act.targets[0]);
         const t2 = act.targets.length > 1 ? parseInt(act.targets[1]) : t1;
         const checkAlignment = (target) => {
-            const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
+            const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
             const tPlayer = ctx.getPlayer(actualTarget);
             const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
             const isWolf = (checkRole && ROLE_DICTIONARY[checkRole]?.faction === 'wolf');
@@ -1725,4 +1740,72 @@ RoleRegistry.register("子狐", {
 });
 RoleRegistry.register("白貓", {
     canSelfExplode: false
+});
+RoleRegistry.register("蝕時狼妃", {
+    canSelfExplode: true,
+    canSeeWolves: true,
+    seenAsWolf: true,
+    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
+    hasWolfChatAccess: true,
+    nightPhase: ["first_half", "midnight"],
+    actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half' ? 'single_select' : 'consensus',
+    
+    // 高內聚機制：天亮時結算反彈狀態，賦予冷卻標記
+    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        if (ctx.nightTags?.sealBounced) {
+            player.data.sealCooldownNextNight = true;
+        }
+    },
+    // 高內聚機制：入夜時讀取冷卻標記，決定今晚是否能發動
+    onNightStart: (ctx, player) => {
+        player.data.usedSealTargets = player.data.usedSealTargets || [];
+        if (player.data.sealCooldownNextNight) {
+            player.data.canSealTonight = false;
+            player.data.sealCooldownNextNight = false; // 消耗冷卻
+        } else {
+            player.data.canSealTonight = true;
+        }
+    },
+    hasAction: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        const p = ctx.getPlayer(mySeat);
+        if (step === 'first_half') return p.data.canSealTonight !== false;
+        return true; 
+    },
+    getPrompt: (ctx, mySeat) => {
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half') return "選擇今晚的封鎖目標\n(不可與過去重複，若成功反彈查/毒/守將進入冷卻)";
+        return "選擇今晚的襲擊目標 (或跳過以空刀)";
+    },
+    getSelectableSeats: (ctx, mySeat) => {
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
+            return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
+        }
+        const p = ctx.getPlayer(mySeat);
+        const used = p.data.usedSealTargets || [];
+        return ctx.getAlivePlayers().filter(p => !used.includes(p.seatNumber)).map(p => p.seatNumber);
+    },
+    getButtons: (ctx) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
+        return [{ id: 'seal', text: '封鎖', requiresTarget: true }, { id: 'pass', text: '不發動', requiresTarget: false }];
+    },
+    resolveNightAction: (ctx, actions) => {
+        const phaseId = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
+        if (phaseId === 'midnight') {
+            return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
+        }
+
+        const act = actions[0];
+        if (!act || act.actionId === 'pass') return "【保留技能】";
+
+        const target = act.targets[0];
+        act.player.data.usedSealTargets = act.player.data.usedSealTargets || [];
+        act.player.data.usedSealTargets.push(parseInt(target));
+
+        ctx.nightTags = ctx.nightTags || {};
+        // 嚴謹尋址：若遭遇魔術師換牌，封鎖對象亦會跟隨轉移
+        ctx.nightTags.sealedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+
+        return `【封鎖: ${target}號】`;
+    }
 });
