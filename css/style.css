@@ -297,31 +297,50 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 /* =========================================
    UI 升級：版型選擇按鈕網格
    ========================================= */
-.template-grid {
-    display: grid;
-    /* 自動分配欄位，手機雙排，電腦三排 */
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 10px;
+.template-scroll-container {
+    display: flex;
+    overflow-x: auto;
+    gap: 15px;
+    padding-bottom: 10px;
     margin-bottom: 10px;
+    scroll-behavior: smooth;
 }
-.template-btn {
+.template-scroll-container::-webkit-scrollbar { height: 8px; }
+.template-scroll-container::-webkit-scrollbar-track { background: #2a2a2a; border-radius: 4px; }
+.template-scroll-container::-webkit-scrollbar-thumb { background: var(--accent-blue); border-radius: 4px; }
+
+.template-item {
+    flex: 0 0 140px;
+    height: 180px;
     background-color: #2a2a2a;
-    color: #ccc;
     border: 2px solid transparent;
-    padding: 12px 8px;
     border-radius: 8px;
     cursor: pointer;
-    font-size: 11px;
     transition: all 0.2s ease;
     user-select: none;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    position: relative;
 }
-.template-btn:hover { background-color: #333; }
-.template-btn.active {
-    background-color: var(--accent-blue);
-    color: #fff;
+.template-item:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
+.template-item.active {
+    border-color: var(--wolf-yellow);
+    box-shadow: 0 0 10px rgba(255, 183, 3, 0.6);
+}
+.template-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+}
+.template-fallback {
+    padding: 10px;
+    font-size: 13px;
+    color: #ccc;
     font-weight: bold;
-    border-color: #1a5bbf;
-    box-shadow: 0 2px 8px rgba(58, 134, 255, 0.4);
 }
 
 /* =========================================
@@ -495,8 +514,10 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 #wolf-chat-modal {
     top: auto !important; 
     transform: translateX(-50%) !important;
-    background-color: rgba(0, 0, 0, 0.75);
+    background-color: rgba(0, 0, 0, 0.85) !important;
+    border: 2px solid var(--wolf-yellow) !important;
     bottom: 80px !important; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
 }
 /* ==================================================== */
 /* 圖片渲染模式 (Image Mode) 專屬視圖設定 */
