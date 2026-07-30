@@ -96,9 +96,14 @@ window.RoleRegistry = {
                 ctx.magicianSwap = null;
                 ctx.nightTags.demonHunterKills = [];
                 ctx.nightTags.demonHunterBackfires = [];
+                ctx.nightTags.wolfTeamConfused = false;
+                ctx.confusedSeats = [];
                 const firstHalf = ctx.nightSequence.find(s => s.phaseId === 'first_half');
                 if (firstHalf) {
-                    firstHalf.roles.sort((a, b) => a.roleName === '魔術師' ? -1 : (b.roleName === '魔術師' ? 1 : 0));
+                    firstHalf.roles.sort((a, b) => {
+                        const getOrder = name => name === '魔術師' ? 1 : (name === '子狐' ? 2 : 3);
+                        return getOrder(a.roleName) - getOrder(b.roleName);
+                    });
                 }
             }
             ctx.players.forEach(p => {
@@ -199,11 +204,10 @@ RoleRegistry.register("狼人", {
     getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
         if (ctx.nightTags.wolfKillResolvedThisTurn) return "已參與狼人陣營襲擊";
-        if (ctx.nightTags.wolfTeamFeared) {
+        if (ctx.nightTags.wolfTeamFeared || ctx.nightTags.wolfTeamConfused) {
             ctx.nightTags.wolfKillResolvedThisTurn = true;
-            return "【空刀】(狼隊遭受恐懼)";
+            return ctx.nightTags.wolfTeamConfused ? "【空刀】(狼隊遭受迷惑)" : "【空刀】(狼隊遭受恐懼)";
         }
-
         const allWolfActions = ctx.currentStepActions.filter(act => ROLE_DICTIONARY[act.player.role]?.faction === 'wolf');
         let validTargets = allWolfActions.filter(act => act.actionId !== 'pass' && act.targets.length > 0).map(act => act.targets[0]);
         ctx.nightTags.wolfKillResolvedThisTurn = true; 
@@ -734,8 +738,13 @@ RoleRegistry.register("噩夢之影", {
         }
         
         if (phaseId === 'first_half' && act.actionId === 'fear') {
+            if (ctx.confusedSeats && ctx.confusedSeats.includes(act.player.seatNumber)) {
+                unlockWolfVision();
+                return "【技能失效】被子狐迷惑";
+            }
+            
             const target = act.targets[0];
-            ctx.fearedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : target; 
+            ctx.fearedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
             
             const tPlayer = ctx.getPlayer(ctx.fearedSeat);
             if (tPlayer) {
@@ -790,6 +799,10 @@ RoleRegistry.register("狼美人", {
         if (!act || act.actionId === 'pass') return "【跳過行動】";
         
         if (phaseId === 'second_half' && act.actionId === 'charm') {
+            if (ctx.confusedSeats && ctx.confusedSeats.includes(act.player.seatNumber)) {
+                return "【技能失效】被子狐迷惑";
+            }
+            
             const target = act.targets[0];
             ctx.charmedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
             return `【魅惑: ${target}號】`;
@@ -1636,5 +1649,46 @@ RoleRegistry.register("覺醒預言家", {
         }
         
         return `查驗: ${t1}號, ${t2}號`;
+    }
+});
+RoleRegistry.register("子狐", {
+    canSelfExplode: false,
+    nightPhase: "first_half",
+    actionType: "single_select",
+    hasAction: (ctx, mySeat) => {
+        return !ctx.getPlayer(mySeat).data.hasConfused;
+    },
+    getPrompt: () => "選擇迷惑目標 (全局限用一次)\n若迷惑到狼人，狼隊當晚無法襲擊",
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+    getButtons: () => [
+        { id: 'confuse', text: '迷惑', requiresTarget: true },
+        { id: 'pass', text: '不發動', requiresTarget: false }
+    ],
+    resolveNightAction: (ctx, actions) => {
+        let logs = [];
+        actions.forEach(act => {
+            if (!act || act.actionId === 'pass') {
+                logs.push(`【${act.player.seatNumber}號 保留技能】`);
+                return;
+            }
+            const target = act.targets[0];
+            act.player.data.hasConfused = true;
+
+            const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
+            const tPlayer = ctx.getPlayer(actualTarget);
+            const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
+            const isWolf = ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
+
+            if (isWolf) {
+                ctx.nightTags = ctx.nightTags || {};
+                ctx.nightTags.wolfTeamConfused = true;
+                ctx.confusedSeats = ctx.confusedSeats || [];
+                ctx.confusedSeats.push(actualTarget);
+                logs.push(`【${act.player.seatNumber}號 迷惑: ${target}號 (狼人，封印技能與襲擊)】`);
+            } else {
+                logs.push(`【${act.player.seatNumber}號 迷惑: ${target}號 (好人，無效)】`);
+            }
+        });
+        return logs.join('\n');
     }
 });
