@@ -134,6 +134,7 @@ const BOARD_TEMPLATES = [
     { id: "crush_10", name: "10人 暗戀者", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "暗戀者"] },
     { id: "noeye_10", name: "10人 無目之夜", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "攝夢人", "狼人", "狼鴉之爪", "石像鬼", "平民", "平民", "平民", "平民"] },
     { id: "phantom_10", name: "10人 魅影覺醒預", category: 'quick', playerCount: 10, deck: ["覺醒預言家", "女巫", "守衛", "尋香魅影", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "animal_10", name: "10人 動物夢境", category: 'quick', playerCount: 10, deck: ["熊", "河豚", "子狐", "狼美人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "standard_12", name: "12人 標準局", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_grd_12", name: "12人 狼王守衛", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_mag_12", name: "12人 狼王魔術師", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "魔術師", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] }, 
@@ -149,6 +150,7 @@ const BOARD_TEMPLATES = [
     { id: "noeye_12", name: "12人 無目之夜", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "攝夢人", "狼人", "狼鴉之爪", "隱狼", "石像鬼", "平民", "平民", "平民", "平民"] },
     { id: "bloodmoon_12", name: "12人 血月使徒獵魔人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "白痴", "血月使徒", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "phantom_12", name: "12人 魅影覺醒預", category: 'standard', playerCount: 12, deck: ["覺醒預言家", "女巫", "獵人", "守衛", "尋香魅影", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "animal_12", name: "12人 動物夢境", category: 'standard', playerCount: 12, deck: ["熊", "河豚", "子狐", "白貓", "狼美人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
 ];
 
 const ROLE_DICTIONARY = {
@@ -184,4 +186,5 @@ const ROLE_DICTIONARY = {
     "尋香魅影": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "double_select", prompt: "尋香魅影請行動\n請選擇兩名玩家進行連繫", description:"狼人陣營；不與其他狼人見面、不可自爆。每晚可綁定兩名玩家，其中一人出局則另一人殉情，成功觸發後技能失效。最後一狼時可參與襲擊。" },
     "覺醒預言家": { faction: "good", type: "god", nightPhase: "second_half", actionType: "double_select", prompt: "覺醒預言家請行動\n請選擇兩名查驗目標", description:"神職；每晚可以選擇兩名玩家進行複合查驗。若兩人皆為好人則顯示兩人皆為好人，若其中包含狼人則顯示疑似狼人。" },
     "子狐": { faction: "good", type: "god", nightPhase: "first_half", actionType: "single_select", prompt: "子狐請行動\n選擇迷惑目標", description:"神職；每局限用一次，迷惑一名玩家。若目標為狼人，則當晚整個狼隊無法襲擊；若為噩夢之影或狼美人，其夜間技能也會失效。" },
+    "白貓": {faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "", description:"神職；因任何原因出局時，白貓都會翻牌並存活到下一個放逐投票結束之後才出局。(翻牌的白貓不能被任何技能選中)"}
 };
