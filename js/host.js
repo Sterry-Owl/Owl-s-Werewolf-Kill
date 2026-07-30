@@ -863,7 +863,8 @@ function handleHostCommand(cmd) {
         if (engineContext.postVoteSkillPhasePending) {
             engineContext.postVoteSkillPhasePending = false;
             const hasSpecialRoles = engineContext.players.some(p => RoleRegistry.plugins[p.role]?.hasPostVoteSkill);
-            if (hasSpecialRoles) {
+            if (hasSpecialRoles && !engineContext.postVoteSkillTriggeredThisDay) {
+                engineContext.postVoteSkillTriggeredThisDay = true;
                 stateMachine.transitionTo('POST_VOTE_SKILL');
                 return;
             }
