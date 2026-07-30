@@ -183,4 +183,5 @@ const ROLE_DICTIONARY = {
     "河豚": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "河豚請睜眼", description:"神職；僅可發動一次技能，白天將所有投票給自己的玩家炸死。被狼人襲擊時將翻牌然後出局" },
     "尋香魅影": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "double_select", prompt: "尋香魅影請行動\n請選擇兩名玩家進行連繫", description:"狼人陣營；不與其他狼人見面、不可自爆。每晚可綁定兩名玩家，其中一人出局則另一人殉情，成功觸發後技能失效。最後一狼時可參與襲擊。" },
     "覺醒預言家": { faction: "good", type: "god", nightPhase: "second_half", actionType: "double_select", prompt: "覺醒預言家請行動\n請選擇兩名查驗目標", description:"神職；每晚可以選擇兩名玩家進行複合查驗。若兩人皆為好人則顯示兩人皆為好人，若其中包含狼人則顯示疑似狼人。" },
+    "子狐": { faction: "good", type: "god", nightPhase: "first_half", actionType: "single_select", prompt: "子狐請行動\n選擇迷惑目標", description:"神職；每局限用一次，迷惑一名玩家。若目標為狼人，則當晚整個狼隊無法襲擊；若為噩夢之影或狼美人，其夜間技能也會失效。" },
 };
