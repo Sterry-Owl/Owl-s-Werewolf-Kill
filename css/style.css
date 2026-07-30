@@ -1,3 +1,10 @@
+@font-face {
+    font-family: '花園明朝';
+    src: url('../fonts/花園明朝.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap; /* 確保字體載入期間文字仍可見，避免 FOIT (Flash of Invisible Text) */
+}
 :root {
     --bg-dark: #121212; 
     --container-bg: #1e1e1e;
@@ -9,7 +16,7 @@
     --sheriff-gold: #ff9900;
 }
 
-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 15px; background: var(--bg-dark); color: #e0e0e0; margin: 0; }
+body { font-family: '花園明朝', 'PingFang TC', 'Helvetica Neue', 'Microsoft JhengHei', Tahoma, sans-serif; padding: 14px; background: var(--bg-dark); color: #e0e0e0; margin: 0; }
 .container { max-width: 1000px; margin: auto; background: var(--container-bg); padding: 20px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.6); }
 .hidden { display: none !important; }
 .section { margin-bottom: 25px; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; background: #2a2a2a; }
