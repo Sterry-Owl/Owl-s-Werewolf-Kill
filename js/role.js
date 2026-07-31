@@ -127,6 +127,25 @@ window.RoleRegistry = {
                         p.data.isLastWolf = (aliveWolves.length === 1 && aliveWolves[0].seatNumber === p.seatNumber);
                     }
                 });
+                const transformedWolves = ctx.getAlivePlayers().filter(p => p.data.isTransformedWolf);
+                if (transformedWolves.length > 0) {
+                    let midnightPhase = ctx.nightSequence.find(s => s.phaseId === 'midnight');
+                    if (!midnightPhase) {
+                        midnightPhase = { phaseId: 'midnight', phaseName: '午夜 (狼人)', roles: [] };
+                        const secondHalfIdx = ctx.nightSequence.findIndex(s => s.phaseId === 'second_half');
+                        if (secondHalfIdx !== -1) ctx.nightSequence.splice(secondHalfIdx, 0, midnightPhase);
+                        else ctx.nightSequence.push(midnightPhase);
+                    }
+                    let r = midnightPhase.roles.find(x => x.roleName === '轉化者');
+                    if (!r) {
+                        midnightPhase.roles.push({ roleName: '轉化者', roleDef: RoleRegistry.plugins['轉化者'], activePlayers: [...transformedWolves], resultLog: "" });
+                    } else {
+                        transformedWolves.forEach(tw => {
+                            if (!r.activePlayers.some(ap => ap.seatNumber === tw.seatNumber)) r.activePlayers.push(tw);
+                        });
+                    }
+                }
+
                 const firstHalf = ctx.nightSequence.find(s => s.phaseId === 'first_half');
                 if (firstHalf) {
                     firstHalf.roles.sort((a, b) => {
@@ -1978,14 +1997,16 @@ RoleRegistry.register("巫妖", {
 
         const tPlayer = ctx.getPlayer(ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
         
-        // 賦予轉化狀態與虛擬身份
         tPlayer.data.isTransformedWolf = true;
         tPlayer.data.virtualRoles = tPlayer.data.virtualRoles || [];
         if (!tPlayer.data.virtualRoles.includes('轉化者')) {
             tPlayer.data.virtualRoles.push('轉化者');
         }
         
-        // 天亮前一刻得知
+        tPlayer.data.seerRecords = tPlayer.data.seerRecords || {};
+        tPlayer.data.seerRecords[tPlayer.seatNumber] = "轉化者";
+        act.player.data.seerRecords = act.player.data.seerRecords || {};
+        act.player.data.seerRecords[tPlayer.seatNumber] = "轉化者";     
         tPlayer.data.tempPrivateMessage = (tPlayer.data.tempPrivateMessage || '') + "\n【系統通知】你已被巫妖轉化，陣營變更為【狼人陣營】！";
 
         return `【轉化: ${target}號】`;
@@ -1994,9 +2015,9 @@ RoleRegistry.register("巫妖", {
 
 RoleRegistry.register("轉化者", {
     canSelfExplode: false, 
-    seenAsWolf: true,
-    canSeeWolves: true,
-    hasWolfChatAccess: true, 
+    seenAsWolf: false,
+    canSeeWolves: false,
+    hasWolfChatAccess: false,
     nightPhase: "midnight",
     actionType: "consensus",
     isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
