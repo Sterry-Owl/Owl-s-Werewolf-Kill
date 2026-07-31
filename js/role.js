@@ -1811,7 +1811,7 @@ RoleRegistry.register("蝕時狼妃", {
 RoleRegistry.register("定序王子", {
     canSelfExplode: false,
     hasPostVoteSkill: true,
-    nightPhase: "second_half", // [修復] 將定序王子加入夜間排程，確保能獲得專屬面板接收資訊
+    nightPhase: "second_half",
     onNightStart: (ctx, player) => {
         if (player.data.hasUsedDaySkill && !player.data.hasReceivedPrinceInfo) {
             let wolfCount = 0;
@@ -1842,12 +1842,11 @@ RoleRegistry.register("定序王子", {
     resolveNightAction: (ctx, actions) => {
         const act = actions[0];
         if (act) {
-            act.player.data.hasReceivedPrinceInfo = true; // 確認後註記為已接收
+            act.player.data.hasReceivedPrinceInfo = true;
         }
         return "確認資訊";
     },
     daySkill: {
-// ... 以下維持原有的 daySkill 設定不變 ...
         id: 'prince_reverse',
         buttonText: '翻牌定序',
         requiresTarget: false,
@@ -1863,6 +1862,17 @@ RoleRegistry.register("定序王子", {
                 if (target && target.isDead && target.deathReason === 'voted') {
                     target.isDead = false;
                     target.deathReason = null;
+                    ctx.players.filter(p => p.role === '尋香魅影').forEach(phantom => {
+                        if (phantom.data.phantomTriggered && phantom.data.phantomLinked && phantom.data.phantomLinked.includes(ctx.votedOutToday)) {
+                            const otherSeat = phantom.data.phantomLinked.find(s => s !== ctx.votedOutToday);
+                            const martyrPlayer = ctx.getPlayer(otherSeat);
+                            if (martyrPlayer && martyrPlayer.isDead && martyrPlayer.deathReason === 'martyr') {
+                                martyrPlayer.isDead = false;
+                                martyrPlayer.deathReason = null;
+                                phantom.data.phantomTriggered = false;
+                            }
+                        }
+                    });
                     
                     ctx.lastWordsTargets = ctx.lastWordsTargets.filter(s => s !== ctx.votedOutToday);
                     if (target.role === '血月使徒') { ctx.bloodMoonSeat = null; ctx.pendingBloodMoon = null; }
