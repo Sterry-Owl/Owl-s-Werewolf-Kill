@@ -44,13 +44,6 @@ window.RoleRegistry = {
                     calc.poisoned = swapMap(calc.poisoned);
                     calc.saved = swapMap(calc.saved);
                 }
-                ctx.players.forEach(p => {
-                    const plugin = RoleRegistry.plugins[p.role];
-                    if (plugin && typeof plugin.onBeforeDawnDeathEvaluation === 'function') {
-                        plugin.onBeforeDawnDeathEvaluation(ctx, p, calc);
-                    }
-                });
-
                 let deathMap = {};
                 if (ctx.nightTags?.demonHunterKills) ctx.nightTags.demonHunterKills.forEach(seat => deathMap[seat] = 'killed');
                 if (ctx.nightTags?.demonHunterBackfires) ctx.nightTags.demonHunterBackfires.forEach(seat => deathMap[seat] = 'skill_backfire');
@@ -1454,9 +1447,23 @@ RoleRegistry.register("獵魔人", {
     canSelfExplode: false,
     nightPhase: "second_half",
     actionType: "single_select",
-    onBeforeDawnDeathEvaluation: (ctx, player, calc) => {
-        if (!player.isDead && calc.poisoned.includes(player.seatNumber)) {
+    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        if (calc.poisoned.includes(player.seatNumber)) {
             calc.poisoned = calc.poisoned.filter(s => s !== player.seatNumber);
+
+            if (calc.killed.includes(player.seatNumber)) {
+                const isGuarded = calc.guarded.includes(player.seatNumber);
+                const isSaved = calc.saved.includes(player.seatNumber);
+                
+                if ((isGuarded && isSaved) || (!isGuarded && !isSaved)) {
+                    deathMap[player.seatNumber] = 'killed'; 
+                    return; 
+                }
+            }
+            
+            if (deathMap[player.seatNumber] === 'poisoned') {
+                delete deathMap[player.seatNumber];
+            }
         }
     },
     hasAction: (ctx) => ctx.nightCount >= 2,
