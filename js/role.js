@@ -199,6 +199,8 @@ window.RoleRegistry = {
                 triggerOther(p.role);
                 if (p.data.virtualRoles) p.data.virtualRoles.forEach(vr => triggerOther(vr));
             });
+        });
+
         Engine.EventBus.on('WOLF_EXPLODE', ({ context, player }) => {
             if (!player || player.isDead || !RoleRegistry.plugins[player.role]?.canSelfExplode) return;
             
@@ -1125,7 +1127,7 @@ RoleRegistry.register("機械狼", {
 
             p.data.machineState = 1;              
             p.data.learnedThisNight = true;       
-            if (['白貓', '河豚'].includes(tPlayer.role)) {
+            if (['白貓', '河豚', '熊'].includes(tPlayer.role)) {
                 p.data.virtualRoles = p.data.virtualRoles || [];
                 if (!p.data.virtualRoles.includes(tPlayer.role)) p.data.virtualRoles.push(tPlayer.role);
             }
