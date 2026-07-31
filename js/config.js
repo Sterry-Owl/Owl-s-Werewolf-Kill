@@ -148,13 +148,15 @@ const BOARD_TEMPLATES = [
     { id: "wbt_kn_12", name: "12人 狼美人騎士", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "騎士", "守衛", "狼美人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "evkn_12", name: "12人 惡靈騎士", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "惡靈騎士", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "mir_mw_12", name: "12人 魔鏡機械狼", category: 'standard', playerCount: 12, deck: ["魔鏡少女", "女巫", "獵人", "守衛", "機械狼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
-    { id: "lightseer_12", name: "12人 燈影預言家", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "騎士", "守墓人", "狼王", "狼人", "狼人", "狼人", "燈影預言家", "平民", "平民", "平民"] },
+    { id: "lightseer_12", name: "12人 燈影預言家", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "騎士", "守衛", "狼美人", "狼人", "狼人", "狼人", "燈影預言家", "平民", "平民", "平民"] },
     { id: "mirc_12", name: "12人 奇蹟商人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "奇蹟商人", "狼王", "惡靈騎士", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "noeye_12", name: "12人 無目之夜", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "攝夢人", "狼人", "狼鴉之爪", "隱狼", "石像鬼", "平民", "平民", "平民", "平民"] },
     { id: "bloodmoon_12", name: "12人 血月使徒獵魔人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "白痴", "血月使徒", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "phantom_12", name: "12人 尋香識命", category: 'standard', playerCount: 12, deck: ["覺醒預言家", "女巫", "獵人", "守衛", "尋香魅影", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "animal_12", name: "12人 動物夢境", category: 'standard', playerCount: 12, deck: ["熊", "河豚", "子狐", "白貓", "狼美人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "deswhl_12", name: "12人 永序之輪", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "定序王子", "蝕時狼妃", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "lich_12", name: "12人 轉化者", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "守墓人", "巫妖", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "wind_12", name: "12人 風聲諜影", category: 'fun', playerCount: 12, deck: ["預言家", "熊", "魔鏡少女", "女巫", "攝夢人", "獵人", "河豚", "白貓", "巫妖", "巫妖", "機械狼", "暗戀者"] },
 ];
 
 const ROLE_DICTIONARY = {
