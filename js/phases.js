@@ -304,11 +304,12 @@ window.PhaseRegistry = {
 
         stateMachine.registerPhase('SHERIFF_TRANSFER', {
             allowDeadAction: true, 
-            onEnter: (ctx) => { ctx.systemLog = "等待警長移交或撕毀警徽..."; },
+            onEnter: (ctx) => { 
+                ctx.systemLog = "等待警長移交警徽..."; 
+                self.sm.setTimer(15000);
+            },
             onAction: (ctx, player, actionId, targets) => {
                 if (player.seatNumber !== ctx.sheriff.seat) return;
-                
-                // [狀態清理] 優先清除一次性移交標記，保持實例純淨
                 if (player.data) player.data.mustTransferBadge = false;
 
                 if (actionId === 'transfer' && targets.length > 0) {
