@@ -1959,19 +1959,20 @@ RoleRegistry.register("巫妖", {
             return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat).filter(s => s !== mySeat);
         }
         
-        const maxSeat = ctx.players.length;
         const attackingWolves = ctx.getAlivePlayers().filter(p => {
             if (!ctx.isActualWolf(p)) return false;
+            if (p.data.isTransformedWolf && !p.data.isLastWolf) return false;
+            
             const plugin = RoleRegistry.plugins[p.role];
-            return typeof plugin?.isAttacker === 'function' ? plugin.isAttacker(ctx) : !!plugin?.isAttacker;
+            return plugin && (plugin.isAttacker === true || typeof plugin.isAttacker === 'function');
         }).map(p => p.seatNumber);
 
         const adjacentSeats = new Set();
         attackingWolves.forEach(w => {
-            let left = w - 1; if (left < 1) left = maxSeat;
-            let right = w + 1; if (right > maxSeat) right = 1;
-            adjacentSeats.add(left);
-            adjacentSeats.add(right);
+            const leftSeat = ctx.getNextAliveSeat(w, -1);
+            const rightSeat = ctx.getNextAliveSeat(w, 1);
+            adjacentSeats.add(leftSeat);
+            adjacentSeats.add(rightSeat);
         });
 
         return ctx.getAlivePlayers().filter(p => 
