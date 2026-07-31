@@ -1426,7 +1426,6 @@ RoleRegistry.register("血月使徒", {
     seenAsWolf: true,
     isAttacker: true,
     hasWolfChatAccess: true,
-    hasPostVoteSkill: true,
     nightPhase: "midnight",      
     actionType: "consensus",
     suppressWolfDeathTick: (ctx, player, reason) => {
