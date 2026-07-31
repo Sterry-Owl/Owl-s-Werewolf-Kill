@@ -94,10 +94,10 @@ window.PhaseRegistry = {
         stateMachine.registerPhase('LAST_WORDS', createSpeechPhase('RESUME_ROUTINE'));
         stateMachine.registerPhase('PRINCE_SPEECH', createSpeechPhase('DAY_VOTING')); // [擴充] 定序王子額外發言階段，結束後回歸投票
         
-        stateMachine.registerPhase('POST_VOTE_SKILL', { // [擴充] 投票後技能階段
+        stateMachine.registerPhase('POST_VOTE_SKILL', {
             onEnter: (ctx) => {
-                ctx.systemLog = "等待發動投票後技能 (15秒)...";
-                self.sm.setTimer(15000);
+                ctx.systemLog = "等待發動投票後技能 (10秒)..."
+                self.sm.setTimer(10000);
             },
             onTimeout: (ctx) => {
                 if (ctx.nextPhaseAfterVoteDisplay === 'DAWN_RESUME') Engine.EventBus.emit('TRIGGER_DEATH_ANNOUNCE');
@@ -108,7 +108,7 @@ window.PhaseRegistry = {
 
         stateMachine.registerPhase('VOTE_RESULT_DISPLAY', {
             onEnter: (ctx) => {
-                self.sm.setTimer(5000); 
+                self.sm.setTimer(3000); 
             },
             onTimeout: (ctx) => {
                 if (ctx.postVoteSkillPhasePending) {
@@ -128,7 +128,7 @@ window.PhaseRegistry = {
 
         stateMachine.registerPhase('BEAR_ROAR_ANNOUNCE', {
             onEnter: (ctx) => {
-                self.sm.setTimer(5000);
+                self.sm.setTimer(3000);
             },
             onTimeout: (ctx) => {
                 if (ctx.rules.sheriff === 'enabled' && !ctx.sheriff.seat && !ctx.sheriff.badgeLost) {
@@ -142,7 +142,7 @@ window.PhaseRegistry = {
 
         stateMachine.registerPhase('DAWN_DEATH_ANNOUNCE', {
             onEnter: (ctx) => {
-                self.sm.setTimer(5000);
+                self.sm.setTimer(3000);
             },
             onTimeout: (ctx) => {
                 Engine.EventBus.emit('AFTER_DEATH_ANNOUNCE_ROUTINE');
@@ -151,8 +151,8 @@ window.PhaseRegistry = {
         
         stateMachine.registerPhase('SHERIFF_ORDER_SELECTION', {
             onEnter: (ctx) => {
-                ctx.systemLog = "等待警長決定白天發言順序 (30秒)...";
-                self.sm.setTimer(30000);
+                ctx.systemLog = "等待警長決定發言順序...";
+                self.sm.setTimer(15000);
             },
             onAction: (ctx, player, actionId) => {
                 if (player.seatNumber !== ctx.sheriff.seat) return;
@@ -221,8 +221,8 @@ window.PhaseRegistry = {
                 ctx.sheriff.withdrawn = [];
                 ctx.currentStepActions = []; 
                 ctx.expectedActionCount = ctx.getAlivePlayers().length;
-                ctx.systemLog = "正在等待玩家決定是否上警...";
-                self.sm.setTimer(30000);
+                ctx.systemLog = "正在登記警長競選...";
+                self.sm.setTimer(15000);
             },
             onAction: (ctx, player, actionId) => {
                 if (ctx.currentStepActions.some(act => act.player.seatNumber === player.seatNumber)) return;
@@ -253,8 +253,8 @@ window.PhaseRegistry = {
                     Engine.EventBus.emit('TRIGGER_DEATH_ANNOUNCE');
                 } else {
                     ctx.currentStepActions = [];
-                    ctx.systemLog = "【延遲再選舉】退水時間 (10秒)...";
-                    self.sm.setTimer(10000);
+                    ctx.systemLog = "【延遲再選舉】退水時間...";
+                    self.sm.setTimer(15000);
                 }
             },
             onAction: () => {}, // 退水統一由 host.js 的 SHERIFF_BAILOUT 封包攔截
