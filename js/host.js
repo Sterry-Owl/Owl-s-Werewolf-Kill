@@ -181,30 +181,18 @@ function handleIncomingPacket(peerId, data) {
     }    
     else if (data.type === 'DAY_SKILL_SUBMIT') {
         const player = engineContext.getPlayerByPeer(peerId);
-        const getDaySkillDef = (p) => {
-            const plug = RoleRegistry.plugins[p.role];
-            if (plug?.daySkill) return plug.daySkill;
-            if (p.data.virtualRoles) {
-                for (let vr of p.data.virtualRoles) {
-                    const vp = RoleRegistry.plugins[vr];
-                    if (vp?.daySkill) return vp.daySkill;
-                }
-            }
-            return null;
-        };
-        const daySkillDef = getDaySkillDef(player); // [修復] 將 myDaySkill 更名為 daySkillDef，對齊下方判斷邏輯
-        
-        if (player && daySkillDef && daySkillDef.id === data.payload.skillId) {
-            if (player.isDead && !daySkillDef.allowDead) return;
-            if (!daySkillDef.allowedPhases.includes(engineContext.phase)) return;
+        const plugin = RoleRegistry.plugins[player?.role];
+        if (player && plugin?.daySkill && plugin.daySkill.id === data.payload.skillId) {
+            if (player.isDead && !plugin.daySkill.allowDead) return;
+            if (!plugin.daySkill.allowedPhases.includes(engineContext.phase)) return;
             
-            if (daySkillDef.requiresTarget) {
-                const validTargets = daySkillDef.getSelectableSeats(engineContext, player.seatNumber);
+            if (plugin.daySkill.requiresTarget) {
+                const validTargets = plugin.daySkill.getSelectableSeats(engineContext, player.seatNumber);
                 if (!validTargets.includes(data.payload.target)) return;
             }
-            daySkillDef.resolve(engineContext, player, data.payload.target);
-            const targetText = daySkillDef.requiresTarget ? ` 對 ${data.payload.target}號` : "";
-            Engine.EventBus.emit('MASTER_LOG', `【技能發動】${player.seatNumber}號${targetText} 使用了 ${daySkillDef.buttonText}`);
+            plugin.daySkill.resolve(engineContext, player, data.payload.target);
+            const targetText = plugin.daySkill.requiresTarget ? ` 對 ${data.payload.target}號` : "";
+            Engine.EventBus.emit('MASTER_LOG', `【技能發動】${player.seatNumber}號(${player.role})${targetText} 使用了 ${plugin.daySkill.buttonText}`);
             syncStateToAll();
         }
     }
@@ -238,8 +226,8 @@ function setupEngineFlowControllers() {
         engineContext.fearedSeat = null;
         engineContext.lastCharmedSeat = engineContext.charmedSeat || null;
         engineContext.charmedSeat = null;
-        engineContext.lastDreamedSeats = engineContext.dreamedSeats || [];
-        engineContext.dreamedSeats = [];
+        engineContext.lastDreamedSeat = engineContext.dreamedSeat || null;
+        engineContext.dreamedSeat = null;
         engineContext.players.forEach(p => p.data.latestCheckResult = null);
         
         const alive = engineContext.getAlivePlayers();
@@ -292,23 +280,21 @@ function setupEngineFlowControllers() {
     });
 
     Engine.EventBus.on('PROCESS_DAWN', () => {
+        // [階段 1] 時間軸最前端：判定熊咆哮並觸發獨立階段
         let bearRoarText = null;
-        const bears = engineContext.players.filter(p => !p.isDead && (p.role === '熊' || (p.data.virtualRoles && p.data.virtualRoles.includes('熊'))));
-        
-        if (bears.length > 0) {
-            const isWolf = (p) => engineContext.isActualWolf(p);
-            let hasRoar = false;
-            bears.forEach(bearPlayer => {
-                const leftSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, -1);
-                const rightSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, 1);
-                if (isWolf(engineContext.getPlayer(leftSeat)) || isWolf(engineContext.getPlayer(rightSeat))) {
-                    hasRoar = true;
-                }
-            });
-
-            bearRoarText = hasRoar ? "【熊有咆哮】" : "【熊沒有咆哮】";
-            Engine.EventBus.emit('MASTER_LOG', `【熊判定】${hasRoar ? '周圍有狼' : '周圍無狼'} ${bearRoarText}`);
+        const bearPlayer = engineContext.players.find(p => p.role === '熊' && !p.isDead);
+        if (bearPlayer) {
+            const leftSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, -1);
+            const rightSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, 1);
+            const isWolf = (p) => {
+                if (!p) return false;
+                const roleName = p.data.camouflageRole || p.role;
+                return ROLE_DICTIONARY[roleName]?.faction === 'wolf';
+            };
+            bearRoarText = (isWolf(engineContext.getPlayer(leftSeat)) || isWolf(engineContext.getPlayer(rightSeat))) 
+                ? "【熊有咆哮】" : "【熊沒有咆哮】";
             
+            Engine.EventBus.emit('MASTER_LOG', `【熊判定】左側${leftSeat}號，右側${rightSeat}號 ${bearRoarText}`);
             engineContext.bearRoarResult = bearRoarText;
             engineContext.systemLog = bearRoarText;
             stateMachine.transitionTo('BEAR_ROAR_ANNOUNCE');
@@ -333,8 +319,8 @@ function setupEngineFlowControllers() {
             poisoned: [...engineContext.nightTags.poisoned],
             saved: engineContext.witchState?.savedSeat ? [engineContext.witchState.savedSeat] : [],
             guarded: engineContext.guardedSeat ? [engineContext.guardedSeat] : [],
-            dreamed: [...(engineContext.dreamedSeats || [])],
-            lastDreamed: [...(engineContext.lastDreamedSeats || [])]
+            dreamed: engineContext.dreamedSeat ? [engineContext.dreamedSeat] : [],
+            lastDreamed: engineContext.lastDreamedSeat ? [engineContext.lastDreamedSeat] : []
         };
 
         const deathMap = engineContext.applyFilter('DAWN_DEATH_EVALUATION', calculation);
@@ -402,16 +388,16 @@ function setupEngineFlowControllers() {
         if (ctx.phase === 'GAME_OVER') return;
 
         const alive = ctx.getAlivePlayers();
-        const wolfCount = alive.filter(p => ctx.isActualWolf(p)).length;
-        
+        const wolfCount = alive.filter(p => p.role && ROLE_DICTIONARY[p.role]?.faction === 'wolf').length;
         if (wolfCount === 0 && ctx.wolvesDiedThisTick && ctx.wolvesDiedThisTick.includes('血月使徒') && !ctx.bloodMoonHasShot) {
             ctx.pendingBloodMoon = ctx.bloodMoonSeat;
             ctx.bloodMoonHasShot = true;
         }
         ctx.wolvesDiedThisTick = [];
         if (ctx.pendingBloodMoon) return;
-        const godCount = alive.filter(p => p.role && ROLE_DICTIONARY[p.role]?.type === 'god' && !p.data.isTransformedWolf).length;
-        const vilCount = alive.filter(p => p.role && ROLE_DICTIONARY[p.role]?.type === 'villager' && !p.data.isTransformedWolf).length;
+
+        const godCount = alive.filter(p => p.role && ROLE_DICTIONARY[p.role]?.type === 'god').length;
+        const vilCount = alive.filter(p => p.role && ROLE_DICTIONARY[p.role]?.type === 'villager').length;
         let winner = null, reason = "";
         if (ctx.rules.winCondition === 'kill_all' && godCount + vilCount === 0) { winner = "狼人"; reason = "好人陣營全數出局"; }
         else if (ctx.rules.winCondition === 'kill_side' && (godCount === 0 || vilCount === 0)) { winner = "狼人"; reason = godCount===0?"神職全滅":"平民全滅"; }
@@ -826,11 +812,11 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         canUseWolfChat: canUseWolfChat,
         isMidnight: isMidnight,
         wolfChatHistory: canUseWolfChat ? (ctx.wolfChatHistory || []) : [],
-        daySkill: (isDayPhase && myDaySkill && myDaySkill.allowedPhases.includes(ctx.phase) && (!player.isDead || myDaySkill.allowDead) && !player.data.hasUsedDaySkill) ? {
-            id: myDaySkill.id,
-            buttonText: myDaySkill.buttonText,
-            requiresTarget: myDaySkill.requiresTarget,
-            selectableSeats: myDaySkill.requiresTarget ? myDaySkill.getSelectableSeats(ctx, player.seatNumber) : []
+        daySkill: (isDayPhase && RoleRegistry.plugins[player.role]?.daySkill && RoleRegistry.plugins[player.role].daySkill.allowedPhases.includes(ctx.phase) && (!player.isDead || RoleRegistry.plugins[player.role].daySkill.allowDead) && !player.data.hasUsedDaySkill) ? {
+            id: RoleRegistry.plugins[player.role].daySkill.id,
+            buttonText: RoleRegistry.plugins[player.role].daySkill.buttonText,
+            requiresTarget: RoleRegistry.plugins[player.role].daySkill.requiresTarget,
+            selectableSeats: RoleRegistry.plugins[player.role].daySkill.requiresTarget ? RoleRegistry.plugins[player.role].daySkill.getSelectableSeats(ctx, player.seatNumber) : []
         } : null,
         allowBailout: !player.isDead && ['SHERIFF_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT'].includes(ctx.phase) && (ctx.sheriff.candidates || []).includes(player.seatNumber),
         allowEndSpeech: player.seatNumber === ctx.currentSpeaker
