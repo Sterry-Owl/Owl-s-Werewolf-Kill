@@ -192,7 +192,7 @@ function handleIncomingPacket(peerId, data) {
             }
             return null;
         };
-        const myDaySkill = getDaySkillDef(player);
+        const daySkillDef = getDaySkillDef(player); // [修復] 將 myDaySkill 更名為 daySkillDef，對齊下方判斷邏輯
         
         if (player && daySkillDef && daySkillDef.id === data.payload.skillId) {
             if (player.isDead && !daySkillDef.allowDead) return;
