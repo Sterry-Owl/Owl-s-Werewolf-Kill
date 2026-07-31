@@ -292,19 +292,23 @@ function setupEngineFlowControllers() {
     });
 
     Engine.EventBus.on('PROCESS_DAWN', () => {
-        // [階段 1] 時間軸最前端：判定熊咆哮並觸發獨立階段
         let bearRoarText = null;
-        const bearPlayer = engineContext.players.find(p => p.role === '熊' && !p.isDead);
-        if (bearPlayer) {
-            const leftSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, -1);
-            const rightSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, 1);
-            const isWolf = (p) => {
-                return engineContext.isActualWolf(p);
-            };
-            bearRoarText = (isWolf(engineContext.getPlayer(leftSeat)) || isWolf(engineContext.getPlayer(rightSeat))) 
-                ? "【熊有咆哮】" : "【熊沒有咆哮】";
+        const bears = engineContext.players.filter(p => !p.isDead && (p.role === '熊' || (p.data.virtualRoles && p.data.virtualRoles.includes('熊'))));
+        
+        if (bears.length > 0) {
+            const isWolf = (p) => engineContext.isActualWolf(p);
+            let hasRoar = false;
+            bears.forEach(bearPlayer => {
+                const leftSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, -1);
+                const rightSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, 1);
+                if (isWolf(engineContext.getPlayer(leftSeat)) || isWolf(engineContext.getPlayer(rightSeat))) {
+                    hasRoar = true;
+                }
+            });
+
+            bearRoarText = hasRoar ? "【熊有咆哮】" : "【熊沒有咆哮】";
+            Engine.EventBus.emit('MASTER_LOG', `【熊判定】${hasRoar ? '周圍有狼' : '周圍無狼'} ${bearRoarText}`);
             
-            Engine.EventBus.emit('MASTER_LOG', `【熊判定】左側${leftSeat}號，右側${rightSeat}號 ${bearRoarText}`);
             engineContext.bearRoarResult = bearRoarText;
             engineContext.systemLog = bearRoarText;
             stateMachine.transitionTo('BEAR_ROAR_ANNOUNCE');
