@@ -1890,6 +1890,8 @@ RoleRegistry.register("定序王子", {
         allowedPhases: ['POST_VOTE_SKILL'],
         getSelectableSeats: () => [],
         resolve: (ctx, player) => {
+            if (player.data.hasUsedDaySkill) return;
+
             player.isRevealed = true;
             player.data.hasUsedDaySkill = true; 
             
