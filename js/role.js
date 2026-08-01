@@ -1686,7 +1686,7 @@ RoleRegistry.register("覺醒預言家", {
 
         const align1 = checkAlignment(t1);
         const align2 = checkAlignment(t2);
-        let finalResult = "兩人都是好人";
+        let finalResult = "好人";
         if (align1 === "狼人" || align2 === "狼人") {
             finalResult = "疑似狼人";
         }
