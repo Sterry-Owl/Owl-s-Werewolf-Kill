@@ -397,7 +397,7 @@ const UI = {
                 let colorClass = 'tag-default';
                 if (p.sideTag === '銀水') colorClass = 'tag-silver';
                 else if (p.sideTag === '好人') colorClass = 'tag-gold';
-                lse if (p.sideTag === '狼人') colorClass = 'tag-red';
+                else if (p.sideTag === '狼人') colorClass = 'tag-red';
                 else if (p.sideTag === '暗戀對象') colorClass = 'tag-pink';
                 else if (p.sideTag === '被誘引') colorClass = 'tag-purple';
 
