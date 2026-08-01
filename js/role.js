@@ -487,6 +487,12 @@ RoleRegistry.register("騎士", {
             player.isRevealed = true;
             ctx.systemLog = `${player.seatNumber} 號玩家是騎士，向${targetSeat} 號玩家發起決鬥。`;
             Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
+            if (typeof PhaseRegistry !== 'undefined' && PhaseRegistry.sm) {
+                PhaseRegistry.sm.clearTimer();
+            }
+            if (ctx.currentSpeaker) {
+                ctx.speakingQueue.unshift(ctx.currentSpeaker);
+            }
             
             const isWolf = ROLE_DICTIONARY[targetPlayer.role]?.faction === 'wolf';
             if (isWolf) {
