@@ -199,4 +199,5 @@ const ROLE_DICTIONARY = {
     "定序王子": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "", description:"神職；每局限用一次。白天投票後，可翻牌逆轉時光使該次投票作廢，並獲得一次額外發言機會後重新投票。發動技能後的下一個夜晚，可得知從遊戲開始至今的所有放逐目標(含作廢)中共有幾名狼人。" },
     "純白之女": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚的查驗目標\n(點擊左右列頭貼以發動技能)", description:"神職；每晚可查驗一名玩家的真實身分。從第二晚起，若查驗到狼人陣營，該名狼人直接死亡。" },
     "狼巫": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "dynamic", prompt: "狼巫請行動", description:"狼人陣營；不可自刀、自爆。每晚可查驗一名玩家的真實身分。從第二晚起，若查驗到純白之女，純白之女直接死亡。" },
+    "吹笛者": { faction: "third_party", type: "third_party", nightPhase: "first_half", actionType: "up_to_two", prompt: "選擇今晚誘引的目標\n(點擊左右列頭貼以發動技能)", description:"第三方陣營；每晚可選擇誘引 0~2 名玩家。被誘引的玩家會在夜晚互相確認彼此，但不知道吹笛者是誰。當場上所有存活的玩家 (除了吹笛者以外) 都被誘引時，吹笛者單獨獲得勝利。" },
 };
