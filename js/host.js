@@ -122,6 +122,9 @@ function handleIncomingPacket(peerId, data) {
     else if (data.type === PACKET_TYPE.WOLF_EXPLODE) {
         const player = engineContext.getPlayerByPeer(peerId);
         if (!player) return;
+        const allowedExplodePhases = ['SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'DAY_DISCUSSION', 'DAY_PK_SPEECH', 'PRINCE_SPEECH'];
+        if (!allowedExplodePhases.includes(engineContext.phase)) return;
+
         const sheriffPhases = ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_RE_ELECTION_BAILOUT'];
         if (sheriffPhases.includes(engineContext.phase)) {
             const calculation = {
@@ -808,7 +811,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         mySeat: player.seatNumber, myRole: player.role,
         message: personalMessage, players: mappedPlayers, actionPanel, latestCheckResult: player.data.latestCheckResult || null,
         voteHistory: ctx.voteHistory, 
-        allowSelfExplode: !player.isDead && isDayPhase && RoleRegistry.plugins[player.role]?.canSelfExplode,
+        allowSelfExplode: !player.isDead && ['SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'DAY_DISCUSSION', 'DAY_PK_SPEECH', 'PRINCE_SPEECH'].includes(ctx.phase) && RoleRegistry.plugins[player.role]?.canSelfExplode,
         canUseWolfChat: canUseWolfChat,
         isMidnight: isMidnight,
         wolfChatHistory: canUseWolfChat ? (ctx.wolfChatHistory || []) : [],
