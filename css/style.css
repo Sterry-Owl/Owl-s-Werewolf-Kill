@@ -386,7 +386,13 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     color: #a3263a; 
     border: 1px solid #ba5d8a;
 }
-.btn-board-details { 
+
+.side-tag.tag-purple { 
+    background: #9b59b6; 
+    color: #fff; 
+    border: 1px solid #703688;
+}
+.btn-board-details {
     cursor: pointer; 
     color: var(--accent-gold, #ffdb4d); 
     font-weight: bold; 
