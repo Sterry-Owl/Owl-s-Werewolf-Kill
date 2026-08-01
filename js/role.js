@@ -24,8 +24,9 @@ window.RoleRegistry = {
                     if (['check', 'poison', 'guard'].includes(skillType)) {
                         const sealer = this.getPlayer(this.nightTags.sealerSeat);
                         if (sealer) sealer.data.sealPermanentlyLost = true;
-                        
-                        this.systemLog = (this.systemLog || '') + `\n(系統紀錄：蝕時狼妃封鎖生效，技能反彈至 ${actorSeat} 號)`;
+                        if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                            Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】蝕時狼妃封鎖生效，技能反彈至 ${actorSeat} 號`);
+                        }
                         return parseInt(actorSeat);
                     }
                 }
@@ -1793,20 +1794,15 @@ RoleRegistry.register("蝕時狼妃", {
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half' ? 'single_select' : 'consensus',
     onNightStart: (ctx, player) => {
         player.data.usedSealTargets = player.data.usedSealTargets || [];
-        if (player.data.sealPermanentlyLost) {
-            player.data.canSealTonight = false;
-        } else {
-            player.data.canSealTonight = true;
-        }
     },
     hasAction: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         const p = ctx.getPlayer(mySeat);
-        if (step === 'first_half') return p.data.canSealTonight !== false;
+        if (step === 'first_half') return !p.data.sealPermanentlyLost;
         return true; 
     },
     getPrompt: (ctx, mySeat) => {
-        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half') return "選擇今晚的封鎖目標\n(不可與過去重複，若成功反彈查/毒/守將進入冷卻)";
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half') return "選擇今晚的封鎖目標\n(不可與過去重複，反彈成功過就不能使用技能)";
         return "選擇今晚的襲擊目標 (或跳過以空刀)";
     },
     getSelectableSeats: (ctx, mySeat) => {
