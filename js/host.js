@@ -258,32 +258,28 @@ function setupEngineFlowControllers() {
         Engine.EventBus.emit('NIGHT_STEP_COMPLETE');
     });
 
+    Engine.EventBus.on('ADVANCE_NIGHT_STEP', () => {
+        engineContext.currentNightStepIndex++;
+        if (engineContext.currentNightStepIndex >= engineContext.nightSequence.length) {
+            Engine.EventBus.emit('PROCESS_DAWN');
+        } else {
+            const currentStep = engineContext.nightSequence[engineContext.currentNightStepIndex];
+            engineContext.dynamicNightDuration = (currentStep.phaseId === 'midnight') ? 45000 : 20000;
+            stateMachine.transitionTo('NIGHT_ACTION');
+        }
+    });
+
     Engine.EventBus.on('NIGHT_STEP_COMPLETE', () => {
         const previousStep = engineContext.nightSequence[engineContext.currentNightStepIndex];
         
-        const advanceNightStep = () => {
-            engineContext.currentNightStepIndex++;
-            if (engineContext.currentNightStepIndex >= engineContext.nightSequence.length) {
-                Engine.EventBus.emit('PROCESS_DAWN');
-            } else {
-                const currentStep = engineContext.nightSequence[engineContext.currentNightStepIndex];
-                engineContext.dynamicNightDuration = (currentStep.phaseId === 'midnight') ? 45000 : 20000;
-                stateMachine.transitionTo('NIGHT_ACTION');
-            }
-        };
         if (previousStep && previousStep.phaseId === 'midnight') {
-            engineContext.phase = 'MIDNIGHT_RESULT_DISPLAY';
-            syncStateToAll();
-            setTimeout(() => {
-                advanceNightStep();
-            }, 3000);
+            stateMachine.transitionTo('MIDNIGHT_RESULT_DISPLAY');
         } else {
-            advanceNightStep();
+            Engine.EventBus.emit('ADVANCE_NIGHT_STEP');
         }
     });
 
     Engine.EventBus.on('PROCESS_DAWN', () => {
-        // [階段 1] 時間軸最前端：判定熊咆哮並觸發獨立階段
         let bearRoarText = null;
         const bearPlayer = engineContext.players.find(p => p.role === '熊' && !p.isDead);
         if (bearPlayer) {
