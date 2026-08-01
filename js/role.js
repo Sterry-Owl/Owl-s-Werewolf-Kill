@@ -84,8 +84,9 @@ window.RoleRegistry = {
             ctx.addFilter('NIGHT_ACTION_PERMISSION', (canAct, args) => {
                 const feared = args.context.fearedSeat;
                 if (feared === args.player.seatNumber) return false;
-                if (args.context.bloodMoonSilenceNight === args.context.nightCount) {
-                    if (ROLE_DICTIONARY[args.player.role]?.type === 'god') return false;
+                // [修復] 增加 Truthy 檢驗，確保 bloodMoonSilenceNight 具備有效數值才進行封印判定，阻絕型別穿透風險
+                if (args.context.bloodMoonSilenceNight && args.context.bloodMoonSilenceNight === args.context.nightCount) {
+                    if (typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[args.player.role]?.type === 'god') return false;
                 }
                 return canAct;
             });
