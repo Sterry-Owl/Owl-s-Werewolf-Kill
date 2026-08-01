@@ -21,7 +21,9 @@ window.RoleRegistry = {
                 let actual = ctx.getActualTarget ? ctx.getActualTarget(targetSeat) : parseInt(targetSeat);
                 if (this.nightTags && this.nightTags.sealedSeat === actual) {
                     if (['check', 'poison', 'guard'].includes(skillType)) {
-                        this.nightTags.sealBounced = true;
+                        const wolfQueen = this.players.find(p => p.role === '蝕時狼妃');
+                        if (wolfQueen) wolfQueen.data.sealBouncedTonight = true;
+                        
                         this.systemLog = (this.systemLog || '') + `\n(系統紀錄：蝕時狼妃封鎖生效，技能反彈至 ${actorSeat} 號)`;
                         return parseInt(actorSeat);
                     }
@@ -1789,8 +1791,9 @@ RoleRegistry.register("蝕時狼妃", {
     nightPhase: ["first_half", "midnight"],
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half' ? 'single_select' : 'consensus',
     onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
-        if (ctx.nightTags?.sealBounced) {
+        if (player.data.sealBouncedTonight) {
             player.data.sealPermanentlyLost = true;
+            player.data.sealBouncedTonight = false;
         }
     },
     onNightStart: (ctx, player) => {
