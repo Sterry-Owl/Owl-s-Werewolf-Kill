@@ -19,12 +19,12 @@ window.RoleRegistry = {
 
             ctx.getSkillTarget = function(targetSeat, skillType, actorSeat) {
                 let actual = ctx.getActualTarget ? ctx.getActualTarget(targetSeat) : parseInt(targetSeat);
-                this.nightTags = this.nightTags || {};
-                this.nightTags.skillTargets = this.nightTags.skillTargets || [];
-                this.nightTags.skillTargets.push(actual);
-
-                if (this.nightTags.sealedSeat === actual) {
+                
+                if (this.nightTags && this.nightTags.sealedSeat === actual) {
                     if (['check', 'poison', 'guard'].includes(skillType)) {
+                        const sealer = this.getPlayer(this.nightTags.sealerSeat);
+                        if (sealer) sealer.data.sealPermanentlyLost = true;
+                        
                         this.systemLog = (this.systemLog || '') + `\n(系統紀錄：蝕時狼妃封鎖生效，技能反彈至 ${actorSeat} 號)`;
                         return parseInt(actorSeat);
                     }
@@ -1791,13 +1791,6 @@ RoleRegistry.register("蝕時狼妃", {
     hasWolfChatAccess: true,
     nightPhase: ["first_half", "midnight"],
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half' ? 'single_select' : 'consensus',
-    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
-        const sealed = ctx.nightTags?.sealedSeat;
-        const skillTargets = ctx.nightTags?.skillTargets || [];
-        if (sealed && skillTargets.includes(sealed)) {
-            player.data.sealPermanentlyLost = true;
-        }
-    },
     onNightStart: (ctx, player) => {
         player.data.usedSealTargets = player.data.usedSealTargets || [];
         if (player.data.sealPermanentlyLost) {
@@ -1843,9 +1836,8 @@ RoleRegistry.register("蝕時狼妃", {
         act.player.data.usedSealTargets.push(parseInt(target));
 
         ctx.nightTags = ctx.nightTags || {};
-        // 嚴謹尋址：若遭遇魔術師換牌，封鎖對象亦會跟隨轉移
+        ctx.nightTags.sealerSeat = act.player.seatNumber;
         ctx.nightTags.sealedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
-
         return `【封鎖: ${target}號】`;
     }
 });
