@@ -214,7 +214,14 @@ window.PhaseRegistry = {
             },
             onTimeout: (ctx) => self.resolveNightStep(ctx)
         });
-
+        stateMachine.registerPhase('MIDNIGHT_RESULT_DISPLAY', {
+            onEnter: (ctx) => {
+                self.sm.setTimer(3000); 
+            },
+            onTimeout: (ctx) => {
+                Engine.EventBus.emit('ADVANCE_NIGHT_STEP');
+            }
+        });
         stateMachine.registerPhase('SHERIFF_CANDIDACY', {
             onEnter: (ctx) => {
                 ctx.sheriff.candidates = [];
