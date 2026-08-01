@@ -1936,7 +1936,9 @@ RoleRegistry.register("純白之女", {
         if (ctx.nightTags?.pureWhiteKilled) {
             const target = ctx.nightTags.pureWhiteKilled;
             deathMap[target] = 'killed'; 
-            ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：純白之女發動查殺，擊殺 ${target} 號)`;
+            if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】純白之女發動查殺，擊殺 ${target} 號`);
+            }
         }
     },
     getPrompt: () => "選擇今晚的查驗目標 (系統將顯示具體身分，第二晚起查到狼人將直接擊殺)",
@@ -1982,7 +1984,9 @@ RoleRegistry.register("狼巫", {
         if (ctx.nightTags?.wolfWitchKilled) {
             const target = ctx.nightTags.wolfWitchKilled;
             deathMap[target] = 'killed';
-            ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：狼巫發動查殺，擊殺純白之女 ${target} 號)`;
+            if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】狼巫發動查殺，擊殺純白之女 ${target} 號`);
+            }
         }
     },
     getPrompt: (ctx, mySeat) => {
