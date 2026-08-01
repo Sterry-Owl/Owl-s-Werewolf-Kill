@@ -1927,3 +1927,105 @@ RoleRegistry.register("定序王子", {
         }
     }
 });
+RoleRegistry.register("純白之女", {
+    canSelfExplode: false,
+    nightPhase: "second_half",
+    actionType: "single_select",
+    isSeer: true, 
+    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        if (ctx.nightTags?.pureWhiteKilled) {
+            const target = ctx.nightTags.pureWhiteKilled;
+            deathMap[target] = 'killed'; 
+            ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：純白之女發動查殺，擊殺 ${target} 號)`;
+        }
+    },
+    getPrompt: () => "選擇今晚的查驗目標 (系統將顯示具體身分，第二晚起查到狼人將直接擊殺)",
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+    getButtons: () => [
+        { id: 'check', text: '查驗', requiresTarget: true }, 
+        { id: 'pass', text: '跳過', requiresTarget: false }
+    ],
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || act.actionId === 'pass') return "【跳過行動】";
+        
+        const target = act.targets[0];
+        const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
+        const tPlayer = ctx.getPlayer(actualTarget);
+        
+        const exactRole = tPlayer.data.camouflageRole || tPlayer.role; 
+        
+        act.player.data.seerRecords = act.player.data.seerRecords || {};
+        act.player.data.seerRecords[target] = exactRole;
+        act.player.data.latestCheckResult = { seat: parseInt(target), alignment: exactRole, isSeerAction: true };
+        act.player.data.tempPrivateMessage = `${target}號玩家的具體身分為【${exactRole}】。`;
+        
+        if (ctx.nightCount >= 2 && typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[exactRole]?.faction === 'wolf') {
+            ctx.nightTags = ctx.nightTags || {};
+            ctx.nightTags.pureWhiteKilled = actualTarget;
+        }
+        
+        return `查驗: ${target}號`;
+    }
+});
+
+RoleRegistry.register("狼巫", {
+    canSelfExplode: false,
+    canSeeWolves: true,
+    seenAsWolf: true,
+    immuneToWolfBite: true,
+    hasWolfChatAccess: true,
+    nightPhase: ["midnight", "second_half"],
+    actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
+    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
+    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        if (ctx.nightTags?.wolfWitchKilled) {
+            const target = ctx.nightTags.wolfWitchKilled;
+            deathMap[target] = 'killed';
+            ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：狼巫發動查殺，擊殺純白之女 ${target} 號)`;
+        }
+    },
+    getPrompt: (ctx, mySeat) => {
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') return "選擇今晚的襲擊目標 (或跳過以空刀)";
+        return "選擇今晚的查驗目標 (系統將顯示具體身分，第二晚起查到純白之女將直接擊殺)";
+    },
+    getSelectableSeats: (ctx, mySeat) => {
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
+            return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
+        }
+        return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
+    },
+    getButtons: (ctx, mySeat) => {
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
+            return [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
+        }
+        return [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
+    },
+    resolveNightAction: (ctx, actions) => {
+        const phaseId = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
+        if (phaseId === 'midnight') {
+            return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
+        }
+        
+        const act = actions[0];
+        if (!act || act.actionId === 'pass') return "【跳過行動】";
+        
+        const target = act.targets[0];
+        const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
+        const tPlayer = ctx.getPlayer(actualTarget);
+        
+        const exactRole = tPlayer.data.camouflageRole || tPlayer.role; 
+        
+        act.player.data.seerRecords = act.player.data.seerRecords || {};
+        act.player.data.seerRecords[target] = exactRole;
+        act.player.data.latestCheckResult = { seat: parseInt(target), alignment: exactRole, isSeerAction: true };
+        act.player.data.tempPrivateMessage = `${target}號玩家的具體身分為【${exactRole}】。`;
+        
+        if (ctx.nightCount >= 2 && exactRole === '純白之女') {
+            ctx.nightTags = ctx.nightTags || {};
+            ctx.nightTags.wolfWitchKilled = actualTarget;
+        }
+        
+        return `查驗: ${target}號`;
+    }
+});
