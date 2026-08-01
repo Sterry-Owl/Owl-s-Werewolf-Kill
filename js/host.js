@@ -467,14 +467,17 @@ function syncStateToAll() {
 
 function buildUIStateForPlayer(ctx, player, isDayPhase) {
     const isSheriffPhase = ['SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING'].includes(ctx.phase);
+    const myDisplayRole = (ctx.phase !== 'GAME_OVER' && player.role === '燈影預言家') ? '預言家' : player.role;
 
     // ==========================================
     // 1. 處理每個玩家座位上的標籤與狀態
     // ==========================================
     const mappedPlayers = ctx.players.map(p => {
         let topTag = null, sideTag = null, wolfPreviewTags = [];
-        if (ctx.phase === 'GAME_OVER' || p.isRevealed || (p.isDead && ctx.rules.deathReveal === 'light')) topTag = p.role;
-        else if (RoleRegistry.plugins[player.role]?.canSeeWolves && RoleRegistry.plugins[p.role]?.seenAsWolf) topTag = p.role;
+        const pDisplayRole = (ctx.phase !== 'GAME_OVER' && p.role === '燈影預言家') ? '預言家' : p.role;
+
+        if (ctx.phase === 'GAME_OVER' || p.isRevealed || (p.isDead && ctx.rules.deathReveal === 'light')) topTag = pDisplayRole;
+        else if (RoleRegistry.plugins[player.role]?.canSeeWolves && RoleRegistry.plugins[p.role]?.seenAsWolf) topTag = pDisplayRole;
         else if (player.data.customTopTags && player.data.customTopTags[p.seatNumber]) topTag = player.data.customTopTags[p.seatNumber];
         if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber]; 
         else if (player.role === '女巫' && ctx.witchState?.silverWater === p.seatNumber) sideTag = "銀水"; 
@@ -804,7 +807,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     return {
         boardName: ctx.boardName, phase: ctx.phase, 
         nightStepIndex: ctx.currentNightStepIndex,
-        mySeat: player.seatNumber, myRole: player.role,
+        mySeat: player.seatNumber, myRole: myDisplayRole,
         message: personalMessage, players: mappedPlayers, actionPanel, latestCheckResult: player.data.latestCheckResult || null,
         voteHistory: ctx.voteHistory, 
         allowSelfExplode: !player.isDead && ['SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'DAY_DISCUSSION', 'DAY_PK_SPEECH', 'PRINCE_SPEECH'].includes(ctx.phase) && RoleRegistry.plugins[player.role]?.canSelfExplode,
