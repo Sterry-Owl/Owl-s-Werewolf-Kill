@@ -14,7 +14,8 @@ const UI = {
         
         if (def) {
             if (def.faction === 'wolf') bg = '#e57373'; 
-            else if (text === '預言家' || text === '燈影預言家' || text === '魔鏡少女') bg = '#b28dd6'; 
+            else if (def.faction === 'third_party') bg = '#385a87';
+            else if (text === '預言家' || text === '燈影預言家' || text === '魔鏡少女') bg = '#b28dd6';
             else if (text === '平民' || text === '暗戀者') { bg = '#f5f5f5'; color = '#333'; } 
             else if (text === '獵人') bg = '#81c784'; 
         } else {
@@ -322,7 +323,7 @@ const UI = {
                         });
                     }
 
-                } else if (state.actionPanel.type === 'double_select') {
+                } else if (state.actionPanel.type === 'double_select' || state.actionPanel.type === 'up_to_two') {
                     createSlot(displayTargets[0] || null, '目標 1', '');
                     createSlot(displayTargets[1] || null, '目標 2', '');
 
@@ -396,8 +397,9 @@ const UI = {
                 let colorClass = 'tag-default';
                 if (p.sideTag === '銀水') colorClass = 'tag-silver';
                 else if (p.sideTag === '好人') colorClass = 'tag-gold';
-                else if (p.sideTag === '狼人') colorClass = 'tag-red';
+                lse if (p.sideTag === '狼人') colorClass = 'tag-red';
                 else if (p.sideTag === '暗戀對象') colorClass = 'tag-pink';
+                else if (p.sideTag === '被誘引') colorClass = 'tag-purple';
 
                 tagsHtml += `<div class="side-tag ${alignClass} ${colorClass}">${p.sideTag}</div>`;
             }
@@ -492,12 +494,13 @@ const UI = {
                         if (bInfo.requiresTarget) {
                             if (state.actionPanel.type === 'double_select' && selectedTargets.length < 2) {
                                 btn.disabled = true;
-                            } else if (state.actionPanel.type !== 'double_select' && selectedTargets.length === 0) {
+                            } else if (state.actionPanel.type === 'up_to_two' && selectedTargets.length === 0) {
+                                btn.disabled = true; 
+                            } else if (state.actionPanel.type !== 'double_select' && state.actionPanel.type !== 'up_to_two' && selectedTargets.length === 0) {
                                 btn.disabled = true;
                             }
                         }
 
-                        // [修改] 攔截過渡視圖的按鈕事件，不汙染原始的 onActionSubmit 封包
                         btn.onclick = () => {
                             if (bInfo.id === 'cancel_day_skill') {
                                 UI.isPreparingDaySkill = false;
