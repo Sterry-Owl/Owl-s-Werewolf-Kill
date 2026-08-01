@@ -2080,15 +2080,16 @@ RoleRegistry.register("吹笛者", {
                 if (!ctx.charmedByPiper.includes(actualTarget)) {
                     ctx.charmedByPiper.push(actualTarget);
                 }
+                act.player.data.customTopTags = act.player.data.customTopTags || {};
+                act.player.data.customTopTags[actualTarget] = "已誘引";
             });
         }
+        
         const aliveCharmed = ctx.getAlivePlayers().filter(p => ctx.charmedByPiper.includes(p.seatNumber));
         aliveCharmed.forEach(p => {
             p.data.seerRecords = p.data.seerRecords || {};
-            aliveCharmed.forEach(other => {
-                if (p.seatNumber !== other.seatNumber) {
-                    p.data.seerRecords[other.seatNumber] = "被誘引";
-                }
+            ctx.charmedByPiper.forEach(targetSeat => {
+                p.data.seerRecords[targetSeat] = "被誘引";
             });
         });
 
