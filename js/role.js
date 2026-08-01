@@ -2033,3 +2033,66 @@ RoleRegistry.register("狼巫", {
         return `查驗: ${target}號`;
     }
 });
+RoleRegistry.register("吹笛者", {
+    canSelfExplode: false,
+    nightPhase: "first_half", 
+    actionType: "up_to_two",
+
+    checkWinCondition: (ctx, player) => {
+        if (player.isDead) return null;
+        const alive = ctx.getAlivePlayers();
+        const piperCount = alive.filter(p => p.role === '吹笛者').length;
+        const charmedAliveCount = alive.filter(p => ctx.charmedByPiper && ctx.charmedByPiper.includes(p.seatNumber)).length;
+        if (alive.length - piperCount === charmedAliveCount) {
+            return { winner: "第三方陣營 (吹笛者)", reason: "場上除了吹笛者以外的所有存活玩家皆已被誘引" };
+        }
+        return null;
+    },
+
+    onNightStart: (ctx, player) => {
+        ctx.charmedByPiper = ctx.charmedByPiper || [];
+        player.data.customTopTags = player.data.customTopTags || {};
+        ctx.players.forEach(p => {
+            if (p.seatNumber !== player.seatNumber && ctx.charmedByPiper.includes(p.seatNumber)) {
+                player.data.customTopTags[p.seatNumber] = "已誘引";
+            }
+        });
+    },
+
+    getPrompt: () => "選擇今晚誘引的目標 (0~2名玩家)\n(被誘引者將會互相確認彼此，但不知道吹笛者是誰)",
+    getSelectableSeats: (ctx, mySeat) => {
+        ctx.charmedByPiper = ctx.charmedByPiper || [];
+        return ctx.getAlivePlayers()
+            .filter(p => p.seatNumber !== mySeat && !ctx.charmedByPiper.includes(p.seatNumber))
+            .map(p => p.seatNumber);
+    },
+    getButtons: () => [
+        { id: 'charm', text: '確認誘引', requiresTarget: true },
+        { id: 'pass', text: '跳過', requiresTarget: false }
+    ],
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        ctx.charmedByPiper = ctx.charmedByPiper || [];
+        
+        if (act && act.actionId !== 'pass' && act.targets && act.targets.length > 0) {
+            act.targets.forEach(t => {
+                const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(t) : parseInt(t);
+                if (!ctx.charmedByPiper.includes(actualTarget)) {
+                    ctx.charmedByPiper.push(actualTarget);
+                }
+            });
+        }
+        const aliveCharmed = ctx.getAlivePlayers().filter(p => ctx.charmedByPiper.includes(p.seatNumber));
+        aliveCharmed.forEach(p => {
+            p.data.seerRecords = p.data.seerRecords || {};
+            aliveCharmed.forEach(other => {
+                if (p.seatNumber !== other.seatNumber) {
+                    p.data.seerRecords[other.seatNumber] = "被誘引";
+                }
+            });
+        });
+
+        if (!act || act.actionId === 'pass' || !act.targets || act.targets.length === 0) return "【跳過行動】";
+        return `【誘引: ${act.targets.join('、')}號】`;
+    }
+});
