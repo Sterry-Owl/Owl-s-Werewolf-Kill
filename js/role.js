@@ -442,7 +442,7 @@ RoleRegistry.register("白狼王", {
     resolveNightAction: RoleRegistry.plugins["狼人"].resolveNightAction,
     daySkill: {
         id: 'wwk_explode', buttonText: '自爆並帶走', requiresTarget: true,
-        allowedPhases: ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_ORDER_SELECTION', 'DAY_DISCUSSION', 'DAY_PK_SPEECH', 'LAST_WORDS'],
+        allowedPhases: ['SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'DAY_DISCUSSION', 'DAY_PK_SPEECH', 'PRINCE_SPEECH'],
         getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
         resolve: (ctx, player, targetSeat) => {
             const targetPlayer = ctx.getPlayer(targetSeat);
