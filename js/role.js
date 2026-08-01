@@ -365,10 +365,9 @@ RoleRegistry.register("燈影預言家", {
             let fakeAlignment = (alignment === "狼人") ? "好人" : "狼人";
 
             act.player.data.seerRecords = act.player.data.seerRecords || {};
-            act.player.data.seerRecords[target] = fakealignment; // (燈影為 fakeAlignment)
-            // [修復] 強制轉為整數，並補上 isSeerAction 標記
-            act.player.data.latestCheckResult = { seat: parseInt(target), alignment: fakealignment, isSeerAction: true }; // (燈影為 fakeAlignment)
-            act.player.data.tempPrivateMessage = `${target}號玩家是【${fakealignment}】。`; // (燈影為 fakeAlignment)
+            act.player.data.seerRecords[target] = fakeAlignment;
+            act.player.data.latestCheckResult = { seat: parseInt(target), alignment: fakeAlignment, isSeerAction: true };
+            act.player.data.tempPrivateMessage = `${target}號玩家是【${fakeAlignment}】。`;
             return `查驗: ${target}號`;
         }
         return "跳過行動";
