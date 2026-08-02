@@ -2097,3 +2097,84 @@ RoleRegistry.register("吹笛者", {
         return `【誘引: ${act.targets.join('、')}號】`;
     }
 });
+RoleRegistry.register("不死鳥", {
+    canSelfExplode: false,
+    nightPhase: "second_half",
+    actionType: "single_select",
+    
+    hasAction: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        return ctx.nightCount >= 2 && !p.data.hasResurrected;
+    },
+    
+    getPrompt: () => "選擇一名已死亡的玩家進行復活\n(全局限用一次)",
+    
+    getSelectableSeats: (ctx, mySeat) => {
+        return ctx.players.filter(p => p.isDead).map(p => p.seatNumber);
+    },
+    
+    getButtons: () => [
+        { id: 'resurrect', text: '復活', requiresTarget: true },
+        { id: 'pass', text: '跳過', requiresTarget: false }
+    ],
+    
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || act.actionId === 'pass' || !act.targets || act.targets.length === 0) return "【跳過行動】";
+        
+        const target = parseInt(act.targets[0]);
+        act.player.data.hasResurrected = true;
+        ctx.nightTags = ctx.nightTags || {};
+        ctx.nightTags.phoenixResurrectTarget = target;
+        
+        return `【復活: ${target}號】`;
+    },
+    
+    onPhaseChanged: (ctx, player, phase) => {
+        if (phase === 'DAWN_DEATH_ANNOUNCE' && ctx.nightTags?.phoenixResurrectTarget) {
+            const targetSeat = ctx.nightTags.phoenixResurrectTarget;
+            const targetPlayer = ctx.getPlayer(targetSeat);
+            
+            if (targetPlayer && targetPlayer.isDead) {
+                targetPlayer.isDead = false;
+                targetPlayer.deathReason = null;
+                const exactRole = targetPlayer.data.camouflageRole || targetPlayer.role;
+                const isWolf = typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[exactRole]?.faction === 'wolf';
+                
+                if (isWolf) {
+                    player.data.customTopTags = player.data.customTopTags || {};
+                    player.data.customTopTags[targetSeat] = exactRole; 
+                    
+                    targetPlayer.data.customTopTags = targetPlayer.data.customTopTags || {};
+                    targetPlayer.data.customTopTags[player.seatNumber] = '不死鳥';
+                }
+                player.data.phoenixLinked = targetSeat;
+                ctx.deathAnnounceText = (ctx.deathAnnounceText || "") + `\n(系統宣告：${targetSeat} 號玩家被不死鳥復活)`;
+                if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                    Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】不死鳥發動技能，復活 ${targetSeat} 號`);
+                }
+                if (player.isDead) {
+                    targetPlayer.kill('martyr', ctx);
+                    ctx.deathAnnounceText += `\n(系統宣告：因不死鳥已在昨夜出局，剛復活的 ${targetSeat} 號玩家隨即殉情)`;
+                    if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                        Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】因不死鳥已在昨夜死亡，剛復活的 ${targetSeat} 號玩家立刻殉情`);
+                    }
+                }
+                
+                ctx.nightTags.phoenixResurrectTarget = null;
+            }
+        }
+    },
+    onPlayerDied: (ctx, player, reason) => {
+        if (player.data.phoenixLinked) {
+            const target = ctx.getPlayer(player.data.phoenixLinked);
+            if (target && !target.isDead) {
+                target.kill('martyr', ctx);
+                ctx.systemLog = (ctx.systemLog || '') + `\n(系統宣告：因不死鳥出局，${target.seatNumber} 號玩家隨即殉情)`;
+                if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                    Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】不死鳥出局，被復活的 ${target.seatNumber} 號玩家殉情`);
+                }
+            }
+        }
+    }
+});
