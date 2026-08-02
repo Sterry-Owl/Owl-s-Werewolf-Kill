@@ -105,6 +105,11 @@ function handleIncomingPacket(peerId, data) {
             if (player.isDead && (!currentPhaseLogic || !currentPhaseLogic.allowDeadAction)) {
                 return;
             }
+            const plugin = RoleRegistry.plugins[player.role];
+            if (plugin && plugin.allowDeadTarget && data.payload.targets && data.payload.targets.length > 0) {
+                player.data.tempDeadTarget = parseInt(data.payload.targets[0]);
+                data.payload.targets = []; 
+            }
             
             stateMachine.handleAction(player, data.payload.actionId, data.payload.targets);
             syncStateToAll();
