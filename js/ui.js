@@ -369,11 +369,15 @@ const UI = {
             
             const isSelected = displayTargets.includes(p.seatNumber);
             if (isSelected) seat.classList.add('selected');
-            if (state.actionPanel.show && !p.isDead && state.actionPanel.selectableSeats.includes(p.seatNumber) && state.actionPanel.buttons && state.actionPanel.buttons.length > 0) {
+            
+            // [修復] 拔除 !p.isDead 的前端寫死限制，將可選判定全權交由後端 selectableSeats 決定，使不死鳥能正確點擊死亡玩家
+            if (state.actionPanel.show && state.actionPanel.selectableSeats.includes(p.seatNumber) && state.actionPanel.buttons && state.actionPanel.buttons.length > 0) {
                 seat.style.cursor = 'pointer';
+                seat.style.pointerEvents = 'auto'; // 強制覆蓋 .dead 帶來的 pointer-events: none
                 seat.addEventListener('click', () => onSeatSelect(p.seatNumber));
             } else {
                 seat.style.pointerEvents = 'none';
+                seat.style.cursor = 'default';
             }
 
             let tagsHtml = '';
