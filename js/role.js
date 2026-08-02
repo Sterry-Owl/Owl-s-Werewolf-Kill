@@ -2124,6 +2124,7 @@ RoleRegistry.register("不死鳥", {
         
         const target = parseInt(act.targets[0]);
         act.player.data.hasResurrected = true;
+        
         ctx.nightTags = ctx.nightTags || {};
         ctx.nightTags.phoenixResurrectTarget = target;
         
@@ -2138,6 +2139,7 @@ RoleRegistry.register("不死鳥", {
             if (targetPlayer && targetPlayer.isDead) {
                 targetPlayer.isDead = false;
                 targetPlayer.deathReason = null;
+                
                 const exactRole = targetPlayer.data.camouflageRole || targetPlayer.role;
                 const isWolf = typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[exactRole]?.faction === 'wolf';
                 
@@ -2148,14 +2150,14 @@ RoleRegistry.register("不死鳥", {
                     targetPlayer.data.customTopTags = targetPlayer.data.customTopTags || {};
                     targetPlayer.data.customTopTags[player.seatNumber] = '不死鳥';
                 }
+                
                 player.data.phoenixLinked = targetSeat;
-                ctx.deathAnnounceText = (ctx.deathAnnounceText || "") + `\n(系統宣告：${targetSeat} 號玩家被不死鳥復活)`;
                 if (typeof Engine !== 'undefined' && Engine.EventBus) {
                     Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】不死鳥發動技能，復活 ${targetSeat} 號`);
                 }
+                
                 if (player.isDead) {
                     targetPlayer.kill('martyr', ctx);
-                    ctx.deathAnnounceText += `\n(系統宣告：因不死鳥已在昨夜出局，剛復活的 ${targetSeat} 號玩家隨即殉情)`;
                     if (typeof Engine !== 'undefined' && Engine.EventBus) {
                         Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】因不死鳥已在昨夜死亡，剛復活的 ${targetSeat} 號玩家立刻殉情`);
                     }
@@ -2165,12 +2167,12 @@ RoleRegistry.register("不死鳥", {
             }
         }
     },
+    
     onPlayerDied: (ctx, player, reason) => {
         if (player.data.phoenixLinked) {
             const target = ctx.getPlayer(player.data.phoenixLinked);
             if (target && !target.isDead) {
                 target.kill('martyr', ctx);
-                ctx.systemLog = (ctx.systemLog || '') + `\n(系統宣告：因不死鳥出局，${target.seatNumber} 號玩家隨即殉情)`;
                 if (typeof Engine !== 'undefined' && Engine.EventBus) {
                     Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】不死鳥出局，被復活的 ${target.seatNumber} 號玩家殉情`);
                 }
