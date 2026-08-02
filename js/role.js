@@ -2036,8 +2036,12 @@ RoleRegistry.register("狼巫", {
 RoleRegistry.register("吹笛者", {
     canSelfExplode: false,
     nightPhase: "first_half", 
-    actionType: "up_to_two",
-
+    actionType: (ctx) => {
+        if (ctx.players.length < 12 && ctx.nightCount > 1) {
+            return "single_select";
+        }
+        return "up_to_two";
+    },
     checkWinCondition: (ctx, player) => {
         if (player.isDead) return null;
         const alive = ctx.getAlivePlayers();
@@ -2059,7 +2063,12 @@ RoleRegistry.register("吹笛者", {
         });
     },
 
-    getPrompt: () => "選擇今晚誘引的目標 (0~2名玩家)\n(被誘引者將會互相確認彼此，但不知道吹笛者是誰)",
+    getPrompt: (ctx) => {
+        if (ctx.players.length < 12 && ctx.nightCount > 1) {
+            return "選擇今晚誘引的目標 (0~1名玩家)\n(被誘引者將會互相確認彼此，但不知道吹笛者是誰)";
+        }
+        return "選擇今晚誘引的目標 (0~2名玩家)\n(被誘引者將會互相確認彼此，但不知道吹笛者是誰)";
+    },
     getSelectableSeats: (ctx, mySeat) => {
         ctx.charmedByPiper = ctx.charmedByPiper || [];
         return ctx.getAlivePlayers()
