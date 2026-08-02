@@ -119,6 +119,7 @@ const BOARD_TEMPLATES = [
     { id: "test-18_6", name: "6人 永序之輪(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "守衛", "蝕時狼妃", "定序王子", "狼人"] },
     { id: "test-19_6", name: "6人 純白夜影(測試)", category: 'test', playerCount: 6, deck: ["純白之女", "守衛", "狼巫", "狼人", "平民", "平民"] },
     { id: "test-20_6", name: "6人 吹笛者(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "狼巫", "狼人", "平民", "吹笛者"] },
+    { id: "test-21_6", name: "6人 不死鳥(測試)", category: 'test', playerCount: 6, deck: ["預言家", "不死鳥", "狼鴉之爪", "狼人", "平民", "暗戀者"] },
     { id: "standard_9", name: "9人 標準局", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "wbt_kn_9", name: "9人 狼美人騎士(商榷)", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "騎士", "狼美人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "nim_dgr_9", name: "9人 夢魘攝夢人(商榷)", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "攝夢人", "噩夢之影", "狼人", "狼人", "平民", "平民", "平民"] },
@@ -161,6 +162,7 @@ const BOARD_TEMPLATES = [
     { id: "lich_12", name: "12人 轉化者", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "守墓人", "巫妖", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wind_12", name: "12人 風聲諜影", category: 'fun', playerCount: 12, deck: ["預言家", "熊", "魔鏡少女", "女巫", "攝夢人", "獵人", "河豚", "白貓", "巫妖", "巫妖", "機械狼", "暗戀者"] },
     { id: "pure_12", name: "12人 純白夜影", category: 'standard', playerCount: 12, deck: ["純白之女", "女巫", "守衛", "獵人", "狼巫", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "undie_12", name: "12人 不死鳥", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "不死鳥", "狼鴉之爪", "狼人", "狼人", "狼人", "平民", "平民", "平民", "暗戀者"] },
 ];
 
 const ROLE_DICTIONARY = {
