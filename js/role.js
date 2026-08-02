@@ -2110,7 +2110,8 @@ RoleRegistry.register("不死鳥", {
     canSelfExplode: false,
     nightPhase: "second_half",
     actionType: "single_select",
-    
+    allowDeadTarget: true,
+
     hasAction: (ctx, mySeat) => {
         const p = ctx.getPlayer(mySeat);
         return ctx.nightCount >= 2 && !p.data.hasResurrected;
@@ -2118,7 +2119,7 @@ RoleRegistry.register("不死鳥", {
     
     getPrompt: () => "選擇一名已死亡的玩家進行復活\n(全局限用一次)",
     
-    getSelectableSeats: (ctx, mySeat) => {
+    getSelectableSeats: (ctx) => {
         return ctx.players.filter(p => p.isDead).map(p => p.seatNumber);
     },
     
@@ -2129,10 +2130,11 @@ RoleRegistry.register("不死鳥", {
     
     resolveNightAction: (ctx, actions) => {
         const act = actions[0];
-        if (!act || act.actionId === 'pass' || !act.targets || act.targets.length === 0) return "【跳過行動】";
+        const target = act.player.data.tempDeadTarget;
+        if (!target) return "【跳過行動】";
         
-        const target = parseInt(act.targets[0]);
         act.player.data.hasResurrected = true;
+        act.player.data.tempDeadTarget = null;
         
         ctx.nightTags = ctx.nightTags || {};
         ctx.nightTags.phoenixResurrectTarget = target;
@@ -2161,6 +2163,7 @@ RoleRegistry.register("不死鳥", {
                 }
                 
                 player.data.phoenixLinked = targetSeat;
+                
                 if (typeof Engine !== 'undefined' && Engine.EventBus) {
                     Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】不死鳥發動技能，復活 ${targetSeat} 號`);
                 }
