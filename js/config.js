@@ -128,6 +128,8 @@ const BOARD_TEMPLATES = [
     { id: "whip_8", name: "8人 連連看", category: 'fun', playerCount: 8, deck: ["獵魔人", "獵魔人", "獵魔人", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影"] },
     { id: "leave_10", name: "10人 離群眾狼", category: 'fun', playerCount: 10, deck: ["預言家", "女巫", "攝夢人", "狼人", "隱狼", "尋香魅影", "平民", "平民", "平民", "平民"] },
     { id: "standard_10", name: "10人 標準局", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "flute_11", name: "11人 吹笛者", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "暗戀者", "吹笛者"] },
+    { id: "evening_11", name: "11人 諸神黃昏(8+3)", category: 'fun', playerCount: 11, deck: ["預言家", "女巫", "獵人", "守衛", "白痴", "白狼王", "狼美人", "血月使徒", "平民", "平民", "平民"] },
     { id: "wk_grd_10", name: "10人 狼王守衛", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "守衛", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_mag_10", name: "10人 狼王魔術師", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "魔術師", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
     { id: "inw_cl_10", name: "10人 隱狼烏鴉", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "烏鴉", "隱狼", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
