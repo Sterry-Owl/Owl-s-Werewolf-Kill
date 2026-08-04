@@ -41,6 +41,13 @@ window.RoleRegistry = {
                 calc.dreamed = sanitize(calc.dreamed);
                 calc.guarded = sanitize(calc.guarded);
                 calc.lastDreamed = sanitize(calc.lastDreamed);
+                
+                if (ctx.magicianSwap) {
+                    const swapMap = (arr) => arr.map(seat => ctx.getActualTarget(seat));
+                    calc.killed = swapMap(calc.killed);
+                    calc.saved = swapMap(calc.saved);
+                }
+                
                 let deathMap = {};
                 if (ctx.nightTags?.demonHunterKills) ctx.nightTags.demonHunterKills.forEach(seat => deathMap[seat] = 'killed');
                 if (ctx.nightTags?.demonHunterBackfires) ctx.nightTags.demonHunterBackfires.forEach(seat => deathMap[seat] = 'skill_backfire');
@@ -205,8 +212,7 @@ RoleRegistry.register("狼人", {
         const finalTarget = validTargets[Math.floor(Math.random() * validTargets.length)];
         
         if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
-        const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(finalTarget) : parseInt(finalTarget);
-        ctx.nightTags.killed.push(actualTarget);
+        ctx.nightTags.killed.push(parseInt(finalTarget));
         
         return `襲擊: ${finalTarget}號`;
     }
@@ -605,8 +611,7 @@ RoleRegistry.register("石像鬼", {
             
         } else if (step.phaseId === 'midnight' && act.actionId === 'kill') {
             if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
-            const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
-            ctx.nightTags.killed.push(actualTarget);
+            ctx.nightTags.killed.push(parseInt(target));
             return `襲擊: ${target}號`;
         }
         return "跳過行動";
@@ -648,8 +653,7 @@ RoleRegistry.register("隱狼", {
         
         const target = act.targets[0];
         if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
-        const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
-        ctx.nightTags.killed.push(actualTarget);
+        ctx.nightTags.killed.push(parseInt(target));
         return `【襲擊: ${target}號】`;
     }
 });
@@ -1074,8 +1078,7 @@ RoleRegistry.register("機械狼", {
             if (act.actionId === 'pass') return "【空刀】";
             const target = act.targets[0];
             if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
-            const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
-            ctx.nightTags.killed.push(actualTarget);
+            ctx.nightTags.killed.push(parseInt(target));
             return `【襲擊: ${target}號】`;
         }
 
@@ -1137,8 +1140,7 @@ RoleRegistry.register("機械狼", {
             
             if (act.actionId === 'kill') {
                 if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
-                const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
-                ctx.nightTags.killed.push(actualTarget);
+                ctx.nightTags.killed.push(parseInt(target));
                 p.data.machineState = 2; 
                 return `【額外襲擊: ${target}號】`;
             }
