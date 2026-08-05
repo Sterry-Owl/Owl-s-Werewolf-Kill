@@ -372,9 +372,9 @@ function setupEngineFlowControllers() {
                 const randomDeadSeat = dead[Math.floor(Math.random() * dead.length)];
                 startSeat = engineContext.getNextAliveSeat(randomDeadSeat, dirNum);
             }
-            
+
             engineContext.dayDiscussionPrompt = `請從 ${startSeat} 號開始${dirStr}序發言`;
-            engineContext.buildSpeakingQueue(startSeat, dirNum);
+            engineContext.dayDiscussionConfig = { startSeat, dirNum };
             engineContext.destinationPhase = 'DAY_DISCUSSION';
         }
 
@@ -461,15 +461,21 @@ function resumeRoutinePhase() {
         engineContext.pendingWolfKing = null;
         stateMachine.transitionTo('WOLFKING_ACTION');
     } else if (engineContext.pendingBloodMoon) {
-        engineContext.activeShooter = engineContext.pendingBloodMoon; // [新增] 鎖定血月使徒開槍座位
+        engineContext.activeShooter = engineContext.pendingBloodMoon;
         engineContext.pendingBloodMoon = null;
         stateMachine.transitionTo('BLOODMOON_ACTION');
     } else if (engineContext.lastWordsTargets && engineContext.lastWordsTargets.length > 0) {
+        engineContext.buildSpeakingQueue(engineContext.lastWordsTargets[0], 1, engineContext.lastWordsTargets);
         stateMachine.transitionTo('LAST_WORDS');
     } else {
         engineContext.lastWordsTargets = [];
         
         const destPhase = engineContext.destinationPhase;
+        if (destPhase === 'DAY_DISCUSSION' && engineContext.routineOrigin === 'MORNING' && engineContext.dayDiscussionConfig) {
+             engineContext.buildSpeakingQueue(engineContext.dayDiscussionConfig.startSeat, engineContext.dayDiscussionConfig.dirNum);
+             engineContext.dayDiscussionConfig = null;
+        }
+        
         stateMachine.transitionTo(destPhase);
         
         if (destPhase === 'NIGHT_TRANSITION') {
