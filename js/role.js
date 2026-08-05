@@ -2173,6 +2173,12 @@ RoleRegistry.register("不死鳥", {
                 }
                 
                 ctx.nightTags.phoenixResurrectTarget = null;
+                if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                    Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+                }
+            }
+        }
+    },
             }
         }
     },
