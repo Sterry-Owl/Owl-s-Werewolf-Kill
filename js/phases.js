@@ -10,6 +10,7 @@ window.PhaseRegistry = {
         this.sm = stateMachine;
         const self = this; 
         const createSpeechPhase = (nextPhaseName) => ({
+            allowDeadAction: true,
             onEnter: (ctx) => {
                 // [修復 Bug 5] 動態發言權驗證 (Dynamic Speech Filter)
                 // 從佇列中尋找下一位「仍然具備發言資格」的玩家
