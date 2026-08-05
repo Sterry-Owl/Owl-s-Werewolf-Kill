@@ -9,19 +9,18 @@ window.PhaseRegistry = {
     init: function(stateMachine, ctx) {
         this.sm = stateMachine;
         const self = this; 
-        const createSpeechPhase = (nextPhaseName) => ({
+        // [修改] 賦予狀態機工廠時長參數，使其能動態產出 60 秒的技能遺言
+        const createSpeechPhase = (nextPhaseName, durationMs = 120000) => ({
             allowDeadAction: true,
             onEnter: (ctx) => {
-                // [修復 Bug 5] 動態發言權驗證 (Dynamic Speech Filter)
-                // 從佇列中尋找下一位「仍然具備發言資格」的玩家
                 let nextSpeaker = null;
                 while (ctx.speakingQueue && ctx.speakingQueue.length > 0) {
                     const candidateSeat = ctx.speakingQueue.shift();
                     const p = ctx.getPlayer(candidateSeat);
                     
                     if (!p) continue;
-                    // [核心修復] 遺言階段必須允許死亡玩家保有發言權
-                    if (p.isDead && ctx.phase !== 'LAST_WORDS') continue; 
+                    // [修改] 擴充死者發言許可，涵蓋技能遺言階段
+                    if (p.isDead && !['LAST_WORDS', 'DAY_SKILL_LAST_WORDS'].includes(ctx.phase)) continue; 
                     
                     if (ctx.phase === 'SHERIFF_SPEECH' || ctx.phase === 'SHERIFF_PK_SPEECH') {
                         if (!(ctx.sheriff.candidates || []).includes(candidateSeat)) continue;
@@ -39,6 +38,9 @@ window.PhaseRegistry = {
                     if (ctx.phase === 'LAST_WORDS') {
                         ctx.lastWordsTargets = [];
                     }
+                    if (ctx.phase === 'DAY_SKILL_LAST_WORDS') {
+                        ctx.daySkillLastWordsQueue = [];
+                    }
                     
                     if (nextPhaseName === 'RESUME_ROUTINE') {
                         Engine.EventBus.emit('RESUME_ROUTINE');
@@ -48,46 +50,43 @@ window.PhaseRegistry = {
                     return;
                 }
                 
-                // 推進至下一位發言者
                 ctx.currentSpeaker = nextSpeaker;
                 ctx.systemLog = `現在由 ${ctx.currentSpeaker} 號玩家發言`;
-                self.sm.setTimer(120000);
+                self.sm.setTimer(durationMs); // 套用動態時長
             },
             onAction: (ctx, player, actionId) => {
-                // 僅允許當前發言者主動結束發言
                 if (actionId === 'end_speech' && player.seatNumber === ctx.currentSpeaker) {
                     self.sm.clearTimer();
                     ctx.systemLog = `${player.seatNumber} 號玩家結束發言。`;
                     
-                    // [嚴謹修復] 針對遺言階段（LAST_WORDS）進行情境分流判斷
                     if (ctx.phase === 'LAST_WORDS' && ctx.speakingQueue.length === 0) {
                         ctx.lastWordsTargets = [];
-                        // 判定來源：若為第一夜晨間遺言，絕不直接入夜，必須安全回歸常規日常流程 (RESUME_ROUTINE)
-                        if (ctx.routineOrigin === 'MORNING') {
-                            Engine.EventBus.emit('RESUME_ROUTINE');
-                            return;
-                        }
+                        if (ctx.routineOrigin === 'MORNING') { Engine.EventBus.emit('RESUME_ROUTINE'); return; }
+                    }
+                    // [新增] 技能遺言的常規路由保護
+                    if (ctx.phase === 'DAY_SKILL_LAST_WORDS' && ctx.speakingQueue.length === 0) {
+                        ctx.daySkillLastWordsQueue = [];
+                        if (ctx.routineOrigin === 'MORNING') { Engine.EventBus.emit('RESUME_ROUTINE'); return; }
                     }
                     
-                    self.sm.transitionTo(ctx.phase); // 重新進入相同階段，觸發 onEnter 提取下一位
+                    self.sm.transitionTo(ctx.phase);
                 }
             },
             onTimeout: (ctx) => {
                 ctx.systemLog = `${ctx.currentSpeaker} 號玩家發言時間到。`;
                 
-                // [同歩防呆] 超時強行結束時亦須套用相同的遺言來源安全判定
                 if (ctx.phase === 'LAST_WORDS' && ctx.speakingQueue.length === 0) {
                     ctx.lastWordsTargets = [];
-                    if (ctx.routineOrigin === 'MORNING') {
-                        Engine.EventBus.emit('RESUME_ROUTINE');
-                        return;
-                    }
+                    if (ctx.routineOrigin === 'MORNING') { Engine.EventBus.emit('RESUME_ROUTINE'); return; }
+                }
+                if (ctx.phase === 'DAY_SKILL_LAST_WORDS' && ctx.speakingQueue.length === 0) {
+                    ctx.daySkillLastWordsQueue = [];
+                    if (ctx.routineOrigin === 'MORNING') { Engine.EventBus.emit('RESUME_ROUTINE'); return; }
                 }
                 
                 self.sm.transitionTo(ctx.phase); 
             }
         });
-
         stateMachine.registerPhase('DAY_DISCUSSION', createSpeechPhase('DAY_VOTING'));
         stateMachine.registerPhase('SHERIFF_SPEECH', createSpeechPhase('SHERIFF_VOTING'));
         stateMachine.registerPhase('SHERIFF_PK_SPEECH', createSpeechPhase('SHERIFF_PK_VOTING'));
@@ -353,11 +352,11 @@ window.PhaseRegistry = {
             }
         });
 
-stateMachine.registerPhase('HUNTER_ACTION', {
+    stateMachine.registerPhase('HUNTER_ACTION', {
             allowDeadAction: true, 
             onEnter: (ctx) => { 
                 ctx.systemLog = "等待獵人開槍 (15秒)..."; 
-                self.sm.setTimer(15000); // [新增] 設定 15 秒開槍時限
+                self.sm.setTimer(15000);
             },
             onAction: (ctx, player, actionId, targets) => {
                 if (player.seatNumber !== ctx.activeShooter) return; 
@@ -369,6 +368,9 @@ stateMachine.registerPhase('HUNTER_ACTION', {
                     const msg = `${player.seatNumber}號玩家發動技能擊殺了${target}號玩家`;
                     ctx.systemLog = msg;
                     Engine.EventBus.emit('BROADCAST_MESSAGE', msg);
+                    if (ctx.lastWordsTargets && ctx.lastWordsTargets.includes(player.seatNumber)) {
+                        ctx.daySkillLastWordsQueue = [target];
+                    }
                 } else {
                     ctx.systemLog = `獵人選擇不開槍/無技能。`;
                 }
@@ -379,7 +381,6 @@ stateMachine.registerPhase('HUNTER_ACTION', {
                     Engine.EventBus.emit('RESUME_ROUTINE');
                 }
             },
-            // [新增] 超時強制悶槍邏輯，完全複用不開槍的流轉路徑
             onTimeout: (ctx) => {
                 ctx.systemLog = `獵人超時未動作，視為放棄開槍 (悶槍)。`;
                 ctx.activeShooter = null;
@@ -406,6 +407,9 @@ stateMachine.registerPhase('HUNTER_ACTION', {
                     const msg = `${player.seatNumber}號玩家發動技能擊殺了${target}號玩家`;
                     ctx.systemLog = msg;
                     Engine.EventBus.emit('BROADCAST_MESSAGE', msg);
+                    if (ctx.lastWordsTargets && ctx.lastWordsTargets.includes(player.seatNumber)) {
+                        ctx.daySkillLastWordsQueue = [target];
+                    }
                 } else {
                     ctx.systemLog = `狼王選擇不開槍。`;
                 }
