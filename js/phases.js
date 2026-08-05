@@ -9,36 +9,41 @@ window.PhaseRegistry = {
     init: function(stateMachine, ctx) {
         this.sm = stateMachine;
         const self = this; 
-        // [修改] 賦予狀態機工廠時長參數，使其能動態產出 60 秒的技能遺言
-        const createSpeechPhase = (nextPhaseName, durationMs = 120000) => ({
+        // [修改] 綁定 phaseIdStr 參數，徹底消除非同步狀態切換時 ctx.phase 的時差死鎖
+        const createSpeechPhase = (nextPhaseName, durationMs = 120000, phaseIdStr = null) => ({
             allowDeadAction: true,
             onEnter: (ctx) => {
+                const currentPhase = phaseIdStr || ctx.phase; // 優先使用靜態綁定的階段名稱
+                
                 let nextSpeaker = null;
                 while (ctx.speakingQueue && ctx.speakingQueue.length > 0) {
                     const candidateSeat = ctx.speakingQueue.shift();
                     const p = ctx.getPlayer(candidateSeat);
                     
                     if (!p) continue;
-                    // [修改] 擴充死者發言許可，涵蓋技能遺言階段
-                    if (p.isDead && !['LAST_WORDS', 'DAY_SKILL_LAST_WORDS'].includes(ctx.phase)) continue; 
+                    // [修復] 使用 currentPhase 判定，確保死亡的玩家在專屬遺言階段能 100% 通過發言權驗證
+                    if (p.isDead && !['LAST_WORDS', 'DAY_SKILL_LAST_WORDS'].includes(currentPhase)) continue; 
                     
-                    if (ctx.phase === 'SHERIFF_SPEECH' || ctx.phase === 'SHERIFF_PK_SPEECH') {
+                    if (currentPhase === 'SHERIFF_SPEECH' || currentPhase === 'SHERIFF_PK_SPEECH') {
                         if (!(ctx.sheriff.candidates || []).includes(candidateSeat)) continue;
                     }
-                    if (ctx.phase === 'DAY_PK_SPEECH') {
+                    if (currentPhase === 'DAY_PK_SPEECH') {
                         if (!(ctx.pkTargets || []).includes(candidateSeat)) continue;
                     }
                     
                     nextSpeaker = candidateSeat;
                     break;
                 }
+                
                 if (nextSpeaker === null) {
                     ctx.currentSpeaker = null;
                     ctx.systemLog = "發言環節結束。";
-                    if (ctx.phase === 'LAST_WORDS') {
+                    
+                    // [修復] 確保佇列被正確清空，打破無限重返的死迴圈
+                    if (currentPhase === 'LAST_WORDS') {
                         ctx.lastWordsTargets = [];
                     }
-                    if (ctx.phase === 'DAY_SKILL_LAST_WORDS') {
+                    if (currentPhase === 'DAY_SKILL_LAST_WORDS') {
                         ctx.daySkillLastWordsQueue = [];
                     }
                     
@@ -52,47 +57,51 @@ window.PhaseRegistry = {
                 
                 ctx.currentSpeaker = nextSpeaker;
                 ctx.systemLog = `現在由 ${ctx.currentSpeaker} 號玩家發言`;
-                self.sm.setTimer(durationMs); // 套用動態時長
+                self.sm.setTimer(durationMs);
             },
             onAction: (ctx, player, actionId) => {
+                const currentPhase = phaseIdStr || ctx.phase;
                 if (actionId === 'end_speech' && player.seatNumber === ctx.currentSpeaker) {
                     self.sm.clearTimer();
                     ctx.systemLog = `${player.seatNumber} 號玩家結束發言。`;
                     
-                    if (ctx.phase === 'LAST_WORDS' && ctx.speakingQueue.length === 0) {
+                    if (currentPhase === 'LAST_WORDS' && ctx.speakingQueue.length === 0) {
                         ctx.lastWordsTargets = [];
                         if (ctx.routineOrigin === 'MORNING') { Engine.EventBus.emit('RESUME_ROUTINE'); return; }
                     }
-                    // [新增] 技能遺言的常規路由保護
-                    if (ctx.phase === 'DAY_SKILL_LAST_WORDS' && ctx.speakingQueue.length === 0) {
+                    if (currentPhase === 'DAY_SKILL_LAST_WORDS' && ctx.speakingQueue.length === 0) {
                         ctx.daySkillLastWordsQueue = [];
                         if (ctx.routineOrigin === 'MORNING') { Engine.EventBus.emit('RESUME_ROUTINE'); return; }
                     }
                     
-                    self.sm.transitionTo(ctx.phase);
+                    self.sm.transitionTo(currentPhase); 
                 }
             },
             onTimeout: (ctx) => {
+                const currentPhase = phaseIdStr || ctx.phase;
                 ctx.systemLog = `${ctx.currentSpeaker} 號玩家發言時間到。`;
                 
-                if (ctx.phase === 'LAST_WORDS' && ctx.speakingQueue.length === 0) {
+                if (currentPhase === 'LAST_WORDS' && ctx.speakingQueue.length === 0) {
                     ctx.lastWordsTargets = [];
                     if (ctx.routineOrigin === 'MORNING') { Engine.EventBus.emit('RESUME_ROUTINE'); return; }
                 }
-                if (ctx.phase === 'DAY_SKILL_LAST_WORDS' && ctx.speakingQueue.length === 0) {
+                if (currentPhase === 'DAY_SKILL_LAST_WORDS' && ctx.speakingQueue.length === 0) {
                     ctx.daySkillLastWordsQueue = [];
                     if (ctx.routineOrigin === 'MORNING') { Engine.EventBus.emit('RESUME_ROUTINE'); return; }
                 }
                 
-                self.sm.transitionTo(ctx.phase); 
+                self.sm.transitionTo(currentPhase); 
             }
         });
-        stateMachine.registerPhase('DAY_DISCUSSION', createSpeechPhase('DAY_VOTING'));
-        stateMachine.registerPhase('SHERIFF_SPEECH', createSpeechPhase('SHERIFF_VOTING'));
-        stateMachine.registerPhase('SHERIFF_PK_SPEECH', createSpeechPhase('SHERIFF_PK_VOTING'));
-        stateMachine.registerPhase('DAY_PK_SPEECH', createSpeechPhase('DAY_PK_VOTING'));
-        stateMachine.registerPhase('LAST_WORDS', createSpeechPhase('RESUME_ROUTINE'));
-        stateMachine.registerPhase('PRINCE_SPEECH', createSpeechPhase('DAY_VOTING')); // [擴充] 定序王子額外發言階段，結束後回歸投票
+
+        // [更新] 全面升級階段註冊，注入精確的時長與強綁定名稱
+        stateMachine.registerPhase('DAY_DISCUSSION', createSpeechPhase('DAY_VOTING', 120000, 'DAY_DISCUSSION'));
+        stateMachine.registerPhase('SHERIFF_SPEECH', createSpeechPhase('SHERIFF_VOTING', 120000, 'SHERIFF_SPEECH'));
+        stateMachine.registerPhase('SHERIFF_PK_SPEECH', createSpeechPhase('SHERIFF_PK_VOTING', 120000, 'SHERIFF_PK_SPEECH'));
+        stateMachine.registerPhase('DAY_PK_SPEECH', createSpeechPhase('DAY_PK_VOTING', 120000, 'DAY_PK_SPEECH'));
+        stateMachine.registerPhase('LAST_WORDS', createSpeechPhase('RESUME_ROUTINE', 120000, 'LAST_WORDS'));
+        stateMachine.registerPhase('DAY_SKILL_LAST_WORDS', createSpeechPhase('RESUME_ROUTINE', 60000, 'DAY_SKILL_LAST_WORDS'));
+        stateMachine.registerPhase('PRINCE_SPEECH', createSpeechPhase('DAY_VOTING', 120000, 'PRINCE_SPEECH'));
         
         stateMachine.registerPhase('POST_VOTE_SKILL', {
             onEnter: (ctx) => {
