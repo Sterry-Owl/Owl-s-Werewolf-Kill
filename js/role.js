@@ -179,7 +179,12 @@ window.RoleRegistry = {
             }
 
             Engine.EventBus.emit('CHECK_WIN_CONDITION', context);
-            if (context.phase !== 'GAME_OVER') Engine.EventBus.emit('FORCE_ENTER_NIGHT', context);
+            if (context.phase !== 'GAME_OVER') {
+                // [修改] 取消強制入夜，改為寫入 60 秒技能遺言，並設定目的地交由路由接管
+                context.daySkillLastWordsQueue = [player.seatNumber];
+                context.destinationPhase = 'NIGHT_TRANSITION';
+                Engine.EventBus.emit('RESUME_ROUTINE');
+            }
         });
     }
 };
@@ -472,6 +477,7 @@ RoleRegistry.register("白狼王", {
 
             Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
             if (ctx.phase !== 'GAME_OVER') {
+                ctx.daySkillLastWordsQueue = [player.seatNumber];
                 ctx.destinationPhase = 'NIGHT_TRANSITION';
                 Engine.EventBus.emit('RESUME_ROUTINE');
             }
@@ -521,6 +527,7 @@ RoleRegistry.register("騎士", {
                         Engine.EventBus.emit('BROADCAST_MESSAGE', `決鬥結束，${targetSeat} 號玩家是好人，決鬥失敗，請玩家繼續發言。`);
                         Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
                         if (ctx.phase !== 'GAME_OVER') {
+                            ctx.daySkillLastWordsQueue = [player.seatNumber];
                             ctx.destinationPhase = ctx.phase; 
                             Engine.EventBus.emit('RESUME_ROUTINE'); 
                         }
