@@ -126,7 +126,7 @@ const BOARD_TEMPLATES = [
     { id: "cloud_10", name: "10人 雲端探查", category: 'fun', playerCount: 10, deck: ["預言家", "女巫", "魔鏡少女", "河豚", "獵人", "攝夢人", "狼人", "狼人", "狼王", "尋香魅影"] },
     { id: "whip_10", name: "10人 連連看", category: 'fun', playerCount: 10, deck: ["獵魔人", "獵魔人", "獵魔人", "獵魔人", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影"] },
     { id: "whip_8", name: "8人 連連看", category: 'fun', playerCount: 8, deck: ["獵魔人", "獵魔人", "獵魔人", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影"] },
-    { id: "leave_10", name: "10人 離群眾狼", category: 'fun', playerCount: 10, deck: ["預言家", "女巫", "攝夢人", "狼人", "隱狼", "尋香魅影", "平民", "平民", "平民", "平民"] },
+    { id: "leave_10", name: "10人 無目之城", category: 'fun', playerCount: 10, deck: ["預言家", "女巫", "攝夢人", "狼人", "隱狼", "尋香魅影", "平民", "平民", "平民", "平民"] },
     { id: "standard_10", name: "10人 標準局", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "flute_11", name: "11人 吹笛者", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "暗戀者", "吹笛者"] },
     { id: "evening_11", name: "11人 諸神黃昏(8+3)", category: 'fun', playerCount: 11, deck: ["預言家", "女巫", "獵人", "守衛", "白痴", "白狼王", "狼美人", "血月使徒", "平民", "平民", "平民"] },
@@ -163,7 +163,6 @@ const BOARD_TEMPLATES = [
     { id: "animal_12", name: "12人 動物夢境", category: 'standard', playerCount: 12, deck: ["熊", "河豚", "子狐", "白貓", "狼美人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "deswhl_12", name: "12人 永序之輪", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "定序王子", "蝕時狼妃", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "lich_12", name: "12人 吹笛者", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "魔術師", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "吹笛者"] },
-    { id: "wind_12", name: "12人 風聲諜影", category: 'fun', playerCount: 12, deck: ["預言家", "熊", "魔鏡少女", "女巫", "攝夢人", "獵人", "河豚", "白貓", "巫妖", "巫妖", "機械狼", "暗戀者"] },
     { id: "pure_12", name: "12人 純白夜影", category: 'standard', playerCount: 12, deck: ["純白之女", "女巫", "守衛", "獵人", "狼巫", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "undie_12", name: "12人 不死鳥", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "不死鳥", "狼鴉之爪", "狼人", "狼人", "狼人", "平民", "平民", "平民", "暗戀者"] },
 ];
