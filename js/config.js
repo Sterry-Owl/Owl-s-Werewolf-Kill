@@ -169,6 +169,7 @@ const BOARD_TEMPLATES = [
 const ROLE_DICTIONARY = {
     "平民": { faction: "good", type: "villager", nightPhase: "none", actionType: "none", prompt: "", description:"沒有特殊技能" },
     "暗戀者": { faction: "good", type: "villager", nightPhase: "none", actionType: "none", prompt: "選擇你的暗戀對象\n(點擊左右列頭貼以發動技能)", description:"特殊平民；首夜可以且必須選擇一名玩家成為自己的暗戀對象。自身的勝利條件永遠跟隨暗戀對象。" },
+    "高級平民": { faction: "good", type: "villager", nightPhase: "none", actionType: "none", prompt: "", description:"平民牌。首次受到致命傷害的時候不會出局，再次受到致命傷害的時候就會出局。如果被放逐則會直接出局。高級平民不會知道自己有沒有受到過傷害。" },
     "燈影預言家": { faction: "good", type: "villager", nightPhase: "second_half", actionType: "single_select", prompt: "請選擇今晚的查驗目標\n(點擊左右列頭貼以發動技能)", description:"神職；每晚可查驗一名玩家的陣營。" },
     "獵人": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "", description:"神職；出局後可以擊殺一名玩家。吃毒、殉情或成為最後一個出局的神職時不能發動技能。" },
     "白痴": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "", description:"神職；被放逐出局時，可以翻牌免除這次出局，但是之後失去投票權且須移交警徽。" },
