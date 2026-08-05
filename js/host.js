@@ -467,6 +467,10 @@ function resumeRoutinePhase() {
         engineContext.pendingBloodMoon = null;
         stateMachine.transitionTo('BLOODMOON_ACTION');
     } else if (engineContext.daySkillLastWordsQueue && engineContext.daySkillLastWordsQueue.length > 0) {
+        // [新增修復] 中斷白天發言前，將現有的發言佇列建立快照備份
+        if (engineContext.speakingQueue && engineContext.speakingQueue.length > 0) {
+            engineContext.savedSpeakingQueue = [...engineContext.speakingQueue];
+        }
         engineContext.buildSpeakingQueue(engineContext.daySkillLastWordsQueue[0], 1, engineContext.daySkillLastWordsQueue);
         stateMachine.transitionTo('DAY_SKILL_LAST_WORDS');
     } else if (engineContext.lastWordsTargets && engineContext.lastWordsTargets.length > 0) {
@@ -474,6 +478,11 @@ function resumeRoutinePhase() {
         stateMachine.transitionTo('LAST_WORDS');
     } else {
         engineContext.lastWordsTargets = [];
+
+        if (engineContext.savedSpeakingQueue) {
+            engineContext.speakingQueue = [...engineContext.savedSpeakingQueue];
+            engineContext.savedSpeakingQueue = null;
+        }
         
         const destPhase = engineContext.destinationPhase;
         if (destPhase === 'DAY_DISCUSSION' && engineContext.routineOrigin === 'MORNING' && engineContext.dayDiscussionConfig) {
