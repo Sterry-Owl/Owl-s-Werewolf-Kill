@@ -121,11 +121,11 @@ window.RoleRegistry = {
         });
 
         // [控制反轉] 階段變更通用鉤子
-        Engine.EventBus.on('PHASE_CHANGED', (phase) => {
+        Engine.EventBus.on('PHASE_CHANGED', (payload) => {
             if (!ctx) return;
             ctx.players.forEach(p => {
                 const plugin = RoleRegistry.plugins[p.role];
-                if (plugin && typeof plugin.onPhaseChanged === 'function') plugin.onPhaseChanged(ctx, p, phase);
+                if (plugin && typeof plugin.onPhaseChanged === 'function') plugin.onPhaseChanged(ctx, p, payload.phase);
             });
         });
 
@@ -2125,7 +2125,9 @@ RoleRegistry.register("不死鳥", {
     
     resolveNightAction: (ctx, actions) => {
         const act = actions[0];
-        const target = act.player.data.tempDeadTarget;
+        if (!act || act.actionId === 'pass') return "【跳過行動】";
+        
+        const target = act.player.data.tempDeadTarget || (act.targets && act.targets[0]);
         if (!target) return "【跳過行動】";
         
         act.player.data.hasResurrected = true;
