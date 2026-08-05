@@ -467,21 +467,33 @@ function resumeRoutinePhase() {
         engineContext.pendingBloodMoon = null;
         stateMachine.transitionTo('BLOODMOON_ACTION');
     } else if (engineContext.daySkillLastWordsQueue && engineContext.daySkillLastWordsQueue.length > 0) {
-        // [新增修復] 中斷白天發言前，將現有的發言佇列建立快照備份
-        if (engineContext.speakingQueue && engineContext.speakingQueue.length > 0) {
-            engineContext.savedSpeakingQueue = [...engineContext.speakingQueue];
+        
+        // [極致淨化] 堆疊備份 (Stack Push)：將當前講者與剩餘佇列合併推入堆疊，支援無限層巢狀中斷
+        if (engineContext.currentSpeaker) {
+            engineContext.speechStack = engineContext.speechStack || [];
+            engineContext.speechStack.push([...[engineContext.currentSpeaker], ...(engineContext.speakingQueue || [])]);
+            engineContext.currentSpeaker = null; // 清空指標，交接給中斷程序
         }
+        
         engineContext.buildSpeakingQueue(engineContext.daySkillLastWordsQueue[0], 1, engineContext.daySkillLastWordsQueue);
         stateMachine.transitionTo('DAY_SKILL_LAST_WORDS');
     } else if (engineContext.lastWordsTargets && engineContext.lastWordsTargets.length > 0) {
+        
+        // [極致淨化] 常規遺言同步套用堆疊備份
+        if (engineContext.currentSpeaker) {
+            engineContext.speechStack = engineContext.speechStack || [];
+            engineContext.speechStack.push([...[engineContext.currentSpeaker], ...(engineContext.speakingQueue || [])]);
+            engineContext.currentSpeaker = null;
+        }
+        
         engineContext.buildSpeakingQueue(engineContext.lastWordsTargets[0], 1, engineContext.lastWordsTargets);
         stateMachine.transitionTo('LAST_WORDS');
     } else {
         engineContext.lastWordsTargets = [];
-
-        if (engineContext.savedSpeakingQueue) {
-            engineContext.speakingQueue = [...engineContext.savedSpeakingQueue];
-            engineContext.savedSpeakingQueue = null;
+        
+        // [極致淨化] 堆疊彈出 (Stack Pop)：安全解開中斷層，狀態機 onEnter 會自動抓取陣列第一位恢復發言
+        if (engineContext.speechStack && engineContext.speechStack.length > 0) {
+            engineContext.speakingQueue = engineContext.speechStack.pop();
         }
         
         const destPhase = engineContext.destinationPhase;
