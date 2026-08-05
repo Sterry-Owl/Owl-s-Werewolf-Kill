@@ -661,13 +661,23 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     }
     if (['SHERIFF_VOTING', 'SHERIFF_PK_VOTING'].includes(ctx.phase) && !player.isDead) {
         actionPanel.show = true;
-        const isEligible = !(ctx.sheriff.candidates || []).includes(player.seatNumber) && !(ctx.sheriff.withdrawn || []).includes(player.seatNumber);
         
-        // [UI 狀態同步修復 1] 剝奪投票權的玩家，直接隱藏投票面板，避免送出幽靈封包
+        // [修改] 解耦首次投票與PK投票的資格判定：PK時退水玩家與未平票候選人將重獲投票權
+        let isEligible = true;
+        if (ctx.phase === 'SHERIFF_VOTING') {
+            isEligible = !(ctx.sheriff.candidates || []).includes(player.seatNumber) && !(ctx.sheriff.withdrawn || []).includes(player.seatNumber);
+        } else if (ctx.phase === 'SHERIFF_PK_VOTING') {
+            isEligible = !(ctx.sheriff.pkTargets || []).includes(player.seatNumber);
+        }
+        
+        // [修復] 剝奪投票權的玩家，直接隱藏投票面板，避免送出幽靈封包
         if (player.data && player.data.cannotVote) { 
             actionPanel.prompt = "你已失去投票權。"; actionPanel.buttons = []; 
         }
-        else if (!isEligible) { actionPanel.prompt = "你是警上玩家（或已退水），無法參與警長投票。"; actionPanel.buttons = []; }
+        else if (!isEligible) { 
+            actionPanel.prompt = ctx.phase === 'SHERIFF_PK_VOTING' ? "你是 PK 當事人，無法參與投票。" : "你是警上玩家（或已退水），無法參與警長投票。"; 
+            actionPanel.buttons = []; 
+        }
         else if (ctx.votes[player.seatNumber] !== undefined) { actionPanel.prompt = "投票完成，等待..."; actionPanel.buttons = []; }
         else {
             actionPanel.type = 'single_select'; actionPanel.deadline = ctx.deadline; 
