@@ -466,6 +466,9 @@ function resumeRoutinePhase() {
         engineContext.activeShooter = engineContext.pendingBloodMoon;
         engineContext.pendingBloodMoon = null;
         stateMachine.transitionTo('BLOODMOON_ACTION');
+    } else if (engineContext.daySkillLastWordsQueue && engineContext.daySkillLastWordsQueue.length > 0) {
+        engineContext.buildSpeakingQueue(engineContext.daySkillLastWordsQueue[0], 1, engineContext.daySkillLastWordsQueue);
+        stateMachine.transitionTo('DAY_SKILL_LAST_WORDS');
     } else if (engineContext.lastWordsTargets && engineContext.lastWordsTargets.length > 0) {
         engineContext.buildSpeakingQueue(engineContext.lastWordsTargets[0], 1, engineContext.lastWordsTargets);
         stateMachine.transitionTo('LAST_WORDS');
@@ -488,7 +491,7 @@ function resumeRoutinePhase() {
 
 function syncStateToAll() {
     const ctx = engineContext;
-    const isDayPhase = ['BEAR_ROAR_ANNOUNCE', 'DAWN_DEATH_ANNOUNCE', 'DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'SHERIFF_ORDER_SELECTION', 'DAY_DISCUSSION', 'DAY_VOTING', 'DAY_PK_SPEECH', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'POST_VOTE_SKILL', 'PRINCE_SPEECH', 'LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION', 'BLOODMOON_ACTION'].includes(ctx.phase);
+    const isDayPhase = ['BEAR_ROAR_ANNOUNCE', 'DAWN_DEATH_ANNOUNCE', 'DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'SHERIFF_ORDER_SELECTION', 'DAY_DISCUSSION', 'DAY_VOTING', 'DAY_PK_SPEECH', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'POST_VOTE_SKILL', 'PRINCE_SPEECH', 'LAST_WORDS', 'DAY_SKILL_LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION', 'BLOODMOON_ACTION'].includes(ctx.phase);
     const hostState = { // [修復] 補回遺失的物件宣告
         systemLog: ctx.systemLog,
         masterLog: ctx.masterLog || [],
@@ -736,7 +739,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             actionPanel.buttons = [];
         }
     }
-    else if (['DAY_DISCUSSION', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'DAY_PK_SPEECH', 'LAST_WORDS', 'PRINCE_SPEECH'].includes(ctx.phase)) {
+    else if (['DAY_DISCUSSION', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'DAY_PK_SPEECH', 'LAST_WORDS', 'DAY_SKILL_LAST_WORDS', 'PRINCE_SPEECH'].includes(ctx.phase)) {
         actionPanel.show = true; actionPanel.deadline = ctx.deadline;
         if (ctx.speakingDirection) {
             actionPanel.speakingDirection = ctx.speakingDirection;
@@ -800,7 +803,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             case 'SHERIFF_ORDER_SELECTION': bg = 'act_10'; break;
             case 'POST_VOTE_SKILL': bg = 'act_16'; forcedTargets = ctx.votedOutToday ? [ctx.votedOutToday] : []; break;
             case 'PRINCE_SPEECH': bg = 'act_15'; forcedTargets = ctx.currentSpeaker ? [ctx.currentSpeaker] : []; break;
-            case 'DAY_DISCUSSION': case 'LAST_WORDS': bg = 'act_13'; forcedTargets = ctx.currentSpeaker ? [ctx.currentSpeaker] : []; break;
+            case 'DAY_DISCUSSION': case 'LAST_WORDS': case 'DAY_SKILL_LAST_WORDS': bg = 'act_13'; forcedTargets = ctx.currentSpeaker ? [ctx.currentSpeaker] : []; break;
             case 'DAY_VOTING': bg = 'act_14'; break;
             case 'DAY_PK_SPEECH': bg = 'act_15'; forcedTargets = ctx.currentSpeaker ? [ctx.currentSpeaker] : []; break;
             case 'DAY_PK_VOTING': bg = 'act_14'; break;
@@ -891,19 +894,19 @@ function getPhaseMessageForPlayer(phase, ctx) {
         'SHERIFF_VOTING': "警長首次投票...", 'SHERIFF_PK_VOTING': "警長 PK 投票...", 
         'SHERIFF_TRANSFER': "移交警徽中...", 'DAY_DISCUSSION': ctx ? (ctx.dayDiscussionPrompt || "白天發言階段。") : "白天發言階段。",
         'DAY_VOTING': "放逐投票...", 'DAY_PK_SPEECH': "放逐 PK 發言...", 'DAY_PK_VOTING': "放逐 PK 投票...", 
-        'VOTE_RESULT_DISPLAY': "展示投票結果...", 'POST_VOTE_SKILL': "等待投票後技能發動...", 'PRINCE_SPEECH': ctx ? (ctx.dayDiscussionPrompt || "定序王子發言中...") : "定序王子發言中...", 'LAST_WORDS': "遺言發表。", 'HUNTER_ACTION': "系統結算中...", 
+        'VOTE_RESULT_DISPLAY': "展示投票結果...", 'POST_VOTE_SKILL': "等待投票後技能發動...", 'PRINCE_SPEECH': ctx ? (ctx.dayDiscussionPrompt || "定序王子發言中...") : "定序王子發言中...", 'LAST_WORDS': "遺言發表。", 'DAY_SKILL_LAST_WORDS': "遺言發表。", 'HUNTER_ACTION': "系統結算中...", 
         'WOLFKING_ACTION': "系統結算中...", 'GAME_OVER': engineContext ? engineContext.systemLog : "遊戲結束。"
     };
     return dict[phase] || "等待中...";
 }
 
 function getDayBtnText(phase) {
-    const dict = { 'BEAR_ROAR_ANNOUNCE': "結束展示，進入下一階段", 'DAWN_DEATH_ANNOUNCE': "結束展示，進入下一階段", 'SHERIFF_CANDIDACY': "強制結束上警登記", 'SHERIFF_VOTING': "強制結算投票", 'SHERIFF_PK_VOTING': "強制結算投票", 'SHERIFF_SPEECH': "發起警長投票", 'SHERIFF_PK_SPEECH': "發起警長 PK 投票", 'DAY_DISCUSSION': "發起放逐投票", 'DAY_PK_SPEECH': "發起放逐 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入下一階段", 'POST_VOTE_SKILL': "結束技能等待", 'PRINCE_SPEECH': "發起放逐投票", 'LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍...", 'WOLFKING_ACTION': "等待狼王開槍...", 'BLOODMOON_ACTION': "等待血月使徒發動技能..." };
+    const dict = { 'BEAR_ROAR_ANNOUNCE': "結束展示，進入下一階段", 'DAWN_DEATH_ANNOUNCE': "結束展示，進入下一階段", 'SHERIFF_CANDIDACY': "強制結束上警登記", 'SHERIFF_VOTING': "強制結算投票", 'SHERIFF_PK_VOTING': "強制結算投票", 'SHERIFF_SPEECH': "發起警長投票", 'SHERIFF_PK_SPEECH': "發起警長 PK 投票", 'DAY_DISCUSSION': "發起放逐投票", 'DAY_PK_SPEECH': "發起放逐 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入下一階段", 'POST_VOTE_SKILL': "結束技能等待", 'PRINCE_SPEECH': "發起放逐投票", 'LAST_WORDS': "結束遺言，進入下一階段", 'DAY_SKILL_LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍...", 'WOLFKING_ACTION': "等待狼王開槍...", 'BLOODMOON_ACTION': "等待血月使徒發動技能..." };
     return dict[phase] || "投票/行動進行中...";
 }
 
 function getDayBtnCommand(phase) {
-    const dict = { 'BEAR_ROAR_ANNOUNCE': "FORCE_TIMEOUT", 'DAWN_DEATH_ANNOUNCE': "FORCE_TIMEOUT", 'SHERIFF_CANDIDACY': "FORCE_TIMEOUT", 'SHERIFF_VOTING': "FORCE_TIMEOUT", 'SHERIFF_PK_VOTING': "FORCE_TIMEOUT", 'SHERIFF_SPEECH': "START_SHERIFF_VOTE", 'SHERIFF_PK_SPEECH': "START_SHERIFF_PK_VOTE", 'DAY_DISCUSSION': "START_VOTE", 'DAY_PK_SPEECH': "START_DAY_PK_VOTE", 'VOTE_RESULT_DISPLAY': "END_VOTE_DISPLAY", 'POST_VOTE_SKILL': "FORCE_TIMEOUT", 'PRINCE_SPEECH': "START_VOTE", 'LAST_WORDS': "END_LAST_WORDS" };
+    const dict = { 'BEAR_ROAR_ANNOUNCE': "FORCE_TIMEOUT", 'DAWN_DEATH_ANNOUNCE': "FORCE_TIMEOUT", 'SHERIFF_CANDIDACY': "FORCE_TIMEOUT", 'SHERIFF_VOTING': "FORCE_TIMEOUT", 'SHERIFF_PK_VOTING': "FORCE_TIMEOUT", 'SHERIFF_SPEECH': "START_SHERIFF_VOTE", 'SHERIFF_PK_SPEECH': "START_SHERIFF_PK_VOTE", 'DAY_DISCUSSION': "START_VOTE", 'DAY_PK_SPEECH': "START_DAY_PK_VOTE", 'VOTE_RESULT_DISPLAY': "END_VOTE_DISPLAY", 'POST_VOTE_SKILL': "FORCE_TIMEOUT", 'PRINCE_SPEECH': "START_VOTE", 'LAST_WORDS': "END_LAST_WORDS", 'DAY_SKILL_LAST_WORDS': "END_SKILL_LAST_WORDS" };
     return dict[phase] || "";
 }
 
@@ -931,4 +934,5 @@ function handleHostCommand(cmd) {
         else if (engineContext.nextPhaseAfterVoteDisplay) stateMachine.transitionTo(engineContext.nextPhaseAfterVoteDisplay);
     }
     else if (cmd === 'END_LAST_WORDS') { engineContext.lastWordsTargets = []; resumeRoutinePhase(); }
+    else if (cmd === 'END_SKILL_LAST_WORDS') { engineContext.daySkillLastWordsQueue = []; resumeRoutinePhase(); } // [新增] 強制結束指令
 }
