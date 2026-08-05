@@ -2179,9 +2179,6 @@ RoleRegistry.register("不死鳥", {
             }
         }
     },
-            }
-        }
-    },
     
     onPlayerDied: (ctx, player, reason) => {
         if (player.data.phoenixLinked) {
@@ -2193,5 +2190,24 @@ RoleRegistry.register("不死鳥", {
                 }
             }
         }
+    }
+});
+
+RoleRegistry.register("高級平民", {
+    canSelfExplode: false,
+    onPlayerDied: (ctx, player, reason) => {
+        if (reason === 'voted') return false; 
+
+        if (!player.data.hasAdvancedVillagerSaved) {
+            player.isDead = false;
+            player.deathReason = null;
+            player.data.hasAdvancedVillagerSaved = true;
+            
+            if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】高級平民 ${player.seatNumber} 號受到致命傷 (${reason})，已消耗免死機會。`);
+            }
+            return true; 
+        }
+        return false;
     }
 });
