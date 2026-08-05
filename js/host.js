@@ -120,6 +120,9 @@ function handleIncomingPacket(peerId, data) {
             engineContext.sheriff.candidates = engineContext.sheriff.candidates.filter(s => s !== player.seatNumber);
             engineContext.sheriff.withdrawn.push(player.seatNumber);
             engineContext.systemLog = `宣布${player.seatNumber} 號玩家退水`;
+            if (engineContext.currentSpeaker === player.seatNumber) {
+                stateMachine.handleAction(player, 'end_speech');
+            }
             syncStateToAll();
         }
     }
