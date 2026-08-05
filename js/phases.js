@@ -286,7 +286,8 @@ window.PhaseRegistry = {
                 // 2. 特殊身分禁止投票過濾 (PK台、警上玩家)
                 if (isDayPK && ctx.pkTargets.includes(player.seatNumber)) return;
                 if (isSheriffPK && ctx.sheriff.pkTargets.includes(player.seatNumber)) return;
-                if (isSheriff && (ctx.sheriff.candidates.includes(player.seatNumber) || ctx.sheriff.withdrawn.includes(player.seatNumber))) return;
+                // [修改] 警長首次投票才限制全體候選人與退水者，PK投票僅限制 pkTargets
+                if (ctx.phase === 'SHERIFF_VOTING' && (ctx.sheriff.candidates.includes(player.seatNumber) || ctx.sheriff.withdrawn.includes(player.seatNumber))) return;
 
                 ctx.votes[player.seatNumber] = (actionId === 'vote' && targets.length > 0) ? targets[0] : 'pass';
 
@@ -295,7 +296,8 @@ window.PhaseRegistry = {
                     if (p.data && p.data.cannotVote) return false; // 白痴不計入
                     if (isDayPK && ctx.pkTargets.includes(p.seatNumber)) return false;
                     if (isSheriffPK && ctx.sheriff.pkTargets.includes(p.seatNumber)) return false;
-                    if (isSheriff && (ctx.sheriff.candidates.includes(p.seatNumber) || ctx.sheriff.withdrawn.includes(p.seatNumber))) return false;
+                    // [修改] 同步解除 PK 投票時對於退水者的分母過濾
+                    if (ctx.phase === 'SHERIFF_VOTING' && (ctx.sheriff.candidates.includes(p.seatNumber) || ctx.sheriff.withdrawn.includes(p.seatNumber))) return false;
                     return true;
                 }).length;
 
@@ -549,7 +551,8 @@ stateMachine.registerPhase('HUNTER_ACTION', {
             if (p.data && p.data.cannotVote) return;
             if (phase === 'DAY_PK_VOTING' && ctx.pkTargets.includes(p.seatNumber)) return;
             if (phase === 'SHERIFF_PK_VOTING' && ctx.sheriff.pkTargets.includes(p.seatNumber)) return;
-            if (isSheriff && (ctx.sheriff.candidates.includes(p.seatNumber) || ctx.sheriff.withdrawn.includes(p.seatNumber))) return;
+            // [修改] 若超時未投，警長首次投票才強制替退水者補入 pass（因為 PK 投票時他們具備權利）
+            if (phase === 'SHERIFF_VOTING' && (ctx.sheriff.candidates.includes(p.seatNumber) || ctx.sheriff.withdrawn.includes(p.seatNumber))) return;
             if (ctx.votes[p.seatNumber] === undefined) ctx.votes[p.seatNumber] = 'pass';
         });
 
