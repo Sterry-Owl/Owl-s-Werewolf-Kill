@@ -598,7 +598,8 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                                 'poison': '毒殺', 'guard': '守護', 'charm': '魅惑', 'fear': '恐懼',
                                 'dream': '攝夢', 'curse': '詛咒', 'hunt': '狩獵', 'crush': '暗戀',
                                 'learn': '學習', 'check': '查驗', 'give_check': '贈與查驗', 
-                                'give_poison': '贈與毒藥', 'give_guard': '贈與守護', 'claw_kill': '發動利爪'
+                                'give_poison': '贈與毒藥', 'give_guard': '贈與守護', 'claw_kill': '發動利爪',
+                                'resurrect': '復活'
                             };
                             let actName = map[myAct.actionId];
                             if (!actName && myAct.actionId === 'confirm' && ['預言家', '燈影預言家', '魔鏡少女'].includes(player.role)) {
