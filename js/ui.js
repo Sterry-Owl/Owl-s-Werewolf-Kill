@@ -63,11 +63,48 @@ const UI = {
         document.getElementById('player-seat-number').textContent = state.mySeat || '-';
 
         // ==========================================
-        // [新增] 日夜場景動態切換 (Dynamic Background)
-        // 依據狀態機的 phase 屬性判定背景圖，徹底與伺服器邏輯解耦
+        // [新增] 日夜場景與時間指示器動態切換
+        // 精準鎖定玩家介面容器 (.app-body)，絕不污染外層全域網頁背景
         // ==========================================
         const isNightPhase = ['NIGHT_TRANSITION', 'NIGHT_ACTION', 'MIDNIGHT_RESULT_DISPLAY'].includes(state.phase);
-        document.body.style.backgroundImage = isNightPhase ? "url('./img/bg-player-night.webp')" : "url('./img/bg-player-day.webp')";
+        const playerAppBody = document.querySelector('#section-player .app-body');
+        
+        if (playerAppBody) {
+            // 1. 動態切換容器背景
+            playerAppBody.style.backgroundImage = isNightPhase ? "url('./img/bg-player-night.webp')" : "url('./img/bg-player-day.webp')";
+
+            // 2. 動態生成與定位時間指示器
+            if (state.phase !== 'LOBBY' && state.nightCount) {
+                let timeIndicator = document.getElementById('time-indicator-img');
+                if (!timeIndicator) {
+                    timeIndicator = document.createElement('img');
+                    timeIndicator.id = 'time-indicator-img';
+                    
+                    // 絕對定位：因 playerAppBody 已具備 position: relative，此 absolute 將完美受限於容器內部
+                    timeIndicator.style.position = 'absolute';
+                    timeIndicator.style.bottom = '0px'; // 緊靠容器下緣
+                    timeIndicator.style.left = '50%';
+                    timeIndicator.style.transform = 'translateX(-50%)'; // 水平置中
+                    timeIndicator.style.height = '6vh'; // 偏小高度
+                    timeIndicator.style.maxHeight = '40px'; 
+                    timeIndicator.style.zIndex = '100'; 
+                    timeIndicator.style.pointerEvents = 'none'; // 防呆：讓點擊穿透，保護下方互動元件
+                    
+                    playerAppBody.appendChild(timeIndicator);
+                }
+                
+                const timeStr = isNightPhase ? 'night' : 'day';
+                const targetSrc = `./img/time/${timeStr}${state.nightCount}.webp`;
+                
+                if (timeIndicator.getAttribute('src') !== targetSrc) {
+                    timeIndicator.src = targetSrc;
+                }
+                timeIndicator.style.display = 'block';
+            } else {
+                const timeIndicator = document.getElementById('time-indicator-img');
+                if (timeIndicator) timeIndicator.style.display = 'none';
+            }
+        }
 
         // ==========================================
         // [新增] 視圖攔截器 (View Interceptor)
