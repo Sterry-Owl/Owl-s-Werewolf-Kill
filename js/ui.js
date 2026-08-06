@@ -74,18 +74,23 @@ const UI = {
             playerAppBody.style.backgroundImage = isNightPhase ? "url('./img/bg-player-night.webp')" : "url('./img/bg-player-day.webp')";
 
             // 2. 動態生成與定位時間指示器
-            if (state.phase !== 'LOBBY' && state.nightCount) {
+            let displayCount = state.nightCount || 0;
+            if (state.phase === 'NIGHT_TRANSITION') {
+                displayCount += 1;
+            }
+
+            if (state.phase !== 'LOBBY' && displayCount > 0) {
                 let timeIndicator = document.getElementById('time-indicator-img');
                 if (!timeIndicator) {
                     timeIndicator = document.createElement('img');
                     timeIndicator.id = 'time-indicator-img';
-                    timeIndicator.className = 'time-indicator'; // [修改] 賦予 CSS 類別，實現視覺與邏輯徹底解耦
+                    timeIndicator.className = 'time-indicator'; 
                     
                     playerAppBody.appendChild(timeIndicator);
                 }
                 
                 const timeStr = isNightPhase ? 'night' : 'day';
-                const targetSrc = `./img/time/${timeStr}${state.nightCount}.webp`;
+                const targetSrc = `./img/time/${timeStr}${displayCount}.webp`;
                 
                 if (timeIndicator.getAttribute('src') !== targetSrc) {
                     timeIndicator.src = targetSrc;
