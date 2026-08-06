@@ -598,3 +598,13 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     padding: 8px 5px;
     font-size: 10px;
 }
+.time-indicator {
+    position: absolute;
+    bottom: 0px;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 6vh;
+    max-height: 40px;
+    z-index: 100;
+    pointer-events: none; /* 讓點擊穿透，保護下方互動元件 */
+}
