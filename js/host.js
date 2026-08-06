@@ -886,6 +886,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     return {
         boardName: ctx.boardName, phase: ctx.phase, 
         nightStepIndex: ctx.currentNightStepIndex,
+        nightCount: ctx.nightCount,
         mySeat: player.seatNumber, myRole: myDisplayRole,
         message: personalMessage, players: mappedPlayers, actionPanel, latestCheckResult: player.data.latestCheckResult || null,
         voteHistory: ctx.voteHistory, 
