@@ -79,16 +79,7 @@ const UI = {
                 if (!timeIndicator) {
                     timeIndicator = document.createElement('img');
                     timeIndicator.id = 'time-indicator-img';
-                    
-                    // 絕對定位：因 playerAppBody 已具備 position: relative，此 absolute 將完美受限於容器內部
-                    timeIndicator.style.position = 'absolute';
-                    timeIndicator.style.bottom = '0px'; // 緊靠容器下緣
-                    timeIndicator.style.left = '50%';
-                    timeIndicator.style.transform = 'translateX(-50%)'; // 水平置中
-                    timeIndicator.style.height = '6vh'; // 偏小高度
-                    timeIndicator.style.maxHeight = '40px'; 
-                    timeIndicator.style.zIndex = '100'; 
-                    timeIndicator.style.pointerEvents = 'none'; // 防呆：讓點擊穿透，保護下方互動元件
+                    timeIndicator.className = 'time-indicator'; // [修改] 賦予 CSS 類別，實現視覺與邏輯徹底解耦
                     
                     playerAppBody.appendChild(timeIndicator);
                 }
