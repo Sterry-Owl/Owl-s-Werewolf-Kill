@@ -63,6 +63,13 @@ const UI = {
         document.getElementById('player-seat-number').textContent = state.mySeat || '-';
 
         // ==========================================
+        // [新增] 日夜場景動態切換 (Dynamic Background)
+        // 依據狀態機的 phase 屬性判定背景圖，徹底與伺服器邏輯解耦
+        // ==========================================
+        const isNightPhase = ['NIGHT_TRANSITION', 'NIGHT_ACTION', 'MIDNIGHT_RESULT_DISPLAY'].includes(state.phase);
+        document.body.style.backgroundImage = isNightPhase ? "url('./img/bg-player-night.webp')" : "url('./img/bg-player-day.webp')";
+
+        // ==========================================
         // [新增] 視圖攔截器 (View Interceptor)
         // 透過覆寫 DTO 狀態，無縫替換中央面板，零髒代碼
         // ==========================================
