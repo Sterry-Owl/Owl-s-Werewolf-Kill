@@ -197,21 +197,45 @@ RoleRegistry.register("狼人", {
     hasWolfChatAccess: true,
     nightPhase: "midnight",      
     actionType: "consensus",     
-    getPrompt: () => "選擇今晚的襲擊目標 (或選擇跳過以空刀)",
+    getPrompt: (ctx) => {
+        if (ctx.unknownFogTargets && ctx.unknownFogTargets.length > 0) {
+            return "受【未明之霧】影響，今晚僅能襲擊指定目標，且不可空刀。";
+        }
+        return "選擇今晚的襲擊目標 (或選擇跳過以空刀)";
+    },
     getSelectableSeats: (ctx, mySeat) => {
-        return ctx.getAlivePlayers()
+        let seats = ctx.getAlivePlayers()
             .filter(p => !RoleRegistry.plugins[p.role]?.immuneToWolfBite)
             .map(p => p.seatNumber);
+            
+        if (ctx.unknownFogTargets && ctx.unknownFogTargets.length > 0) {
+            seats = seats.filter(s => ctx.unknownFogTargets.includes(s));
+        }
+        return seats;
     },
-    getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
+    getButtons: (ctx) => {
+        if (ctx.unknownFogTargets && ctx.unknownFogTargets.length > 0) {
+            return [{ id: 'confirm', text: '確認', requiresTarget: true }];
+        }
+        return [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
+    },
     resolveNightAction: (ctx, actions) => {
         if (ctx.nightTags.wolfKillResolvedThisTurn) return "已參與狼人陣營襲擊";
         if (ctx.nightTags.wolfTeamFeared || ctx.nightTags.wolfTeamConfused) {
             ctx.nightTags.wolfKillResolvedThisTurn = true;
             return ctx.nightTags.wolfTeamConfused ? "【空刀】(狼隊遭受迷惑)" : "【空刀】(狼隊遭受恐懼)";
         }
-        const allWolfActions = ctx.currentStepActions.filter(act => ROLE_DICTIONARY[act.player.role]?.faction === 'wolf');
-        let validTargets = allWolfActions.filter(act => act.actionId !== 'pass' && act.targets.length > 0).map(act => act.targets[0]);
+        const allWolfActions = ctx.currentStepActions.filter(act => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[act.player.role]?.faction === 'wolf');
+        let validTargets = allWolfActions.filter(act => act.actionId !== 'pass' && act.targets && act.targets.length > 0).map(act => parseInt(act.targets[0]));
+        
+        if (ctx.unknownFogTargets && ctx.unknownFogTargets.length > 0) {
+            validTargets = validTargets.filter(t => ctx.unknownFogTargets.includes(t));
+            if (validTargets.length === 0) {
+                // 防呆機制：若狼人全體超時或強行違規，系統強制代為於迷霧名單內隨機選擇，貫徹不可空刀原則
+                validTargets = ctx.unknownFogTargets;
+            }
+        }
+
         ctx.nightTags.wolfKillResolvedThisTurn = true; 
         if (validTargets.length === 0) return "空刀";
         const finalTarget = validTargets[Math.floor(Math.random() * validTargets.length)];
@@ -2216,5 +2240,38 @@ RoleRegistry.register("高級平民", {
             return true; 
         }
         return false;
+    }
+});
+RoleRegistry.register("煉金魔女", {
+    canSelfExplode: false,
+    nightPhase: "first_half", 
+    nightPriority: 2, 
+    actionType: "triple_select", 
+    onNightStart: (ctx, player) => {
+        if (ctx.nightCount === 1) {
+            player.data.hasAlchemySnake = true;
+            // 寫入全域狀態，以供後續 host.js 取代死訊階段路由
+            ctx.alchemySnakeAvailable = true; 
+        }
+        // 每晚初始化時重置未明之霧狀態，維持無狀態純淨度
+        ctx.unknownFogTargets = null; 
+    },
+    hasAction: (ctx, mySeat) => {
+        return ctx.nightCount >= 2; 
+    },
+    getPrompt: () => "選擇三名玩家發動【未明之霧】\n(今晚狼人陣營只能從這三名玩家中選擇襲擊目標，且不可空刀)",
+    getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
+    getButtons: () => [
+        { id: 'fog', text: '發動迷霧', requiresTarget: true },
+        { id: 'pass', text: '跳過', requiresTarget: false }
+    ],
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || act.actionId === 'pass' || !act.targets || act.targets.length === 0) {
+            return "【跳過行動】";
+        }
+        
+        ctx.unknownFogTargets = act.targets.map(t => parseInt(t));
+        return `【未明之霧: ${ctx.unknownFogTargets.join('、')}號】`;
     }
 });
