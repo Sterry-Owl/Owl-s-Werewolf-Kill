@@ -72,18 +72,12 @@ class GameContext {
         this.currentSpeaker = null; 
         this.speakingDirection = '順'; // [新增] 儲存當前順逆序狀態，供前端讀取
         
-        his.nightSequence = [];
+        this.nightSequence = [];
         this.lastWordsTargets = [];
         this.exiledHistory = []; // [新增] 定序王子全域放逐歷史紀錄
         this.nightTags = { killed: [], poisoned: [], witchUsedSaveTonight: false };
         this.destinationPhase = 'DAY_DISCUSSION'; 
         this.filters = {};
-        
-        // [新增] 煉金魔女全域生命週期狀態宣告
-        this.alchemySnakeAvailable = false; // 法老之蛇是否處於可觸發狀態
-        this.alchemySnakePending = false;   // 系統是否正在等待進入煉金階段
-        this.alchemySnakeUsedToday = false; // 標記今日是否已使用，供跳過發言使用
-        this.unknownFogTargets = null;      // 未明之霧當晚強制鎖定的目標陣列
     }
     getNextAliveSeat(startSeat, direction) {
         let current = startSeat;
