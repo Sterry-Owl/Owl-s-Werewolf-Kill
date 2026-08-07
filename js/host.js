@@ -396,16 +396,14 @@ function setupEngineFlowControllers() {
         const alive = ctx.getAlivePlayers();
 
         // ===============================================
-        // [新增] 第三方陣營委託攔截器 (通用解耦)
+        // [修改] 第三方陣營委託攔截器 (競速模式)
         // ===============================================
         let thirdPartyWinner = null;
         let thirdPartyReason = "";
-        let hasThirdPartyAlive = false;
 
         alive.forEach(p => {
             const def = typeof ROLE_DICTIONARY !== 'undefined' ? ROLE_DICTIONARY[p.role] : null;
             if (def && def.faction === 'third_party') {
-                hasThirdPartyAlive = true;
                 const plugin = RoleRegistry.plugins[p.role];
                 if (plugin && typeof plugin.checkWinCondition === 'function') {
                     const result = plugin.checkWinCondition(ctx, p);
@@ -424,7 +422,6 @@ function setupEngineFlowControllers() {
             stateMachine.transitionTo('GAME_OVER');
             return;
         }
-        if (hasThirdPartyAlive) return;
         const wolfCount = alive.filter(p => p.role && ROLE_DICTIONARY[p.role]?.faction === 'wolf').length;
         if (wolfCount === 0 && ctx.wolvesDiedThisTick && ctx.wolvesDiedThisTick.includes('血月使徒') && !ctx.bloodMoonHasShot) {
             ctx.pendingBloodMoon = ctx.bloodMoonSeat;
