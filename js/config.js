@@ -82,7 +82,6 @@ const PACKET_TYPE = {
     PONG: 'PONG'   // [新增] 應用層心跳回應
 };
 
-// [新增] 網路連線狀態常數，避免模組中出現髒代碼 (硬編碼)
 const NETWORK_CONFIG = {
     PING_INTERVAL: 3000,    // 主機每 3 秒發送一次心跳
     TIMEOUT_LIMIT: 10000,   // 客戶端超過 10 秒未收到心跳視為斷線
@@ -120,6 +119,7 @@ const BOARD_TEMPLATES = [
     { id: "test-19_6", name: "6人 純白夜影(測試)", category: 'test', playerCount: 6, deck: ["純白之女", "守衛", "狼巫", "狼人", "平民", "平民"] },
     { id: "test-20_6", name: "6人 不死鳥吹笛者(測試)", category: 'test', playerCount: 6, deck: ["預言家", "不死鳥", "狼人", "狼人", "平民", "吹笛者"] },
     { id: "test-21_6", name: "6人 高級平民(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "平民", "高級平民"] },
+    { id: "test-22_6", name: "6人 獵日逐光(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "攝夢人", "狼人", "蝕日侍女", "高級平民"] },
     { id: "standard_9", name: "9人 標準局", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "wbt_kn_9", name: "9人 狼美人騎士(商榷)", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "騎士", "狼美人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "nim_dgr_9", name: "9人 夢魘攝夢人(商榷)", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "攝夢人", "噩夢之影", "狼人", "狼人", "平民", "平民", "平民"] },
