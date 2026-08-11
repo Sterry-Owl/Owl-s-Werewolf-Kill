@@ -67,6 +67,17 @@ window.RoleRegistry = {
                         }
                     }
                 });
+                if (ctx.blessedSeat) {
+                    const bSeat = ctx.blessedSeat;
+                    if (['killed', 'poisoned', 'doubledreamed'].includes(deathMap[bSeat])) {
+                        delete deathMap[bSeat];
+                        if (typeof Engine !== 'undefined' && Engine.EventBus) Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】流光伯爵保佑生效，免除了 ${bSeat} 號的死亡`);
+                    }
+                    if (ctx.devouredSeat === bSeat && ctx.devourerSeat) {
+                        deathMap[ctx.devourerSeat] = 'bless_backfire';
+                        if (typeof Engine !== 'undefined' && Engine.EventBus) Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】蝕日侍女吞噬了被保佑的 ${bSeat} 號，遭到流光反噬`);
+                    }
+                }
                 
                 ctx.players.forEach(p => {
                     const plugin = RoleRegistry.plugins[p.role];
@@ -100,6 +111,8 @@ window.RoleRegistry = {
             if (ctx) {
                 ctx.magicianSwap = null;
                 ctx.devouredSeat = null;
+                ctx.devourerSeat = null;
+                ctx.blessedSeat = null;
                 ctx.postVoteSkillTriggeredThisDay = false;
                 ctx.nightTags.demonHunterKills = [];
                 ctx.nightTags.demonHunterBackfires = [];
@@ -847,10 +860,10 @@ RoleRegistry.register("攝夢人", {
         if (player.isDead) return;
         if (ctx.dreamedSeat) {
             const dSeat = ctx.dreamedSeat;
-            if (deathMap[dSeat] === 'killed' || deathMap[dSeat] === 'poisoned') {
+            if (['killed', 'poisoned', 'bless_backfire'].includes(deathMap[dSeat])) {
                 delete deathMap[dSeat]; 
             }
-        }       
+        }      
         calc.dreamed.forEach(targetSeat => {
             if (calc.lastDreamed.includes(targetSeat)) deathMap[targetSeat] = 'doubledreamed';
         });
@@ -1438,7 +1451,7 @@ RoleRegistry.register("狼鴉之爪", {
     onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
         if (ctx.nightTags?.clawKilled) {
             const t = ctx.nightTags.clawKilled;
-            deathMap[t] = 'killed'; 
+            deathMap[t] = 'claw_killed'; 
             if (!ctx.nightTags.clawLogWritten) {
                 ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：狼鴉之爪發動技能，無視防禦擊殺 ${t} 號)`;
                 ctx.nightTags.clawLogWritten = true;
@@ -1952,7 +1965,7 @@ RoleRegistry.register("純白之女", {
     onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
         if (ctx.nightTags?.pureWhiteKilled) {
             const target = ctx.nightTags.pureWhiteKilled;
-            deathMap[target] = 'killed'; 
+            deathMap[target] = 'purified'; 
             if (typeof Engine !== 'undefined' && Engine.EventBus) {
                 Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】純白之女發動查殺，擊殺 ${target} 號`);
             }
@@ -2000,7 +2013,7 @@ RoleRegistry.register("狼巫", {
     onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
         if (ctx.nightTags?.wolfWitchKilled) {
             const target = ctx.nightTags.wolfWitchKilled;
-            deathMap[target] = 'killed';
+            deathMap[target] = 'purified';
             if (typeof Engine !== 'undefined' && Engine.EventBus) {
                 Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】狼巫發動查殺，擊殺純白之女 ${target} 號`);
             }
@@ -2270,7 +2283,7 @@ RoleRegistry.register("蝕日侍女", {
         }
         if (step === 'second_half') {
             if (p.data.devouredThisNight && p.data.devouredRole) {
-                return ['預言家', '女巫', '攝夢人'].includes(p.data.devouredRole);
+                return ['預言家', '女巫', '攝夢人', '流光伯爵'].includes(p.data.devouredRole);
             }
         }
         return false;
@@ -2288,6 +2301,7 @@ RoleRegistry.register("蝕日侍女", {
             return `【吞噬技能: 女巫】昨晚被狼人襲擊的是 ${victim} 號。\n請選擇要發動的技能：`;
         }
         if (role === '攝夢人') return "【吞噬技能: 攝夢人】選擇攝夢目標 (不可選擇自己，不可跳過)";
+        if (role === '流光伯爵') return "【吞噬技能: 流光伯爵】選擇保佑目標 (不可保佑自己，不可連續兩晚保佑同一人)";
         return "等待中...";
     },
     
@@ -2313,6 +2327,9 @@ RoleRegistry.register("蝕日侍女", {
                 if (p.data.maidWitchState?.antidoteUsed && p.data.maidWitchState?.poisonUsed) return [];
                 return ctx.getAlivePlayers().map(x => x.seatNumber);
             }
+            if (role === '流光伯爵') {
+                return ctx.getAlivePlayers().filter(x => x.seatNumber !== mySeat && x.seatNumber !== p.data.maidLastBlessedSeat).map(x => x.seatNumber);
+            }
             return ctx.getAlivePlayers().filter(x => x.seatNumber !== mySeat).map(x => x.seatNumber);
         }
         return [];
@@ -2328,6 +2345,7 @@ RoleRegistry.register("蝕日侍女", {
         
         if (role === '預言家') return [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
         if (role === '攝夢人') return [{ id: 'dream', text: '攝夢', requiresTarget: true }];
+        if (role === '流光伯爵') return [{ id: 'bless', text: '保佑', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
         if (role === '女巫') {
             let btns = [];
             const victim = ctx.nightTags?.killed?.length > 0 ? ctx.nightTags.killed[0] : null;
@@ -2371,6 +2389,7 @@ RoleRegistry.register("蝕日侍女", {
             p.data.virtualRoles = [p.data.devouredRole]; 
             
             ctx.devouredSeat = actualTarget; 
+            ctx.devourerSeat = p.seatNumber; // [新增] 供反噬判定使用
             
             return `【吞噬: ${target}號 (${p.data.devouredRole})】`;
         }
@@ -2406,6 +2425,12 @@ RoleRegistry.register("蝕日侍女", {
                 ctx.dreamerSeat = p.seatNumber; 
                 return `【攝夢: ${target}號】`;
             }
+
+            if (role === '流光伯爵' && act.actionId === 'bless') {
+                ctx.blessedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+                p.data.maidLastBlessedSeat = parseInt(target);
+                return `【保佑: ${target}號】`;
+            }
             
             if (role === '女巫') {
                 if (!p.data.maidWitchState) p.data.maidWitchState = {};
@@ -2432,5 +2457,31 @@ RoleRegistry.register("蝕日侍女", {
             }
         }
         return "【無效行動】";
+    }
+});
+RoleRegistry.register("流光伯爵", {
+    canSelfExplode: false,
+    nightPhase: "second_half",
+    actionType: "single_select",
+    getPrompt: () => "選擇今晚保佑的目標\n(不可保佑自己，不可連續兩晚保佑同一人)",
+    getSelectableSeats: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        return ctx.getAlivePlayers().filter(x => x.seatNumber !== mySeat && x.seatNumber !== p.data.lastBlessedSeat).map(x => x.seatNumber);
+    },
+    getButtons: () => [{ id: 'bless', text: '保佑', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || act.actionId === 'pass') {
+            ctx.blessedSeat = null;
+            act.player.data.lastBlessedSeat = null;
+            return "【跳過行動】";
+        }
+        
+        const target = act.targets[0];
+        const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+        
+        ctx.blessedSeat = actualTarget;
+        act.player.data.lastBlessedSeat = parseInt(target);
+        return `【保佑: ${target}號】`;
     }
 });
