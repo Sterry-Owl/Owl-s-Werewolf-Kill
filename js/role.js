@@ -854,7 +854,8 @@ RoleRegistry.register("攝夢人", {
         calc.dreamed.forEach(targetSeat => {
             if (calc.lastDreamed.includes(targetSeat)) deathMap[targetSeat] = 'doubledreamed';
         });
-        if (deathMap[player.seatNumber] && ctx.dreamedSeat) {
+        
+        if (deathMap[player.seatNumber] && ctx.dreamedSeat && ctx.dreamerSeat === player.seatNumber) {
             deathMap[ctx.dreamedSeat] = 'doubledreamed'; 
         }
     },
@@ -876,6 +877,9 @@ RoleRegistry.register("攝夢人", {
         
         if (target) {
             ctx.dreamedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+            const doer = act ? act.player : ctx.players.find(p => p.role === '攝夢人' && !p.isDead);
+            if (doer) ctx.dreamerSeat = doer.seatNumber;
+            
             return `【攝夢: ${target}號】`;
         }
         
@@ -2399,6 +2403,7 @@ RoleRegistry.register("蝕日侍女", {
             
             if (role === '攝夢人' && act.actionId === 'dream') {
                 ctx.dreamedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+                ctx.dreamerSeat = p.seatNumber; 
                 return `【攝夢: ${target}號】`;
             }
             
