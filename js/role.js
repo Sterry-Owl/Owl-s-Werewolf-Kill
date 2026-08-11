@@ -88,7 +88,7 @@ window.RoleRegistry = {
             ctx.addFilter('NIGHT_ACTION_PERMISSION', (canAct, args) => {
                 const feared = args.context.fearedSeat;
                 if (feared === args.player.seatNumber) return false;
-                // [修復] 增加 Truthy 檢驗，確保 bloodMoonSilenceNight 具備有效數值才進行封印判定，阻絕型別穿透風險
+                if (args.context.devouredSeat === args.player.seatNumber) return false;
                 if (args.context.bloodMoonSilenceNight && args.context.bloodMoonSilenceNight === args.context.nightCount) {
                     if (typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[args.player.role]?.type === 'god') return false;
                 }
@@ -99,6 +99,7 @@ window.RoleRegistry = {
         Engine.EventBus.on('START_NIGHT', () => {
             if (ctx) {
                 ctx.magicianSwap = null;
+                ctx.devouredSeat = null;
                 ctx.postVoteSkillTriggeredThisDay = false;
                 ctx.nightTags.demonHunterKills = [];
                 ctx.nightTags.demonHunterBackfires = [];
@@ -2216,5 +2217,181 @@ RoleRegistry.register("高級平民", {
             return true; 
         }
         return false;
+    }
+});
+RoleRegistry.register("蝕日侍女", {
+    canSelfExplode: true,
+    canSeeWolves: true,
+    seenAsWolf: true,
+    isAttacker: false,
+    hasWolfChatAccess: false,
+    nightPhase: ["first_half", "second_half"],
+    actionType: (ctx) => {
+        const step = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
+        if (step === 'second_half') {
+            const p = ctx.players.find(x => x.role === '蝕日侍女' && !x.isDead);
+            if (p && p.data.devouredRole === '女巫') return 'dynamic_buttons'; // 女巫具備雙按鈕特例
+        }
+        return 'single_select';
+    },
+    onNightStart: (ctx, player) => {
+        player.data.devouredThisNight = false;
+        player.data.devouredRole = null;
+        player.data.customTopTags = player.data.customTopTags || {};
+        ctx.players.forEach(p => {
+            if (p.seatNumber !== player.seatNumber && typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf') {
+                player.data.customTopTags[p.seatNumber] = '狼人';
+            }
+        });
+    },
+    hasAction: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        const p = ctx.getPlayer(mySeat);
+        
+        if (step === 'first_half') return ctx.nightCount >= 2;
+        if (step === 'second_half') {
+            if (p.data.devouredThisNight && p.data.devouredRole) {
+                return ['預言家', '女巫', '攝夢人'].includes(p.data.devouredRole);
+            }
+        }
+        return false;
+    },
+    getPrompt: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'first_half') return "選擇今晚的吞噬目標\n(不可選擇狼人，不可連續兩晚吞噬同一人)";
+        
+        const role = ctx.getPlayer(mySeat).data.devouredRole;
+        if (role === '預言家') return "【吞噬技能: 預言家】選擇查驗目標";
+        if (role === '女巫') {
+            const victim = ctx.nightTags?.killed?.length > 0 ? ctx.nightTags.killed[0] : "無";
+            return `【吞噬技能: 女巫】昨晚被狼人襲擊的是 ${victim} 號。\n請選擇要發動的技能：`;
+        }
+        if (role === '攝夢人') return "【吞噬技能: 攝夢人】選擇攝夢目標 (不可選擇自己，不可跳過)";
+        return "等待中...";
+    },
+    getSelectableSeats: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        const p = ctx.getPlayer(mySeat);
+        
+        if (step === 'first_half') {
+            return ctx.getAlivePlayers().filter(target => {
+                if (target.seatNumber === mySeat) return false;
+                if (target.seatNumber === p.data.lastDevouredSeat) return false;
+                const isWolf = typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[target.role]?.faction === 'wolf';
+                if (isWolf) return false;
+                return true;
+            }).map(target => target.seatNumber);
+        }
+        
+        if (step === 'second_half') {
+            const role = p.data.devouredRole;
+            if (role === '女巫') {
+                if (p.data.maidWitchState?.antidoteUsed && p.data.maidWitchState?.poisonUsed) return [];
+                return ctx.getAlivePlayers().map(x => x.seatNumber);
+            }
+            return ctx.getAlivePlayers().filter(x => x.seatNumber !== mySeat).map(x => x.seatNumber);
+        }
+        return [];
+    },
+    getButtons: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'first_half') return [{ id: 'devour', text: '吞噬', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
+        
+        const p = ctx.getPlayer(mySeat);
+        const role = p.data.devouredRole;
+        
+        if (role === '預言家') return [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
+        if (role === '攝夢人') return [{ id: 'dream', text: '攝夢', requiresTarget: true }];
+        if (role === '女巫') {
+            let btns = [];
+            const victim = ctx.nightTags?.killed?.length > 0 ? ctx.nightTags.killed[0] : null;
+            let canSave = !(p.data.maidWitchState?.antidoteUsed);
+            if (canSave && victim === mySeat) {
+                if (ctx.rules.witchSave === 'never') canSave = false;
+                if (ctx.rules.witchSave === 'first_night' && ctx.nightCount > 1) canSave = false;
+            }
+            if (canSave) btns.push({ id: 'save', text: '使用解藥', requiresTarget: false });
+            if (!(p.data.maidWitchState?.poisonUsed) && !(ctx.nightTags?.witchUsedSaveTonight)) btns.push({ id: 'poison', text: '使用毒藥', requiresTarget: true });
+            btns.push({ id: 'pass', text: '跳過', requiresTarget: false });
+            return btns;
+        }
+        return [];
+    },
+    getPreSelectedTarget: (ctx) => {
+        const p = ctx.players.find(x => x.role === '蝕日侍女' && !x.isDead);
+        if (p && p.data.devouredRole === '女巫') {
+            return (!(p.data.maidWitchState?.antidoteUsed) && ctx.nightTags?.killed?.length > 0) ? ctx.nightTags.killed[0] : null;
+        }
+        return null;
+    },
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act) return "【無效行動】";
+        const p = act.player;
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+
+        if (step === 'first_half') {
+            if (act.actionId === 'pass') return "【跳過行動】";
+            const target = act.targets[0];
+            const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
+            const tPlayer = ctx.getPlayer(actualTarget);
+            
+            p.data.devouredThisNight = true;
+            p.data.devouredRole = tPlayer.data.camouflageRole || tPlayer.role;
+            p.data.lastDevouredSeat = parseInt(target);
+            
+            ctx.devouredSeat = actualTarget;
+            
+            return `【吞噬: ${target}號 (${p.data.devouredRole})】`;
+        }
+
+        if (step === 'second_half') {
+            if (act.actionId === 'pass') return "【跳過行動】";
+            const role = p.data.devouredRole;
+            const target = act.targets?.[0];
+            
+            if (role === '預言家' && act.actionId === 'check') {
+                const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', p.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
+                const tPlayer = ctx.getPlayer(actualTarget);
+                const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
+                const isWolf = (checkRole && ROLE_DICTIONARY[checkRole]?.faction === 'wolf');
+                let alignment = isWolf ? "狼人" : "好人";
+                
+                const pluginDef = RoleRegistry.plugins[tPlayer.role];
+                if (pluginDef && pluginDef.seenBySeerAsGood) alignment = "好人";
+
+                p.data.seerRecords = p.data.seerRecords || {};
+                p.data.seerRecords[target] = alignment;
+                p.data.latestCheckResult = { seat: target, alignment: alignment, isSeerAction: true }; 
+                p.data.tempPrivateMessage = `${target}號玩家是【${alignment}】。`;
+                return `【查驗: ${target}號】`;
+            }
+            
+            if (role === '攝夢人' && act.actionId === 'dream') {
+                ctx.dreamedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+                return `【攝夢: ${target}號】`;
+            }
+            
+            if (role === '女巫') {
+                if (!p.data.maidWitchState) p.data.maidWitchState = {};
+                if (act.actionId === 'save' && !p.data.maidWitchState.antidoteUsed) {
+                    if (ctx.nightTags?.killed?.length > 0) {
+                        const victim = ctx.nightTags.killed[0];
+                        p.data.maidWitchState.savedSeat = victim; 
+                        ctx.nightTags.witchUsedSaveTonight = true;
+                        p.data.maidWitchState.antidoteUsed = true;
+                        return "【使用解藥】";
+                    }
+                } else if (act.actionId === 'poison' && !p.data.maidWitchState.poisonUsed && !ctx.nightTags?.witchUsedSaveTonight) {
+                    const finalTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'poison', p.seatNumber) : parseInt(target);
+                    if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
+                    ctx.nightTags.poisoned.push(finalTarget);
+                    p.data.maidWitchState.poisonUsed = true;
+                    ctx.nightTags.poisonerSeat = p.seatNumber;
+                    return `【毒殺: ${target}號】`;
+                }
+            }
+        }
+        return "【無效行動】";
     }
 });
