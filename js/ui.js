@@ -73,24 +73,32 @@ const UI = {
     
    playShoutAnimation: function(role) {
         let container = document.getElementById('shout-animation-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'shout-animation-container';
-            const img = document.createElement('img');
-            img.id = 'shout-animation-img';
-            container.appendChild(img);
-            
-            // [關鍵修改] 尋找玩家 4:5 的主要介面容器，將動畫注入其中。
-            // 若為法官端無此容器，則安全降級注入至外層 container
-            const targetParent = document.querySelector('.player-app-container') || document.querySelector('.container') || document.body;
-            targetParent.appendChild(container);
-            
-            // 確保父容器有 relative 與 overflow hidden，這樣圖片左右滑動時，才不會超出圓角邊框跑出版外
-            targetParent.style.position = 'relative';
-            targetParent.style.overflow = 'hidden'; 
+        // [修復] 徹底銷毀舊節點，保證每一次呼叫皆能重新觸發 CSS Keyframes
+        if (container) {
+            container.remove();
         }
         
-        const img = document.getElementById('shout-animation-img');
+        container = document.createElement('div');
+        container.id = 'shout-animation-container';
+        const img = document.createElement('img');
+        img.id = 'shout-animation-img';
+        container.appendChild(img);
+        
+        // [修復] 偵測當前處於「可見狀態」的活躍視圖，防止動畫注入隱藏節點
+        let targetParent = document.body;
+        const playerApp = document.querySelector('.player-app-container');
+        const hostApp = document.querySelector('.container');
+        
+        if (playerApp && window.getComputedStyle(playerApp).display !== 'none') {
+            targetParent = playerApp;
+        } else if (hostApp && window.getComputedStyle(hostApp).display !== 'none') {
+            targetParent = hostApp;
+        }
+        
+        targetParent.appendChild(container);
+        targetParent.style.position = 'relative';
+        targetParent.style.overflow = 'hidden'; 
+        
         const imgMap = {
             '騎士': 'shout-knight.webp',
             '白狼王': 'shout-wwk.webp',
@@ -100,21 +108,26 @@ const UI = {
         const fileName = imgMap[role] || 'shout-default.webp';
         img.src = `./img/shout/${fileName}`;
         
-        // [修改] 觸發 CSS 動畫的類別改為 .play
-        container.classList.remove('play');
-        void container.offsetWidth; 
-        container.classList.add('play');
+        // [修復] 利用微任務延遲 (setTimeout)，等待 DOM 掛載完成後再附加動畫類別
+        setTimeout(() => {
+            container.classList.add('play');
+        }, 10);
         
         clearTimeout(UI.shoutTimeout);
         UI.shoutTimeout = setTimeout(() => {
-            container.classList.remove('play');
-        }, 2500); // 2.5秒剛好與 CSS 動畫的時間軸完美同步
+            const el = document.getElementById('shout-animation-container');
+            if (el) el.remove(); // 動畫結束後徹底銷毀，維持 DOM 樹純淨
+        }, 2500); 
     },
 
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = [], showVoteHistory = false) {
-        if (state.latestAnimation && state.latestAnimation.timestamp > (UI.lastAnimationTime || 0)) {
-            UI.lastAnimationTime = state.latestAnimation.timestamp;
-            UI.playShoutAnimation(state.latestAnimation.role);
+        if (state.latestAnimation) {
+            if (UI.lastAnimationTime === undefined) {
+                UI.lastAnimationTime = state.latestAnimation.timestamp;
+            } else if (state.latestAnimation.timestamp > UI.lastAnimationTime) {
+                UI.lastAnimationTime = state.latestAnimation.timestamp;
+                UI.playShoutAnimation(state.latestAnimation.role);
+            }
         }
 
         document.getElementById('player-seat-number').textContent = state.mySeat || '-';
@@ -642,11 +655,14 @@ const UI = {
     },
 
     renderHostView: function(state, onHostAction) {
-        if (state.latestAnimation && state.latestAnimation.timestamp > (UI.lastAnimationTime || 0)) {
-            UI.lastAnimationTime = state.latestAnimation.timestamp;
-            UI.playShoutAnimation(state.latestAnimation.role);
+        if (state.latestAnimation) {
+            if (UI.lastAnimationTime === undefined) {
+                UI.lastAnimationTime = state.latestAnimation.timestamp;
+            } else if (state.latestAnimation.timestamp > UI.lastAnimationTime) {
+                UI.lastAnimationTime = state.latestAnimation.timestamp;
+                UI.playShoutAnimation(state.latestAnimation.role);
+            }
         }
-
         const inGameRoomId = document.getElementById('display-room-id-in-game');
         if (inGameRoomId) inGameRoomId.textContent = document.getElementById('display-room-id').textContent;
         const phaseName = document.getElementById('host-phase-name');
