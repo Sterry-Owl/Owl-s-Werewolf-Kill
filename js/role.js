@@ -21,7 +21,7 @@ window.RoleRegistry = {
                 let actual = ctx.getActualTarget ? ctx.getActualTarget(targetSeat) : parseInt(targetSeat);
                 
                 if (this.nightTags && this.nightTags.sealedSeat === actual) {
-                    if (['check', 'poison', 'guard'].includes(skillType)) {
+                    if (['check', 'poison', 'guard', 'dream', 'bless', 'curse', 'hunt'].includes(skillType)) {
                         const sealer = this.getPlayer(this.nightTags.sealerSeat);
                         if (sealer) sealer.data.sealPermanentlyLost = true;
                         if (typeof Engine !== 'undefined' && Engine.EventBus) {
@@ -68,7 +68,7 @@ window.RoleRegistry = {
                     }
                 });
                 if (ctx.blessedSeat && ctx.devouredSeat === ctx.blessedSeat && ctx.devourerSeat) {
-                    deathMap[ctx.devourerSeat] = 'bless_backfire';
+                    deathMap[ctx.devourerSeat] = 'skill_backfire';
                     if (typeof Engine !== 'undefined' && Engine.EventBus) Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】蝕日侍女吞噬了被保佑的 ${ctx.blessedSeat} 號，遭到流光反噬`);
                 }
                 ctx.players.forEach(p => {
@@ -701,7 +701,7 @@ RoleRegistry.register("烏鴉", {
         }
         
         const target = act.targets[0];
-        ctx.cursedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
+        ctx.cursedSeat = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'curse', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : target);
         ctx.lastCursedSeat = target;
         return `【詛咒: ${target}號】`;
     }
@@ -856,10 +856,8 @@ RoleRegistry.register("攝夢人", {
         if (player.isDead) return;
         if (ctx.dreamedSeat) {
             const dSeat = ctx.dreamedSeat;
-            if (['killed', 'poisoned', 'bless_backfire'].includes(deathMap[dSeat])) {
-                delete deathMap[dSeat]; 
-            }
-        }      
+            if (['killed', 'poisoned', 'skill_backfire'].includes(deathMap[dSeat])) {
+                delete deathMap[dSeat];   
         calc.dreamed.forEach(targetSeat => {
             if (calc.lastDreamed.includes(targetSeat)) deathMap[targetSeat] = 'doubledreamed';
         });
@@ -885,8 +883,9 @@ RoleRegistry.register("攝夢人", {
         }
         
         if (target) {
-            ctx.dreamedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
             const doer = act ? act.player : ctx.players.find(p => p.role === '攝夢人' && !p.isDead);
+            const actorSeat = doer ? doer.seatNumber : parseInt(target);
+            ctx.dreamedSeat = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'dream', actorSeat) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
             if (doer) ctx.dreamerSeat = doer.seatNumber;
             
             return `【攝夢: ${target}號】`;
@@ -1514,7 +1513,7 @@ RoleRegistry.register("獵魔人", {
             }
 
             const target = act.targets[0];
-            const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
+            const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'hunt', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : target);
             const tPlayer = ctx.getPlayer(actualTarget);
             const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
             const isWolf = ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
@@ -2473,7 +2472,8 @@ RoleRegistry.register("流光伯爵", {
         }
         
         const target = act.targets[0];
-        const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+        const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'bless', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
+        ctx.blessedSeat = actualTarget;
         
         ctx.blessedSeat = actualTarget;
         act.player.data.lastBlessedSeat = parseInt(target);
