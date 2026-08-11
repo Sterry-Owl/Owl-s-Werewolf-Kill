@@ -241,20 +241,21 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .player-seat.selected .seat-img-wrapper { border-color: var(--accent-green) !important; }
 
 .player-seat.selectable-target .seat-img-wrapper {
-    box-shadow: 0 0 12px 3px rgba(255, 215, 0, 0.7) !important;
-    border-color: #ffd700 !important;
+    box-shadow: 0 0 12px 3px rgba(255, 215, 0, 0.3) !important; /* 0.7 降至 0.3 */
+    border-color: rgba(255, 215, 0, 0.6) !important; /* 將實色邊框轉為半透明 */
     animation: pulse-yellow 2s infinite;
 }
 
 @keyframes pulse-yellow {
-    0% { box-shadow: 0 0 8px 2px rgba(255, 215, 0, 0.5) !important; }
-    50% { box-shadow: 0 0 15px 5px rgba(255, 215, 0, 0.9) !important; }
-    100% { box-shadow: 0 0 8px 2px rgba(255, 215, 0, 0.5) !important; }
+    0% { box-shadow: 0 0 8px 2px rgba(255, 215, 0, 0.15) !important; } /* 0.5 降至 0.15 */
+    50% { box-shadow: 0 0 15px 5px rgba(255, 215, 0, 0.45) !important; } /* 0.9 降至 0.45 */
+    100% { box-shadow: 0 0 8px 2px rgba(255, 215, 0, 0.15) !important; } /* 0.5 降至 0.15 */
 }
 
+/* [修改] 降低狼隊深紅色預覽光圈的透明度 */
 .player-seat.wolf-selected .seat-img-wrapper { 
-    box-shadow: 0 0 12px 4px rgba(114, 47, 55, 0.8) !important; 
-    border-color: #722F37 !important; 
+    box-shadow: 0 0 12px 4px rgba(114, 47, 55, 0.35) !important; /* 0.8 降至 0.35 */
+    border-color: rgba(114, 47, 55, 0.8) !important; /* 將實色邊框轉為帶有些微透明度 */
 }
 
 .wolf-preview-tag {
