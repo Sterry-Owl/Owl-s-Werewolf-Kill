@@ -166,9 +166,13 @@ function handleIncomingPacket(peerId, data) {
     }
     else if (data.type === PACKET_TYPE.WOLF_PREVIEW) {
         const player = engineContext.getPlayerByPeer(peerId);
-        if (player && player.role && RoleRegistry.plugins[player.role]?.canSeeWolves && engineContext.phase === 'NIGHT_ACTION') {
-            engineContext.wolfPreviews[peerId] = { seat: player.seatNumber, target: data.payload.target };
-            syncStateToAll();
+        if (player && player.role && engineContext.phase === 'NIGHT_ACTION') {
+            const plugin = RoleRegistry.plugins[player.role];
+            const isAttacker = typeof plugin?.isAttacker === 'function' ? plugin.isAttacker(engineContext, player.seatNumber) : plugin?.isAttacker;
+            if (isAttacker) {
+                engineContext.wolfPreviews[peerId] = { seat: player.seatNumber, target: data.payload.target };
+                syncStateToAll();
+            }
         }
     }
     else if (data.type === 'WOLF_CHAT_SEND') {
@@ -548,7 +552,10 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         else if (player.role === '女巫' && ctx.witchState?.silverWater === p.seatNumber) sideTag = "銀水"; 
         else if (player.role === '暗戀者' && ctx.crushTarget === p.seatNumber) sideTag = "暗戀對象";
 
-        if (ctx.phase === 'NIGHT_ACTION' && RoleRegistry.plugins[player.role]?.canSeeWolves) {
+        const myPlugin = RoleRegistry.plugins[player.role];
+        const isMyAttacker = typeof myPlugin?.isAttacker === 'function' ? myPlugin.isAttacker(ctx, player.seatNumber) : myPlugin?.isAttacker;
+
+        if (ctx.phase === 'NIGHT_ACTION' && isMyAttacker) {
             Object.values(ctx.wolfPreviews || {}).forEach(preview => {
                 if (String(preview.target) === String(p.seatNumber) && preview.seat !== player.seatNumber) wolfPreviewTags.push(`${preview.seat}號`);
             });
@@ -589,7 +596,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                 actionPanel.deadline = ctx.deadline;
                 
                 actionPanel.type = typeof plugin.actionType === 'function' ? plugin.actionType(ctx) : plugin.actionType;
-                const isAttacker = typeof plugin.isAttacker === 'function' ? plugin.isAttacker(ctx) : plugin.isAttacker;
+                const isAttacker = typeof plugin.isAttacker === 'function' ? plugin.isAttacker(ctx, player.seatNumber) : plugin.isAttacker;
 
                 actionPanel.selectableSeats = plugin.getSelectableSeats(ctx, player.seatNumber);
                 actionPanel.buttons = plugin.getButtons(ctx, player.seatNumber);
@@ -669,8 +676,9 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     else if (ctx.phase === 'MIDNIGHT_RESULT_DISPLAY') {
         const plugin = RoleRegistry.plugins[player.role];
         const hasWolfChat = plugin?.hasWolfChatAccess === true || (typeof plugin?.hasWolfChatAccess === 'function' && plugin.hasWolfChatAccess(ctx, player));
+        const isAttacker = typeof plugin?.isAttacker === 'function' ? plugin.isAttacker(ctx, player.seatNumber) : plugin?.isAttacker;
         
-        if (!player.isDead && hasWolfChat) {
+        if (!player.isDead && (hasWolfChat || isAttacker)) {
             actionPanel.show = true;
             actionPanel.type = 'none';
             actionPanel.prompt = "已確認今晚的襲擊目標";
