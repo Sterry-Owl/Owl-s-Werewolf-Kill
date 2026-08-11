@@ -207,4 +207,5 @@ const ROLE_DICTIONARY = {
     "狼巫": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "dynamic", prompt: "狼巫請行動", description:"狼人陣營；不可自刀、自爆。每晚可查驗一名玩家的真實身分。從第二晚起，若查驗到純白之女，純白之女直接死亡。" },
     "吹笛者": { faction: "third_party", type: "third_party", nightPhase: "first_half", actionType: "up_to_two", prompt: "選擇今晚誘引的目標\n(點擊左右列頭貼以發動技能)", description:"第三方陣營；每晚可選擇誘引 0~2 名玩家。被誘引的玩家會在夜晚互相確認彼此，但不知道吹笛者是誰。當場上所有存活的玩家 (除了吹笛者以外) 都被誘引時，吹笛者單獨獲得勝利。" },
     "不死鳥": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇一名已死亡的玩家進行復活\n(全局限用一次)", description:"神職；從第二晚起，每局限用一次，可選擇復活一名已死亡的玩家。被復活的玩家將完全恢復身分與技能，但在不死鳥出局時會隨之殉情。若復活了狼人陣營，雙方將互相得知對方身分。" },
+    "蝕日侍女": { faction: "wolf", type: "wolf", nightPhase: ["first_half", "second_half"], actionType: "dynamic", prompt: "選擇今晚吞噬的目標", description:"狼人陣營，不與狼隊見面，知道所有狼人的號碼；從第二晚起，每局可以吞噬一名非狼人的玩家，使被吞噬的玩家無法使用技能，且自己可以使用其技能。其餘狼人死亡後，蝕日侍女參與襲擊" },
 };
