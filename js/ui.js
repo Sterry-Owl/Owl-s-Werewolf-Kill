@@ -71,20 +71,26 @@ const UI = {
         });
     },
     
-    playShoutAnimation: function(role) {
+   playShoutAnimation: function(role) {
         let container = document.getElementById('shout-animation-container');
         if (!container) {
-            // [淨化 DOM] 若容器不存在則動態生成，不需修改 HTML 原始檔
             container = document.createElement('div');
             container.id = 'shout-animation-container';
             const img = document.createElement('img');
             img.id = 'shout-animation-img';
             container.appendChild(img);
-            document.body.appendChild(container);
+            
+            // [關鍵修改] 尋找玩家 4:5 的主要介面容器，將動畫注入其中。
+            // 若為法官端無此容器，則安全降級注入至外層 container
+            const targetParent = document.querySelector('.player-app-container') || document.querySelector('.container') || document.body;
+            targetParent.appendChild(container);
+            
+            // 確保父容器有 relative 與 overflow hidden，這樣圖片左右滑動時，才不會超出圓角邊框跑出版外
+            targetParent.style.position = 'relative';
+            targetParent.style.overflow = 'hidden'; 
         }
         
         const img = document.getElementById('shout-animation-img');
-        // [模組化] 將角色名稱映射為實際檔名，方便後續無限擴充
         const imgMap = {
             '騎士': 'shout-knight.webp',
             '白狼王': 'shout-wwk.webp',
@@ -94,16 +100,15 @@ const UI = {
         const fileName = imgMap[role] || 'shout-default.webp';
         img.src = `./img/shout/${fileName}`;
         
-        // [重置動畫] 觸發瀏覽器 Reflow 以保證動畫能重複播放
-        container.classList.remove('show');
+        // [修改] 觸發 CSS 動畫的類別改為 .play
+        container.classList.remove('play');
         void container.offsetWidth; 
-        container.classList.add('show');
+        container.classList.add('play');
         
-        // 2.5 秒後自動淡出
         clearTimeout(UI.shoutTimeout);
         UI.shoutTimeout = setTimeout(() => {
-            container.classList.remove('show');
-        }, 2500); 
+            container.classList.remove('play');
+        }, 2500); // 2.5秒剛好與 CSS 動畫的時間軸完美同步
     },
 
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = [], showVoteHistory = false) {
