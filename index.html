@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天黑請閉眼 α1.14.6</title>
+    <title>天黑請閉眼 α1.16.7</title>
     <link rel="icon" href="favicon.ico?v=1.0" type="image/x-icon">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
@@ -19,15 +19,14 @@
             
             <div class="section">
                 <h3>建立遊戲（法官）</h3>
-                <!-- [擴充] HTML5 原生防呆限制 -->
                 <input type="text" id="input-host-room-id" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="輸入4位數房號（空白則隨機生成）">
                 <button id="btn-create-room">建立房間</button>
             </div>
             
             <div class="section">
                 <h3>加入遊戲（玩家）</h3>
-                <input type="text" id="input-room-id" placeholder="請輸入房間代碼 (例如: 1234)">
-                <input type="text" id="input-player-name" placeholder="請輸入你的暱稱">
+                <input type="text" id="input-room-id" placeholder="請輸入房間代碼">
+                <input type="text" id="input-player-name" placeholder="請輸入暱稱">
                 <button id="btn-join-room" class="btn-success">加入房間</button>
             </div>
         </div>
