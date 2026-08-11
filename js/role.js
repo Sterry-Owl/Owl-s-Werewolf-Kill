@@ -858,6 +858,8 @@ RoleRegistry.register("攝夢人", {
             const dSeat = ctx.dreamedSeat;
             if (['killed', 'poisoned', 'skill_backfire'].includes(deathMap[dSeat])) {
                 delete deathMap[dSeat];   
+            }
+        }
         calc.dreamed.forEach(targetSeat => {
             if (calc.lastDreamed.includes(targetSeat)) deathMap[targetSeat] = 'doubledreamed';
         });
@@ -865,7 +867,7 @@ RoleRegistry.register("攝夢人", {
         if (deathMap[player.seatNumber] && ctx.dreamedSeat && ctx.dreamerSeat === player.seatNumber) {
             deathMap[ctx.dreamedSeat] = 'doubledreamed'; 
         }
-    }
+    },
     resolveNightAction: (ctx, actions) => {
         const act = actions.find(a => a.player.role === '攝夢人');
         let target;
@@ -2278,7 +2280,8 @@ RoleRegistry.register("蝕日侍女", {
         }
         if (step === 'second_half') {
             if (p.data.devouredThisNight && p.data.devouredRole) {
-                return ['預言家', '女巫', '攝夢人', '流光伯爵'].includes(p.data.devouredRole);
+                // [修復] 補回守衛的支援清單
+                return ['預言家', '女巫', '攝夢人', '流光伯爵', '守衛'].includes(p.data.devouredRole);
             }
         }
         return false;
@@ -2297,6 +2300,7 @@ RoleRegistry.register("蝕日侍女", {
         }
         if (role === '攝夢人') return "【吞噬技能: 攝夢人】選擇攝夢目標 (不可選擇自己，不可跳過)";
         if (role === '流光伯爵') return "【吞噬技能: 流光伯爵】選擇保佑目標 (不可保佑自己，不可連續兩晚保佑同一人)";
+        if (role === '守衛') return "【吞噬技能: 守衛】選擇今晚守護的目標 (不可連續兩晚守護同一人)"; // [修復] 補回守衛提示
         return "等待中...";
     },
     
@@ -2325,6 +2329,10 @@ RoleRegistry.register("蝕日侍女", {
             if (role === '流光伯爵') {
                 return ctx.getAlivePlayers().filter(x => x.seatNumber !== mySeat && x.seatNumber !== p.data.maidLastBlessedSeat).map(x => x.seatNumber);
             }
+            // [修復] 補回守衛不可連續兩晚守護同一人的判斷
+            if (role === '守衛') {
+                return ctx.getAlivePlayers().filter(x => x.seatNumber !== p.data.maidLastGuardedSeat).map(x => x.seatNumber);
+            }
             return ctx.getAlivePlayers().filter(x => x.seatNumber !== mySeat).map(x => x.seatNumber);
         }
         return [];
@@ -2341,6 +2349,7 @@ RoleRegistry.register("蝕日侍女", {
         if (role === '預言家') return [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
         if (role === '攝夢人') return [{ id: 'dream', text: '攝夢', requiresTarget: true }];
         if (role === '流光伯爵') return [{ id: 'bless', text: '保佑', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
+        if (role === '守衛') return [{ id: 'guard', text: '守護', requiresTarget: true }, { id: 'pass', text: '空守', requiresTarget: false }]; // [修復] 補回守衛按鈕
         if (role === '女巫') {
             let btns = [];
             const victim = ctx.nightTags?.killed?.length > 0 ? ctx.nightTags.killed[0] : null;
@@ -2384,7 +2393,7 @@ RoleRegistry.register("蝕日侍女", {
             p.data.virtualRoles = [p.data.devouredRole]; 
             
             ctx.devouredSeat = actualTarget; 
-            ctx.devourerSeat = p.seatNumber; // [新增] 供反噬判定使用
+            ctx.devourerSeat = p.seatNumber; 
             
             return `【吞噬: ${target}號 (${p.data.devouredRole})】`;
         }
@@ -2416,15 +2425,25 @@ RoleRegistry.register("蝕日侍女", {
             }
             
             if (role === '攝夢人' && act.actionId === 'dream') {
-                ctx.dreamedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+                ctx.dreamedSeat = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'dream', p.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
                 ctx.dreamerSeat = p.seatNumber; 
                 return `【攝夢: ${target}號】`;
             }
 
             if (role === '流光伯爵' && act.actionId === 'bless') {
-                ctx.blessedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+                ctx.blessedSeat = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'bless', p.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
                 p.data.maidLastBlessedSeat = parseInt(target);
                 return `【保佑: ${target}號】`;
+            }
+            if (role === '守衛') {
+                if (act.actionId === 'pass') {
+                    ctx.guardedSeat = null;
+                    p.data.maidLastGuardedSeat = null;
+                    return "【空守】";
+                }
+                ctx.guardedSeat = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'guard', p.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
+                p.data.maidLastGuardedSeat = target;
+                return `【守護: ${target}號】`;
             }
             
             if (role === '女巫') {
@@ -2473,8 +2492,6 @@ RoleRegistry.register("流光伯爵", {
         
         const target = act.targets[0];
         const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'bless', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
-        ctx.blessedSeat = actualTarget;
-        
         ctx.blessedSeat = actualTarget;
         act.player.data.lastBlessedSeat = parseInt(target);
         return `【保佑: ${target}號】`;
