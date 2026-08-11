@@ -2250,12 +2250,11 @@ RoleRegistry.register("蝕日侍女", {
         }
         return 'single_select';
     },
-    
     onNightStart: (ctx, player) => {
         player.data.devouredThisNight = false;
         player.data.devouredRole = null;
+        player.data.virtualRoles = [];
     },
-    
     hasAction: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         const p = ctx.getPlayer(mySeat);
@@ -2364,6 +2363,8 @@ RoleRegistry.register("蝕日侍女", {
             p.data.devouredThisNight = true;
             p.data.devouredRole = tPlayer.data.camouflageRole || tPlayer.role;
             p.data.lastDevouredSeat = parseInt(target);
+            
+            p.data.virtualRoles = [p.data.devouredRole]; 
             
             ctx.devouredSeat = actualTarget; 
             
