@@ -119,10 +119,8 @@ const BOARD_TEMPLATES = [
     { id: "test-19_6", name: "6人 純白夜影(測試)", category: 'test', playerCount: 6, deck: ["純白之女", "守衛", "狼巫", "狼人", "平民", "平民"] },
     { id: "test-20_6", name: "6人 不死鳥吹笛者(測試)", category: 'test', playerCount: 6, deck: ["預言家", "不死鳥", "狼人", "狼人", "平民", "吹笛者"] },
     { id: "test-21_6", name: "6人 高級平民(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "平民", "高級平民"] },
-    { id: "test-22_6", name: "7人 獵日逐光(測試)", category: 'test', playerCount: 7, deck: ["預言家", "女巫", "攝夢人", "狼人", "蝕日侍女", "平民", "平民"] },
+    { id: "test-22_6", name: "7人 獵日逐光(測試)", category: 'test', playerCount: 7, deck: ["預言家", "女巫", "攝夢人", "流光伯爵", "狼人", "蝕日侍女", "平民"] },
     { id: "standard_9", name: "9人 標準局", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
-    { id: "wbt_kn_9", name: "9人 狼美人騎士(商榷)", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "騎士", "狼美人", "狼人", "狼人", "平民", "平民", "平民"] },
-    { id: "nim_dgr_9", name: "9人 夢魘攝夢人(商榷)", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "攝夢人", "噩夢之影", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "cloud_10", name: "10人 雲端探查", category: 'fun', playerCount: 10, deck: ["預言家", "女巫", "魔鏡少女", "河豚", "獵人", "攝夢人", "狼人", "狼人", "狼王", "尋香魅影"] },
     { id: "whip_10", name: "10人 連連看", category: 'fun', playerCount: 10, deck: ["獵魔人", "獵魔人", "獵魔人", "獵魔人", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影"] },
     { id: "whip_8", name: "8人 連連看", category: 'fun', playerCount: 8, deck: ["獵魔人", "獵魔人", "獵魔人", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影"] },
@@ -208,4 +206,5 @@ const ROLE_DICTIONARY = {
     "吹笛者": { faction: "third_party", type: "third_party", nightPhase: "first_half", actionType: "up_to_two", prompt: "選擇今晚誘引的目標\n(點擊左右列頭貼以發動技能)", description:"第三方陣營；每晚可選擇誘引 0~2 名玩家。被誘引的玩家會在夜晚互相確認彼此，但不知道吹笛者是誰。當場上所有存活的玩家 (除了吹笛者以外) 都被誘引時，吹笛者單獨獲得勝利。" },
     "不死鳥": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇一名已死亡的玩家進行復活\n(全局限用一次)", description:"神職；從第二晚起，每局限用一次，可選擇復活一名已死亡的玩家。被復活的玩家將完全恢復身分與技能，但在不死鳥出局時會隨之殉情。若復活了狼人陣營，雙方將互相得知對方身分。" },
     "蝕日侍女": { faction: "wolf", type: "wolf", nightPhase: ["first_half", "second_half"], actionType: "dynamic", prompt: "選擇今晚吞噬的目標", description:"狼人陣營，不與狼隊見面，知道所有狼人的號碼；從第二晚起，每局可以吞噬一名非狼人的玩家，使被吞噬的玩家無法使用技能，且自己可以使用其技能。其餘狼人死亡後，蝕日侍女參與襲擊" },
+    "流光伯爵": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚的保佑對象", description:"神職；每晚可以保佑一名非自己的玩家，不可連續兩晚保佑相同玩家。被保佑的玩家免疫狼刀、毒藥和連續攝夢，而且被蝕日侍女吞噬時會使蝕日侍女次日死亡。" },
 };
