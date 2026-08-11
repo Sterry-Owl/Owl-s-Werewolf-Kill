@@ -2392,6 +2392,9 @@ RoleRegistry.register("蝕日侍女", {
             
             p.data.virtualRoles = [p.data.devouredRole]; 
             
+            p.data.customTopTags = p.data.customTopTags || {};
+            p.data.customTopTags[actualTarget] = p.data.devouredRole; 
+            
             ctx.devouredSeat = actualTarget; 
             ctx.devourerSeat = p.seatNumber; 
             
