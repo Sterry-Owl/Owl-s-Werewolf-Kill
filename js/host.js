@@ -643,17 +643,25 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                     actionPanel.prompt = plugin.getPrompt(ctx, player.seatNumber);
                 }
             } else {
-                // [擴充] 神職被恐懼的專屬靜態 UI 回饋
+                // [擴充] 被恐懼或被吞噬的專屬靜態 UI 回饋
                 const isFeared = ctx.fearedSeat === player.seatNumber;
+                const isDevoured = ctx.devouredSeat === player.seatNumber; // [新增] 吞噬判定
                 const isGod = typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[player.role]?.type === 'god';
                 
-                if (isFeared && isGod) {
+                if (isDevoured) {
                     actionPanel.show = true;
                     actionPanel.deadline = ctx.deadline;
                     actionPanel.type = 'none';
-                    actionPanel.prompt = "【技能失效】你被恐懼了，今晚無法使用技能";
+                    actionPanel.prompt = "你被獵日了，無法使用技能";
                     actionPanel.buttons = [];
-                    actionPanel.hasActed = true; // 鎖定狀態，防止惡意互動
+                    actionPanel.hasActed = true;
+                } else if (isFeared && isGod) {
+                    actionPanel.show = true;
+                    actionPanel.deadline = ctx.deadline;
+                    actionPanel.type = 'none';
+                    actionPanel.prompt = "你被恐懼了，無法使用技能";
+                    actionPanel.buttons = [];
+                    actionPanel.hasActed = true;
                 }
             }
         }
