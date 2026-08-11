@@ -2222,7 +2222,7 @@ RoleRegistry.register("高級平民", {
 RoleRegistry.register("蝕日侍女", {
     canSelfExplode: true,
     canSeeWolves: true,
-    seenAsWolf: true,
+    seenAsWolf: false,
     isAttacker: false,
     hasWolfChatAccess: false,
     nightPhase: ["first_half", "second_half"],
@@ -2230,19 +2230,13 @@ RoleRegistry.register("蝕日侍女", {
         const step = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
         if (step === 'second_half') {
             const p = ctx.players.find(x => x.role === '蝕日侍女' && !x.isDead);
-            if (p && p.data.devouredRole === '女巫') return 'dynamic_buttons'; // 女巫具備雙按鈕特例
+            if (p && p.data.devouredRole === '女巫') return 'dynamic_buttons'; 
         }
         return 'single_select';
     },
     onNightStart: (ctx, player) => {
         player.data.devouredThisNight = false;
         player.data.devouredRole = null;
-        player.data.customTopTags = player.data.customTopTags || {};
-        ctx.players.forEach(p => {
-            if (p.seatNumber !== player.seatNumber && typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf') {
-                player.data.customTopTags[p.seatNumber] = '狼人';
-            }
-        });
     },
     hasAction: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
