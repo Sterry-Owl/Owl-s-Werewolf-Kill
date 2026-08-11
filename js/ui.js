@@ -63,14 +63,55 @@ const UI = {
                 promptEl.innerHTML = '行動已送出，等待系統確認...';
             }
         }
+    
         
         clearInterval(UI.countdownInterval);
         document.querySelectorAll('.player-seat').forEach(s => {
             s.style.pointerEvents = 'none';
         });
     },
+    
+    playShoutAnimation: function(role) {
+        let container = document.getElementById('shout-animation-container');
+        if (!container) {
+            // [淨化 DOM] 若容器不存在則動態生成，不需修改 HTML 原始檔
+            container = document.createElement('div');
+            container.id = 'shout-animation-container';
+            const img = document.createElement('img');
+            img.id = 'shout-animation-img';
+            container.appendChild(img);
+            document.body.appendChild(container);
+        }
+        
+        const img = document.getElementById('shout-animation-img');
+        // [模組化] 將角色名稱映射為實際檔名，方便後續無限擴充
+        const imgMap = {
+            '騎士': 'shout-knight.webp',
+            '白狼王': 'shout-wwk.webp',
+            '定序王子': 'shout-prince.webp',
+            '河豚': 'shout-pufferfish.webp'
+        };
+        const fileName = imgMap[role] || 'shout-default.webp';
+        img.src = `./img/shout/${fileName}`;
+        
+        // [重置動畫] 觸發瀏覽器 Reflow 以保證動畫能重複播放
+        container.classList.remove('show');
+        void container.offsetWidth; 
+        container.classList.add('show');
+        
+        // 2.5 秒後自動淡出
+        clearTimeout(UI.shoutTimeout);
+        UI.shoutTimeout = setTimeout(() => {
+            container.classList.remove('show');
+        }, 2500); 
+    },
 
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = [], showVoteHistory = false) {
+        if (state.latestAnimation && state.latestAnimation.timestamp > (UI.lastAnimationTime || 0)) {
+            UI.lastAnimationTime = state.latestAnimation.timestamp;
+            UI.playShoutAnimation(state.latestAnimation.role);
+        }
+
         document.getElementById('player-seat-number').textContent = state.mySeat || '-';
 
         // ==========================================
@@ -596,6 +637,11 @@ const UI = {
     },
 
     renderHostView: function(state, onHostAction) {
+        if (state.latestAnimation && state.latestAnimation.timestamp > (UI.lastAnimationTime || 0)) {
+            UI.lastAnimationTime = state.latestAnimation.timestamp;
+            UI.playShoutAnimation(state.latestAnimation.role);
+        }
+
         const inGameRoomId = document.getElementById('display-room-id-in-game');
         if (inGameRoomId) inGameRoomId.textContent = document.getElementById('display-room-id').textContent;
         const phaseName = document.getElementById('host-phase-name');
