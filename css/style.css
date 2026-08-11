@@ -609,3 +609,38 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     z-index: 100;
     pointer-events: none; /* 讓點擊穿透，保護下方互動元件 */
 }
+/* ==================================================== */
+/* 日間技能發動特效 (Shout Animation) */
+/* ==================================================== */
+#shout-animation-container {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    pointer-events: none; /* 絕對穿透點擊，保護下方互動元件 */
+    z-index: 99999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.6); /* 暗化背景，突顯圖片 */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s;
+}
+
+#shout-animation-container.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+#shout-animation-container img {
+    width: 100%;
+    max-width: 600px; /* 限制最大寬度，確保跨裝置(手機/PC)體驗一致 */
+    height: auto;
+    object-fit: contain;
+    transform: scale(0.6) translateY(30px);
+    filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.4));
+    transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 帶有張力的回彈放大效果 */
+}
+
+#shout-animation-container.show img {
+    transform: scale(1) translateY(0);
+}
