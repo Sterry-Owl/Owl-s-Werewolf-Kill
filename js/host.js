@@ -204,6 +204,8 @@ function handleIncomingPacket(peerId, data) {
                 const validTargets = plugin.daySkill.getSelectableSeats(engineContext, player.seatNumber);
                 if (!validTargets.includes(data.payload.target)) return;
             }
+
+            engineContext.latestAnimation = { role: player.role, timestamp: Date.now() };
             plugin.daySkill.resolve(engineContext, player, data.payload.target);
             const targetText = plugin.daySkill.requiresTarget ? ` 對 ${data.payload.target}號` : "";
             Engine.EventBus.emit('MASTER_LOG', `【技能發動】${player.seatNumber}號(${player.role})${targetText} 使用了 ${plugin.daySkill.buttonText}`);
@@ -514,9 +516,10 @@ function resumeRoutinePhase() {
 function syncStateToAll() {
     const ctx = engineContext;
     const isDayPhase = ['BEAR_ROAR_ANNOUNCE', 'DAWN_DEATH_ANNOUNCE', 'DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'SHERIFF_ORDER_SELECTION', 'DAY_DISCUSSION', 'DAY_VOTING', 'DAY_PK_SPEECH', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'POST_VOTE_SKILL', 'PRINCE_SPEECH', 'LAST_WORDS', 'DAY_SKILL_LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION', 'BLOODMOON_ACTION'].includes(ctx.phase);
-    const hostState = { // [修復] 補回遺失的物件宣告
+    const hostState = {
         systemLog: ctx.systemLog,
         masterLog: ctx.masterLog || [],
+        latestAnimation: ctx.latestAnimation || null,
         players: ctx.players.map(p => ({ ...p })),
         layout: { showSetupPanel: ctx.phase === 'LOBBY', showNightPanel: ['NIGHT_TRANSITION', 'NIGHT_ACTION'].includes(ctx.phase), showDayPanel: isDayPhase },
         nightFlow: (ctx.nightSequence || []).map((step, idx) => ({ title: `[${step.phaseName}]`, status: idx < ctx.currentNightStepIndex ? 'completed' : (idx === ctx.currentNightStepIndex ? 'active' : 'pending'), result: step.roles.map(r => r.roleName).join(', ') })),
@@ -913,6 +916,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             requiresTarget: RoleRegistry.plugins[player.role].daySkill.requiresTarget,
             selectableSeats: RoleRegistry.plugins[player.role].daySkill.requiresTarget ? RoleRegistry.plugins[player.role].daySkill.getSelectableSeats(ctx, player.seatNumber) : []
         } : null,
+        latestAnimation: ctx.latestAnimation || null,
         allowBailout: !player.isDead && ['SHERIFF_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT'].includes(ctx.phase) && (ctx.sheriff.candidates || []).includes(player.seatNumber),
         allowEndSpeech: player.seatNumber === ctx.currentSpeaker
     };
