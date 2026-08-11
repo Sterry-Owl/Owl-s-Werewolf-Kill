@@ -575,7 +575,12 @@ RoleRegistry.register("石像鬼", {
     canSelfExplode: false,
     canSeeWolves: false,
     seenAsWolf: false,
-    isAttacker: false,    
+    isAttacker: (ctx, mySeat) => {
+        const step = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
+        if (step !== 'midnight') return false;
+        const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
+        return otherWolves.length === 0;
+    },   
     nightPhase: ["first_half", "midnight"], 
     actionType: "dynamic_buttons",
     hasAction: (ctx, mySeat) => {
@@ -630,7 +635,12 @@ RoleRegistry.register("隱狼", {
     canSelfExplode: false,
     canSeeWolves: true,
     seenAsWolf: false,
-    isAttacker: false,
+    isAttacker: (ctx, mySeat) => {
+        const step = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
+        if (step !== 'midnight') return false;
+        const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
+        return otherWolves.length === 0;
+    },
     onNightStart: (ctx, player) => {
         player.data.customTopTags = player.data.customTopTags || {};
         ctx.players.forEach(p => {
@@ -2224,9 +2234,13 @@ RoleRegistry.register("蝕日侍女", {
     canSeeWolves: true,
     seenAsWolf: false,
     hasWolfChatAccess: false,
-
     nightPhase: ["first_half", "midnight", "second_half"],
-    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
+    isAttacker: (ctx, mySeat) => {
+        const step = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
+        if (step !== 'midnight') return false;
+        const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
+        return otherWolves.length === 0;
+    },
     actionType: (ctx) => {
         const step = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
         if (step === 'midnight') return 'consensus';
