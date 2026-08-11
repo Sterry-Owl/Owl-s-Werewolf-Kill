@@ -461,9 +461,11 @@ const UI = {
             }
 
             seat.innerHTML = `
-                <div class="seat-img-wrapper">
-                    <img src="./img/seat_${p.seatNumber}.webp" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-size:18px; font-weight:bold; color:#333;">${p.seatNumber}</div>
+                <div style="position:relative; width:42px; height:42px; flex-shrink:0;">
+                    <div class="seat-img-wrapper">
+                        <img src="./img/seat_${p.seatNumber}.webp" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-size:18px; font-weight:bold; color:#333;">${p.seatNumber}</div>
+                    </div>
                     ${tagsHtml}
                 </div>
                 <div class="player-name">${p.name || '等待加入'}</div>
@@ -672,9 +674,11 @@ const UI = {
                     if (p.isSheriff) tagsHtml += `<div class="sheriff-diamond"></div>`;
 
                     seat.innerHTML = `
-                        <div class="seat-img-wrapper">
-                            <img src="./img/seat_${p.seatNumber}.webp" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                            <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-size:18px; font-weight:bold; color:#333;">${p.seatNumber}</div>
+                        <div style="position:relative; width:42px; height:42px; flex-shrink:0;">
+                            <div class="seat-img-wrapper">
+                                <img src="./img/seat_${p.seatNumber}.webp" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-size:18px; font-weight:bold; color:#333;">${p.seatNumber}</div>
+                            </div>
                             ${tagsHtml}
                         </div>
                         <div class="player-name">${p.name || '等待加入'}</div>
