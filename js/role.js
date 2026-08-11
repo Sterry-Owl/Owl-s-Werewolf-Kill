@@ -865,7 +865,7 @@ RoleRegistry.register("攝夢人", {
         if (deathMap[player.seatNumber] && ctx.dreamedSeat && ctx.dreamerSeat === player.seatNumber) {
             deathMap[ctx.dreamedSeat] = 'doubledreamed'; 
         }
-    },
+    }
     resolveNightAction: (ctx, actions) => {
         const act = actions.find(a => a.player.role === '攝夢人');
         let target;
