@@ -242,25 +242,39 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .side-tag.tag-gold { background: #ffdb4d; color: #000; }
 .side-tag.tag-red { background: #f15b5b; color: #fff; }
 .side-tag.tag-default { background: #fdf5c9; color: #111; }
-/* [新增] 警長標籤，擁有尊爵不凡的橘金色 */
 .side-tag.tag-sheriff { background: var(--sheriff-gold); color: #000; font-size: 11px; padding: 4px 10px; border: 1px solid #fff; box-shadow: 0 0 8px var(--sheriff-gold); }
 
 .player-seat.selected .seat-img-wrapper { border-color: var(--accent-green) !important; }
-.player-seat.wolf-selected .seat-img-wrapper { box-shadow: 0 0 12px 4px rgba(255, 183, 3, 0.8) !important; border-color: var(--wolf-yellow); }
+
+.player-seat.selectable-target .seat-img-wrapper {
+    box-shadow: 0 0 12px 3px rgba(255, 215, 0, 0.7) !important;
+    border-color: #ffd700 !important;
+    animation: pulse-yellow 2s infinite;
+}
+
+@keyframes pulse-yellow {
+    0% { box-shadow: 0 0 8px 2px rgba(255, 215, 0, 0.5) !important; }
+    50% { box-shadow: 0 0 15px 5px rgba(255, 215, 0, 0.9) !important; }
+    100% { box-shadow: 0 0 8px 2px rgba(255, 215, 0, 0.5) !important; }
+}
+
+.player-seat.wolf-selected .seat-img-wrapper { 
+    box-shadow: 0 0 12px 4px rgba(114, 47, 55, 0.8) !important; 
+    border-color: #722F37 !important; 
+}
 
 .wolf-preview-tag {
     position: absolute; bottom: -12px; left: 50%; transform: translateX(-50%);
-    background: var(--wolf-yellow); color: #000; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; z-index: 15; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    background: #722F37; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; z-index: 15; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
 .player-seat:hover:not(.locked):not(.dead) .seat-img-wrapper { border-color: var(--accent-blue); }
 /* 1. 取消父容器的濾鏡與透明度，阻斷子元素(紅色叉號)的灰階繼承 */
-.player-seat.dead { 
-    cursor: not-allowed; 
-}
-
-/* 2. 將灰階與透明度精確限制在頭像容器上 */
 .player-seat.dead .seat-img-wrapper { 
+    border-color: rgba(85, 85, 85, 0.4); /* 僅讓外框半透明 */
+}
+.player-seat.dead .seat-img-wrapper > img,
+.player-seat.dead .seat-img-wrapper > div:first-of-type {
     opacity: 0.4; 
     filter: grayscale(100%); 
 }
