@@ -365,7 +365,7 @@ const UI = {
                             const tData = state.players.find(p => p.seatNumber === target);
                             if (tData && tData.sideTag) {
                                 alignmentLabel = tData.sideTag;
-                                if (alignmentLabel === '狼人') specialClass = 'wolf';
+                                if (alignmentLabel === '狼人' || alignmentLabel === '疑似狼人') specialClass = 'wolf';
                                 else if (alignmentLabel === '好人') specialClass = 'good';
                                 else if (alignmentLabel === '警長') specialClass = 'sheriff';
                                 else if (alignmentLabel === '銀水') specialClass = 'silver';
@@ -387,7 +387,7 @@ const UI = {
                         const tData = state.players.find(p => p.seatNumber === target);
                         if (tData && tData.sideTag) {
                             alignmentLabel = tData.sideTag;
-                            if (alignmentLabel === '狼人') specialClass = 'wolf';
+                            if (alignmentLabel === '狼人' || alignmentLabel === '疑似狼人') specialClass = 'wolf';
                             else if (alignmentLabel === '好人') specialClass = 'good';
                             else if (alignmentLabel === '警長') specialClass = 'sheriff';
                             else if (alignmentLabel === '銀水') specialClass = 'silver';
