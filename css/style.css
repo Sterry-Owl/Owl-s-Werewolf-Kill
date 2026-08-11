@@ -269,14 +269,11 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 
 .player-seat:hover:not(.locked):not(.dead) .seat-img-wrapper { border-color: var(--accent-blue); }
-/* 1. 取消父容器的濾鏡與透明度，阻斷子元素(紅色叉號)的灰階繼承 */
+
 .player-seat.dead .seat-img-wrapper { 
-    border-color: rgba(85, 85, 85, 0.4); /* 僅讓外框半透明 */
-}
-.player-seat.dead .seat-img-wrapper > img,
-.player-seat.dead .seat-img-wrapper > div:first-of-type {
     opacity: 0.4; 
     filter: grayscale(100%); 
+    border-color: rgba(85, 85, 85, 0.4);
 }
 
 .player-seat.dead::after { 
