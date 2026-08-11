@@ -8,24 +8,35 @@ const UI = {
     cachedDaySkillData: null, 
     originalActionPanel: null,
     getTopTagStyle: function(text) {
-        let bg = 'var(--accent-blue)'; 
+        const colorMap = {
+            '平民': '#EAE0CF', '高級平民': '#EAE0CF', '燈影預言家': '#EAE0CF',
+            '暗戀者': '#FC8EAC',
+            '預言家': '#B999A7', '魔鏡少女': '#B999A7', '純白之女': '#B999A7', '熊': '#B999A7', '覺醒預言家': '#B999A7',
+            '女巫': '#76ABAE', '子狐': '#76ABAE',
+            '騎士': '#004030', '獵人': '#004030', '獵魔人': '#004030', '定序王子': '#004030', '河豚': '#004030',
+            '守墓人': '#FF9851', '攝夢人': '#FF9851', '烏鴉': '#FF9851', '白痴': '#FF9851', '守衛': '#FF9851', '魔術師': '#FF9851', '奇蹟商人': '#FF9851', '流光伯爵': '#FF9851', '白晝學者': '#FF9851', '白貓': '#FF9851',
+            '石像鬼': '#4d170d', '尋香魅影': '#4d170d', '機械狼': '#4d170d', '隱狼': '#4d170d',
+            '狼巫': '#3d031a', '惡靈騎士': '#3d031a',
+            '白狼王': '#7f203b', '血月使徒': '#7f203b', '狼王': '#7f203b', '狼美人': '#7f203b', '狼鴉之爪': '#7f203b',
+            '蝕時狼妃': '#853953', '噩夢之影': '#853953', '蝕日侍女': '#853953',
+            '狼人': '#7f2020'
+        };
+
+        let bg = colorMap[text];
         let color = '#fff';
-        const def = typeof ROLE_DICTIONARY !== 'undefined' ? ROLE_DICTIONARY[text] : null;
-        
-        if (def) {
-            if (def.faction === 'wolf') bg = '#e57373'; 
-            else if (def.faction === 'third_party') bg = '#385a87';
-            else if (text === '預言家' || text === '燈影預言家' || text === '魔鏡少女') bg = '#b28dd6';
-            else if (text === '平民' || text === '暗戀者') { bg = '#f5f5f5'; color = '#333'; } 
-            else if (text === '獵人') bg = '#81c784'; 
-        } else {
-            if (text === '狼人') bg = '#e57373';
-            else if (text === '平民') { bg = '#f5f5f5'; color = '#333'; }
-            else if (text === '預言家') bg = '#b28dd6';
-            else if (text === '獵人') bg = '#81c784';
+        if (!bg) {
+            bg = 'var(--accent-blue)'; 
+            const def = typeof ROLE_DICTIONARY !== 'undefined' ? ROLE_DICTIONARY[text] : null;
+            if (def) {
+                if (def.faction === 'wolf') bg = '#7f2020'; 
+                else if (def.faction === 'third_party') bg = '#385a87';
+            }
+        }
+        if (['#EAE0CF'].includes(bg)) {
+            color = '#333';
         }
         return `background:${bg}; color:${color}; border: 1px solid rgba(0,0,0,0.2);`;
-    }, 
+    },
 
     updateStatusMessage: function(msg) {
         const el = document.getElementById('action-prompt');
