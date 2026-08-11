@@ -2223,26 +2223,34 @@ RoleRegistry.register("蝕日侍女", {
     canSelfExplode: true,
     canSeeWolves: true,
     seenAsWolf: false,
-    isAttacker: false,
     hasWolfChatAccess: false,
-    nightPhase: ["first_half", "second_half"],
+
+    nightPhase: ["first_half", "midnight", "second_half"],
+    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
     actionType: (ctx) => {
         const step = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
+        if (step === 'midnight') return 'consensus';
         if (step === 'second_half') {
             const p = ctx.players.find(x => x.role === '蝕日侍女' && !x.isDead);
             if (p && p.data.devouredRole === '女巫') return 'dynamic_buttons'; 
         }
         return 'single_select';
     },
+    
     onNightStart: (ctx, player) => {
         player.data.devouredThisNight = false;
         player.data.devouredRole = null;
     },
+    
     hasAction: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         const p = ctx.getPlayer(mySeat);
         
         if (step === 'first_half') return ctx.nightCount >= 2;
+        if (step === 'midnight') {
+            const otherWolves = ctx.getAlivePlayers().filter(x => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[x.role]?.faction === 'wolf' && x.seatNumber !== mySeat);
+            return otherWolves.length === 0;
+        }
         if (step === 'second_half') {
             if (p.data.devouredThisNight && p.data.devouredRole) {
                 return ['預言家', '女巫', '攝夢人'].includes(p.data.devouredRole);
@@ -2250,9 +2258,11 @@ RoleRegistry.register("蝕日侍女", {
         }
         return false;
     },
+    
     getPrompt: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         if (step === 'first_half') return "選擇今晚的吞噬目標\n(不可選擇狼人，不可連續兩晚吞噬同一人)";
+        if (step === 'midnight') return "其餘狼人皆已出局\n請選擇今晚的襲擊目標 (或跳過以空刀)";
         
         const role = ctx.getPlayer(mySeat).data.devouredRole;
         if (role === '預言家') return "【吞噬技能: 預言家】選擇查驗目標";
@@ -2263,6 +2273,7 @@ RoleRegistry.register("蝕日侍女", {
         if (role === '攝夢人') return "【吞噬技能: 攝夢人】選擇攝夢目標 (不可選擇自己，不可跳過)";
         return "等待中...";
     },
+    
     getSelectableSeats: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         const p = ctx.getPlayer(mySeat);
@@ -2276,7 +2287,9 @@ RoleRegistry.register("蝕日侍女", {
                 return true;
             }).map(target => target.seatNumber);
         }
-        
+        if (step === 'midnight') {
+            return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
+        }
         if (step === 'second_half') {
             const role = p.data.devouredRole;
             if (role === '女巫') {
@@ -2287,9 +2300,11 @@ RoleRegistry.register("蝕日侍女", {
         }
         return [];
     },
+    
     getButtons: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         if (step === 'first_half') return [{ id: 'devour', text: '吞噬', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
+        if (step === 'midnight') return [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
         
         const p = ctx.getPlayer(mySeat);
         const role = p.data.devouredRole;
@@ -2311,6 +2326,7 @@ RoleRegistry.register("蝕日侍女", {
         }
         return [];
     },
+    
     getPreSelectedTarget: (ctx) => {
         const p = ctx.players.find(x => x.role === '蝕日侍女' && !x.isDead);
         if (p && p.data.devouredRole === '女巫') {
@@ -2318,6 +2334,7 @@ RoleRegistry.register("蝕日侍女", {
         }
         return null;
     },
+    
     resolveNightAction: (ctx, actions) => {
         const act = actions[0];
         if (!act) return "【無效行動】";
@@ -2334,9 +2351,13 @@ RoleRegistry.register("蝕日侍女", {
             p.data.devouredRole = tPlayer.data.camouflageRole || tPlayer.role;
             p.data.lastDevouredSeat = parseInt(target);
             
-            ctx.devouredSeat = actualTarget;
+            ctx.devouredSeat = actualTarget; 
             
             return `【吞噬: ${target}號 (${p.data.devouredRole})】`;
+        }
+        
+        if (step === 'midnight') {
+            return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
         }
 
         if (step === 'second_half') {
@@ -2372,6 +2393,10 @@ RoleRegistry.register("蝕日侍女", {
                     if (ctx.nightTags?.killed?.length > 0) {
                         const victim = ctx.nightTags.killed[0];
                         p.data.maidWitchState.savedSeat = victim; 
+                        
+                        ctx.witchState = ctx.witchState || {};
+                        ctx.witchState.savedSeat = victim; 
+                        
                         ctx.nightTags.witchUsedSaveTonight = true;
                         p.data.maidWitchState.antidoteUsed = true;
                         return "【使用解藥】";
