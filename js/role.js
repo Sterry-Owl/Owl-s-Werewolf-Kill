@@ -67,18 +67,10 @@ window.RoleRegistry = {
                         }
                     }
                 });
-                if (ctx.blessedSeat) {
-                    const bSeat = ctx.blessedSeat;
-                    if (['killed', 'poisoned', 'doubledreamed'].includes(deathMap[bSeat])) {
-                        delete deathMap[bSeat];
-                        if (typeof Engine !== 'undefined' && Engine.EventBus) Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】流光伯爵保佑生效，免除了 ${bSeat} 號的死亡`);
-                    }
-                    if (ctx.devouredSeat === bSeat && ctx.devourerSeat) {
-                        deathMap[ctx.devourerSeat] = 'bless_backfire';
-                        if (typeof Engine !== 'undefined' && Engine.EventBus) Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】蝕日侍女吞噬了被保佑的 ${bSeat} 號，遭到流光反噬`);
-                    }
+                if (ctx.blessedSeat && ctx.devouredSeat === ctx.blessedSeat && ctx.devourerSeat) {
+                    deathMap[ctx.devourerSeat] = 'bless_backfire';
+                    if (typeof Engine !== 'undefined' && Engine.EventBus) Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】蝕日侍女吞噬了被保佑的 ${ctx.blessedSeat} 號，遭到流光反噬`);
                 }
-                
                 ctx.players.forEach(p => {
                     const plugin = RoleRegistry.plugins[p.role];
                     if (plugin && typeof plugin.onDawnDeathEvaluation === 'function') {
@@ -93,6 +85,13 @@ window.RoleRegistry = {
                         });
                     }
                 });
+                if (ctx.blessedSeat) {
+                    if (['killed', 'poisoned', 'doubledreamed'].includes(deathMap[ctx.blessedSeat])) {
+                        delete deathMap[ctx.blessedSeat];
+                        if (typeof Engine !== 'undefined' && Engine.EventBus) Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】流光伯爵保佑生效，免除了 ${ctx.blessedSeat} 號的死亡`);
+                    }
+                }
+
                 return deathMap;
             });
 
@@ -278,7 +277,7 @@ RoleRegistry.register("女巫", {
     },
     getPreSelectedTarget: (ctx) => (!(ctx.witchState?.antidoteUsed) && ctx.nightTags?.killed?.length > 0) ? ctx.nightTags.killed[0] : null,
     resolveNightAction: (ctx, actions) => {
-        const act = actions[0];
+        const act = actions.find(a => a.player.role === '女巫');
         if (!act) return "跳過行動"; 
         if (!ctx.witchState) ctx.witchState = {};
         const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
@@ -322,7 +321,7 @@ RoleRegistry.register("預言家", {
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
-        const act = actions[0];
+        const act = actions.find(a => a.player.role === '預言家');
         if (!act) return "【跳過行動】";
         const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
         if (act.actionId === 'confirm' && target) {
@@ -361,16 +360,13 @@ RoleRegistry.register("燈影預言家", {
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
-        const act = actions[0];
+        const act = actions.find(a => a.player.role === '燈影預言家');
         if (!act) return "【跳過行動】";
         const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
         if (act.actionId === 'confirm' && target) {
             const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
             const tPlayer = ctx.getPlayer(actualTarget);
-            // 優先讀取掩護身分 (供機械狼偽裝使用)
             const checkRole = tPlayer.data.camouflageRole || tPlayer.role; 
-            
-            // 預言家 / 燈影預言家 使用陣營判定：
             const isWolf = (checkRole && ROLE_DICTIONARY[checkRole]?.faction === 'wolf');
             let alignment = isWolf ? "狼人" : "好人";
             
@@ -439,10 +435,10 @@ RoleRegistry.register("守衛", {
     getSelectableSeats: (ctx) => ctx.getAlivePlayers().filter(p => p.seatNumber !== ctx.lastGuardedSeat).map(p => p.seatNumber),
     getButtons: () => [{ id: 'guard', text: '守護', requiresTarget: true }, { id: 'pass', text: '空守', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
-        const act = actions[0];
+        const act = actions.find(a => a.player.role === '守衛');
         if (!act || act.actionId === 'pass') {
             ctx.guardedSeat = null;
-            ctx.lastGuardedSeat = null;
+            if (act) act.player.data.lastGuardedSeat = null;
             return "【空守】";
         }
         const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
@@ -873,14 +869,14 @@ RoleRegistry.register("攝夢人", {
         }
     },
     resolveNightAction: (ctx, actions) => {
+        const act = actions.find(a => a.player.role === '攝夢人');
         let target;
-        const act = actions.find(a => a.actionId !== 'pass');
         
-        if (act && act.targets && act.targets.length > 0) {
+        if (act && act.actionId !== 'pass' && act.targets && act.targets.length > 0) {
             target = act.targets[0];
         } else {
             const swPlayer = ctx.players.find(p => p.role === '攝夢人' && !p.isDead);
-            if (!swPlayer) return "【無效行動，隨機選擇】";
+            if (!swPlayer || ctx.devouredSeat === swPlayer.seatNumber) return "【無效行動】";
             
             const selectable = ctx.getAlivePlayers().filter(p => p.seatNumber !== swPlayer.seatNumber).map(p => p.seatNumber);
             if (selectable.length > 0) {
@@ -1004,7 +1000,7 @@ RoleRegistry.register("魔鏡少女", {
         { id: 'pass', text: '跳過', requiresTarget: false }
     ],
     resolveNightAction: (ctx, actions) => {
-            const act = actions[0];
+            const act = actions.find(a => a.player.role === '魔鏡少女');
             if (!act) return "【跳過行動】";
             const target = act.targets && act.targets.length > 0 ? act.targets[0] : null;
             
@@ -2470,10 +2466,9 @@ RoleRegistry.register("流光伯爵", {
     },
     getButtons: () => [{ id: 'bless', text: '保佑', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
-        const act = actions[0];
+        const act = actions.find(a => a.player.role === '流光伯爵');
         if (!act || act.actionId === 'pass') {
-            ctx.blessedSeat = null;
-            act.player.data.lastBlessedSeat = null;
+            if (act) act.player.data.lastBlessedSeat = null;
             return "【跳過行動】";
         }
         
