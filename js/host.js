@@ -864,6 +864,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                 forcedTargets = [];
                 break;
             case 'DAWN_DEATH_ANNOUNCE':
+            case 'DELAYED_DEATH_ANNOUNCE':
                 const d = ctx.deadThisNight || [];
                 bg = d.length === 0 ? 'act_11' : 'act_12';
                 forcedTargets = d; 
