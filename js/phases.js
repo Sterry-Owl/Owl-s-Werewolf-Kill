@@ -38,8 +38,6 @@ window.PhaseRegistry = {
                 if (nextSpeaker === null) {
                     ctx.currentSpeaker = null;
                     ctx.systemLog = "發言環節結束。";
-                    
-                    // [修復] 確保佇列被正確清空，打破無限重返的死迴圈
                     if (currentPhase === 'LAST_WORDS') {
                         ctx.lastWordsTargets = [];
                     }
@@ -49,6 +47,13 @@ window.PhaseRegistry = {
                     
                     if (nextPhaseName === 'RESUME_ROUTINE') {
                         Engine.EventBus.emit('RESUME_ROUTINE');
+                    } else if (nextPhaseName === 'DAY_VOTING') {
+                        ctx.routineOrigin = 'AFTERNOON';
+                        if (ctx.pendingDawnDeaths) {
+                            self.sm.transitionTo('DAY_INTERRUPT_SKILL');
+                        } else {
+                            self.sm.transitionTo('DAY_VOTING');
+                        }
                     } else {
                         self.sm.transitionTo(nextPhaseName);
                     }
