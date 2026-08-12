@@ -44,12 +44,25 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 
 .app-header { 
-    background: #4a1c1c; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;
-    font-weight: bold; color: #ffcccc; font-size: 12px; border-bottom: 2px solid #2a0b0b; 
-    flex-shrink: 0; z-index: 10;
+    background: #1c2633; padding: 8px 15px; display: flex; justify-content: space-between; align-items: center;
+    font-weight: bold; color: #e0e6ed; border-bottom: 2px solid #0f1620; 
+    flex-shrink: 0; z-index: 10; position: relative;
 }
 
-.app-body { 
+.header-left { display: flex; align-items: baseline; gap: 2px; }
+.header-left .seat-num { font-size: 20px; color: #fff; line-height: 1; }
+.header-left .seat-unit { font-size: 11px; color: #9ba8b8; margin-bottom: 2px; }
+.header-center {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    color: #fff; font-size: 12px; text-align: center; white-space: nowrap; pointer-events: none;
+}
+
+.header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.header-right .role-text { font-size: 11px; color: #9ba8b8; }
+.header-right #player-role-name { color: #fff; font-size: 12px; }
+.header-right .btn-board-details { font-size: 10px; padding: 2px 0; margin: 0; }
+
+.app-body {
     /* [關鍵修復] 恢復被刪除的 Flex 屬性，確保左中右三區塊橫向並列 */
     display: flex;
     flex-direction: row;
