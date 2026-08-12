@@ -357,9 +357,6 @@ function setupEngineFlowControllers() {
             Engine.EventBus.emit('AFTER_DEATH_ANNOUNCE_ROUTINE');
             return;
         }
-
-        engineContext.players.forEach(p => {
-
         engineContext.players.forEach(p => {
             if (!p.isDead && deathMap[p.seatNumber]) p.kill(deathMap[p.seatNumber], engineContext);
         });
