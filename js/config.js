@@ -142,6 +142,7 @@ const BOARD_TEMPLATES = [
     { id: "deswhl_10", name: "10人 永序之輪", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "定序王子", "蝕時狼妃", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "animal_10", name: "10人 動物夢境", category: 'quick', playerCount: 10, deck: ["熊", "河豚", "子狐", "狼美人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "pure_10", name: "10人 純白夜影", category: 'quick', playerCount: 10, deck: ["純白之女", "女巫", "守衛", "狼巫", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "mistclaw_10", name: "10人 迷霧鴉影", category: 'quick', playerCount: 10, deck: ["預言家", "煉金魔女", "攝夢人", "狼鴉之爪", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "grabsun_10", name: "10人 獵日逐光", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "流光伯爵", "蝕日侍女", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "flute_10", name: "10人 吹笛者", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "不死鳥", "狼鴉之爪", "狼人", "狼人", "平民", "平民", "平民", "吹笛者"] },
     { id: "standard_12", name: "12人 標準局", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
@@ -165,6 +166,7 @@ const BOARD_TEMPLATES = [
     { id: "flute_12", name: "12人 不死鳥吹笛者", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "不死鳥", "狼鴉之爪", "狼人", "狼人", "狼人", "平民", "平民", "平民", "吹笛者"] },
     { id: "pure_12", name: "12人 純白夜影", category: 'standard', playerCount: 12, deck: ["純白之女", "女巫", "守衛", "獵人", "狼巫", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "grabsun_12", name: "12人 獵日逐光", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "攝夢人", "流光伯爵", "蝕日侍女", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "mistclaw_12", name: "12人 迷霧鴉影", category: 'standard', playerCount: 12, deck: ["預言家", "煉金魔女", "攝夢人", "白痴", "狼鴉之爪", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
 ];
 
 const ROLE_DICTIONARY = {
