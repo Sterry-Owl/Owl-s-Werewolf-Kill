@@ -2572,6 +2572,11 @@ RoleRegistry.register("煉金魔女", {
                 if (ctx.rules.witchSave === 'never') canSave = false;
                 if (ctx.rules.witchSave === 'first_night' && ctx.nightCount > 1) canSave = false;
             }
+            if (victim !== "無") {
+                actionPanel.forceTargets = true;
+                actionPanel.submittedTargets = [parseInt(victim)];
+            }
+
             if (ctx.currentStepActions.some(act => act.player.seatNumber === viewer.seatNumber)) {
                 actionPanel.prompt = "行動已送出。";
                 actionPanel.buttons = [];
