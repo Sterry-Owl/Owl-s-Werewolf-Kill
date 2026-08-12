@@ -355,6 +355,12 @@ const UI = {
                 const imgEl = document.getElementById('my-card-img');
                 
                 const imgDir = state.useSquareCard ? './img/square' : './img';
+                if (state.useSquareCard) {
+                    cardContainer.classList.add('is-square');
+                } else {
+                    cardContainer.classList.remove('is-square');
+                }
+                
                 imgEl.onerror = null;
                 imgEl.onerror = function() { 
                     this.onerror = function() {
