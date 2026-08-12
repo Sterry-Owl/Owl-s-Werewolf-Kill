@@ -101,6 +101,19 @@ window.RoleRegistry = {
                 return deathMap;
             });
 
+            ctx.addFilter('DEATH_ANNOUNCE_INTERCEPTOR', (result, args) => {
+                ctx.players.forEach(p => {
+                    const plugin = RoleRegistry.plugins[p.role];
+                    if (plugin && typeof plugin.onDeathAnnounceIntercept === 'function') {
+                        const intercept = plugin.onDeathAnnounceIntercept(ctx, p, args.deathMap);
+                        if (intercept && intercept.prevented) {
+                            result = intercept;
+                        }
+                    }
+                });
+                return result;
+            });
+
             ctx.addFilter('NIGHT_ACTION_PERMISSION', (canAct, args) => {
                 const feared = args.context.fearedSeat;
                 if (feared === args.player.seatNumber) return false;
@@ -218,11 +231,22 @@ RoleRegistry.register("狼人", {
     actionType: "consensus",     
     getPrompt: () => "選擇今晚的襲擊目標 (或選擇跳過以空刀)",
     getSelectableSeats: (ctx, mySeat) => {
-        return ctx.getAlivePlayers()
+        let seats = ctx.getAlivePlayers()
             .filter(p => !RoleRegistry.plugins[p.role]?.immuneToWolfBite)
             .map(p => p.seatNumber);
+            
+        if (ctx.nightTags?.restrictedWolfTargets?.length > 0) {
+            seats = seats.filter(s => ctx.nightTags.restrictedWolfTargets.includes(s));
+        }
+        return seats;
     },
-    getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
+    getButtons: (ctx) => {
+        let btns = [{ id: 'confirm', text: '確認', requiresTarget: true }];
+        if (!ctx.nightTags?.restrictedWolfTargets || ctx.nightTags.restrictedWolfTargets.length === 0) {
+            btns.push({ id: 'pass', text: '空刀', requiresTarget: false });
+        }
+        return btns;
+    },
     resolveNightAction: (ctx, actions) => {
         if (ctx.nightTags.wolfKillResolvedThisTurn) return "已參與狼人陣營襲擊";
         if (ctx.nightTags.wolfTeamFeared || ctx.nightTags.wolfTeamConfused) {
@@ -470,6 +494,14 @@ RoleRegistry.register("白狼王", {
         allowedPhases: ['SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'DAY_DISCUSSION', 'DAY_PK_SPEECH', 'PRINCE_SPEECH'],
         getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
         resolve: (ctx, player, targetSeat) => {
+            if (ctx.pendingDawnDeaths) {
+                const deathMap = ctx.pendingDawnDeaths;
+                ctx.players.forEach(p => {
+                    if (!p.isDead && deathMap[p.seatNumber]) p.kill(deathMap[p.seatNumber], ctx);
+                });
+                ctx.pendingDawnDeaths = null;
+                ctx.interruptInitiator = null;
+            }
             const targetPlayer = ctx.getPlayer(targetSeat);
             player.isRevealed = true;
             player.kill('explode', ctx);
@@ -520,6 +552,16 @@ RoleRegistry.register("騎士", {
             }
             
             const isWolf = ROLE_DICTIONARY[targetPlayer.role]?.faction === 'wolf';
+
+            if (ctx.pendingDawnDeaths) {
+                const deathMap = ctx.pendingDawnDeaths;
+                ctx.players.forEach(p => {
+                    if (!p.isDead && deathMap[p.seatNumber]) p.kill(deathMap[p.seatNumber], ctx);
+                });
+                ctx.pendingDawnDeaths = null;
+                ctx.interruptInitiator = null;
+            }
+
             if (isWolf) {
                 targetPlayer.kill('dueled', ctx);
                 ctx.isResolvingAsync = true;
@@ -2495,5 +2537,93 @@ RoleRegistry.register("流光伯爵", {
         ctx.blessedSeat = actualTarget;
         act.player.data.lastBlessedSeat = parseInt(target);
         return `【保佑: ${target}號】`;
+    }
+});
+
+RoleRegistry.register("煉金魔女", {
+    canSelfExplode: false,
+    nightPhase: "first_half",
+    actionType: "triple_select",
+    hasAction: (ctx, mySeat) => {
+        return !ctx.getPlayer(mySeat).data.mistUsed;
+    },
+    onDeathAnnounceIntercept: (ctx, player, deathMap) => {
+        if (!player.data.snakeUsed && !player.isDead) {
+            const isRestricted = ctx.fearedSeat === player.seatNumber ||
+                                 ctx.devouredSeat === player.seatNumber ||
+                                 (ctx.bloodMoonSilenceNight === ctx.nightCount);
+            if (!isRestricted) {
+                return { 
+                    prevented: true, 
+                    initiator: player.seatNumber, 
+                    logMessage: "【系統宣告】法老之蛇存在於場上，昨夜死訊將延後至投票前公布。" 
+                };
+            }
+        }
+        return { prevented: false };
+    },
+    getInterruptUI: (ctx, viewer, actionPanel) => {
+        actionPanel.show = true;
+        actionPanel.deadline = ctx.deadline;
+        if (viewer.role === '煉金魔女' && !viewer.isDead) {
+            const victim = ctx.nightTags?.killed?.length > 0 ? ctx.nightTags.killed[0] : "無";
+            let canSave = victim !== "無" && !viewer.data.snakeUsed;
+            if (canSave && victim === viewer.seatNumber) {
+                if (ctx.rules.witchSave === 'never') canSave = false;
+                if (ctx.rules.witchSave === 'first_night' && ctx.nightCount > 1) canSave = false;
+            }
+            if (ctx.currentStepActions.some(act => act.player.seatNumber === viewer.seatNumber)) {
+                actionPanel.prompt = "行動已送出。";
+                actionPanel.buttons = [];
+                actionPanel.deadline = null;
+            } else {
+                actionPanel.prompt = `昨晚被襲擊的是 ${victim} 號。\n請選擇是否使用法老之蛇：`;
+                actionPanel.buttons = [];
+                if (canSave) actionPanel.buttons.push({ id: 'save', text: '使用蛇', requiresTarget: false });
+                actionPanel.buttons.push({ id: 'pass', text: '不使用', requiresTarget: false });
+            }
+        } else {
+            actionPanel.prompt = "等待特殊技能發動中...";
+            actionPanel.buttons = [];
+        }
+        return actionPanel;
+    },
+    resolveInterruptAction: (ctx, actions) => {
+        const act = actions[0];
+        if (act && act.actionId === 'save') {
+            const victim = ctx.nightTags?.killed?.[0];
+            if (victim) {
+                if (!ctx.pendingDawnDeaths) ctx.pendingDawnDeaths = {};
+                
+                const isGuarded = ctx.guardedSeat === victim;
+                if (isGuarded) {
+                    ctx.pendingDawnDeaths[victim] = 'killed'; 
+                } else {
+                    delete ctx.pendingDawnDeaths[victim]; 
+                }
+                act.player.data.snakeUsed = true;
+                ctx.systemLog = `煉金魔女使用了蛇。`;
+            }
+        } else {
+            ctx.systemLog = `煉金魔女未使用蛇。`;
+        }
+        Engine.EventBus.emit('MASTER_LOG', ctx.systemLog);
+    },
+    getPrompt: () => "選擇拘束的三名玩家\n(使狼人今晚只能從中選刀，且不可空刀)",
+    getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
+    getButtons: () => [
+        { id: 'mist', text: '未明之霧', requiresTarget: true },
+        { id: 'pass', text: '跳過', requiresTarget: false }
+    ],
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || act.actionId === 'pass') return "【保留技能】";
+
+        const targets = act.targets.map(t => parseInt(t));
+        act.player.data.mistUsed = true;
+        ctx.nightTags = ctx.nightTags || {};
+        ctx.nightTags.restrictedWolfTargets = targets.map(t => ctx.getActualTarget ? ctx.getActualTarget(t) : t);
+
+        return `【發動霧：拘束 ${targets.join('、')} 號】`;
     }
 });
