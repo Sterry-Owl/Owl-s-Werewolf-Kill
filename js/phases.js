@@ -157,6 +157,37 @@ window.PhaseRegistry = {
                 Engine.EventBus.emit('AFTER_DEATH_ANNOUNCE_ROUTINE');
             }
         });
+
+        stateMachine.registerPhase('DAY_INTERRUPT_SKILL', {
+            onEnter: (ctx) => {
+                ctx.expectedActionCount = 1;
+                ctx.currentStepActions = [];
+                ctx.systemLog = "等待特殊技能發動...";
+                self.sm.setTimer(15000);
+            },
+            onAction: (ctx, player, actionId, targets) => {
+                if (player.seatNumber !== ctx.interruptInitiator) return;
+                if (ctx.currentStepActions.some(act => act.player.seatNumber === player.seatNumber)) return;
+                ctx.currentStepActions.push({ player, actionId, targets });
+                self.resolveInterruptSkill(ctx);
+            },
+            onTimeout: (ctx) => self.resolveInterruptSkill(ctx)
+        });
+
+        stateMachine.registerPhase('DELAYED_DEATH_ANNOUNCE', {
+            onEnter: (ctx) => {
+                self.sm.setTimer(3000);
+            },
+            onTimeout: (ctx) => {
+                if (ctx.phase === 'GAME_OVER') return;
+                const dead = ctx.deadThisNight || [];
+                ctx.lastWordsTargets = (ctx.nightCount === 1 && dead.length > 0) ? [...dead] : [];
+
+                ctx.destinationPhase = 'DAY_VOTING';
+                ctx.routineOrigin = 'AFTERNOON';
+                Engine.EventBus.emit('RESUME_ROUTINE');
+            }
+        });
         
         stateMachine.registerPhase('SHERIFF_ORDER_SELECTION', {
             onEnter: (ctx) => {
@@ -751,5 +782,42 @@ window.PhaseRegistry = {
             ctx.nextPhaseAfterVoteDisplay = 'RESUME_ROUTINE';
             this.sm.transitionTo('VOTE_RESULT_DISPLAY'); 
         }
+    },
+
+    resolveInterruptSkill: function(ctx) {
+        this.sm.clearTimer();
+        const initiator = ctx.getPlayer(ctx.interruptInitiator);
+        
+        if (initiator && RoleRegistry.plugins[initiator.role] && typeof RoleRegistry.plugins[initiator.role].resolveInterruptAction === 'function') {
+            RoleRegistry.plugins[initiator.role].resolveInterruptAction(ctx, ctx.currentStepActions);
+        } else {
+            ctx.systemLog = `玩家未發動技能。`;
+            Engine.EventBus.emit('MASTER_LOG', ctx.systemLog);
+        }
+
+        const deathMap = ctx.pendingDawnDeaths || {};
+        const deadBefore = ctx.players.filter(p => p.isDead).map(p => p.seatNumber);
+
+        ctx.players.forEach(p => {
+            if (!p.isDead && deathMap[p.seatNumber]) p.kill(deathMap[p.seatNumber], ctx);
+        });
+
+        ctx.deadThisNight = ctx.players
+            .filter(p => p.isDead && !deadBefore.includes(p.seatNumber))
+            .map(p => p.seatNumber);
+
+        ctx.pendingDawnDeaths = null;
+        ctx.interruptInitiator = null;
+
+        Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+        if (ctx.phase === 'GAME_OVER') return;
+
+        const dead = ctx.deadThisNight;
+        const msg = dead.length > 0 ? `剛剛結算，${dead.join(' 號、')} 號玩家死亡。` : `剛剛結算，無人死亡。`;
+        ctx.deathAnnounceText = msg;
+        ctx.systemLog = msg;
+        Engine.EventBus.emit('BROADCAST_MESSAGE', msg);
+
+        this.sm.transitionTo('DELAYED_DEATH_ANNOUNCE');
     }
 };
