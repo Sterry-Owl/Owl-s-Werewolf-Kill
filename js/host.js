@@ -222,6 +222,9 @@ window.startGame = function(selectedRoles, boardName, rules) {
     
     engineContext.boardName = boardName;
     engineContext.rules = rules;
+    const squareCardEl = document.getElementById('rule-square-card');
+    if (squareCardEl) engineContext.rules.squareCard = squareCardEl.value;
+
     engineContext.sheriff.enabled = (rules.sheriff === 'enabled'); 
     
     engineContext.systemLog = '發牌完成，準備進入第一天夜晚...';
@@ -901,6 +904,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     const canUseWolfChat = !player.isDead && ctx.phase === 'NIGHT_ACTION' && hasWolfChat;
     return {
         boardName: ctx.boardName, phase: ctx.phase, 
+        useSquareCard: ctx.rules?.squareCard === 'on',
         nightStepIndex: ctx.currentNightStepIndex,
         nightCount: ctx.nightCount,
         mySeat: player.seatNumber, myRole: myDisplayRole,
