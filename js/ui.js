@@ -12,7 +12,7 @@ const UI = {
             '平民': '#EAE0CF', '高級平民': '#EAE0CF', '燈影預言家': '#EAE0CF',
             '暗戀者': '#FC8EAC',
             '預言家': '#B999A7', '魔鏡少女': '#B999A7', '純白之女': '#B999A7', '熊': '#B999A7', '覺醒預言家': '#B999A7',
-            '女巫': '#76ABAE', '子狐': '#76ABAE',
+            '女巫': '#76ABAE', '子狐': '#76ABAE', '煉金魔女': '#73ABAE',
             '騎士': '#004030', '獵人': '#004030', '獵魔人': '#004030', '定序王子': '#004030', '河豚': '#004030',
             '守墓人': '#FF9851', '攝夢人': '#FF9851', '烏鴉': '#FF9851', '白痴': '#FF9851', '守衛': '#FF9851', '魔術師': '#FF9851', '奇蹟商人': '#FF9851', '流光伯爵': '#FF9851', '白晝學者': '#FF9851', '白貓': '#FF9851',
             '石像鬼': '#4d170d', '尋香魅影': '#4d170d', '機械狼': '#4d170d', '隱狼': '#4d170d',
@@ -448,10 +448,13 @@ const UI = {
                         });
                     }
 
+                } else if (state.actionPanel.type === 'triple_select') {
+                    createSlot(displayTargets[0] || null, '目標 1', '');
+                    createSlot(displayTargets[1] || null, '目標 2', '');
+                    createSlot(displayTargets[2] || null, '目標 3', '');
                 } else if (state.actionPanel.type === 'double_select' || state.actionPanel.type === 'up_to_two') {
                     createSlot(displayTargets[0] || null, '目標 1', '');
                     createSlot(displayTargets[1] || null, '目標 2', '');
-
                 } else {
                     const target = displayTargets.length > 0 ? displayTargets[0] : null;
                     let alignmentLabel = target ? '' : '請選擇';
@@ -624,7 +627,9 @@ const UI = {
                         }
 
                         if (bInfo.requiresTarget) {
-                            if (state.actionPanel.type === 'double_select' && selectedTargets.length < 2) {
+                            if (state.actionPanel.type === 'triple_select' && selectedTargets.length < 3) {
+                                btn.disabled = true;
+                            } else if (state.actionPanel.type === 'double_select' && selectedTargets.length < 2) {
                                 btn.disabled = true;
                             } else if (state.actionPanel.type === 'up_to_two' && selectedTargets.length === 0) {
                                 btn.disabled = true; 
