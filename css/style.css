@@ -434,6 +434,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .card-flipper {
     position: relative;
     width: auto; max-width: 100%;
+    min-width: 150px;
     height: 33vh; 
     max-height: 220px;
     min-height: 150px;
