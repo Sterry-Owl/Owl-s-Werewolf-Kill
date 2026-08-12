@@ -143,7 +143,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .action-buttons-row button { flex: 1; min-width: 60px; padding: 12px 5px; font-size: 12px; border: 1px solid rgba(0,0,0,0.3); }
 
 .my-card { 
-    height: 28.5vh; max-height: 210px; min-height: 135px;
+    height: 30vh; max-height: 224px; min-height: 144px;
     width: auto; max-width: 100%; 
     object-fit: contain; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.7); border: 2px solid #111; 
     pointer-events: auto;
@@ -440,9 +440,9 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     position: relative;
     width: auto; max-width: 100%;
     min-width: 150px;
-    height: 28.5vh; 
-    max-height: 210px; 
-    min-height: 135px;
+    height: 30vh; 
+    max-height: 224px; 
+    min-height: 144px;
     transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     transform-style: preserve-3d;
 }
