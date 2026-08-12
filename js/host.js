@@ -133,6 +133,15 @@ function handleIncomingPacket(peerId, data) {
         if (!allowedExplodePhases.includes(engineContext.phase)) return;
 
         const sheriffPhases = ['SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_RE_ELECTION_BAILOUT'];
+        if (engineContext.alchemistSnakePending) {
+            const deathMap = engineContext.pendingDawnDeaths;
+            engineContext.players.forEach(p => {
+                if (!p.isDead && deathMap[p.seatNumber]) p.kill(deathMap[p.seatNumber], engineContext);
+            });
+            engineContext.alchemistSnakePending = false;
+            engineContext.pendingDawnDeaths = null;
+        }
+
         if (sheriffPhases.includes(engineContext.phase)) {
             const calculation = {
                 killed: [...engineContext.nightTags.killed],
@@ -326,7 +335,6 @@ function setupEngineFlowControllers() {
     });
 
     Engine.EventBus.on('TRIGGER_DEATH_ANNOUNCE', () => {
-        // [階段 2] 警長選完後：正式結算昨夜死亡並觸發死訊獨立階段
         const deadBefore = engineContext.players.filter(p => p.isDead).map(p => p.seatNumber);
         engineContext.hunterDiedThisNight = false;
         const calculation = {
@@ -339,6 +347,24 @@ function setupEngineFlowControllers() {
         };
 
         const deathMap = engineContext.applyFilter('DAWN_DEATH_EVALUATION', calculation);
+        const alchemist = engineContext.players.find(p => p.role === '煉金魔女' && !p.isDead);
+        let canDelay = false;
+        if (alchemist && !alchemist.data.snakeUsed) {
+            const isRestricted = engineContext.fearedSeat === alchemist.seatNumber ||
+                                 engineContext.devouredSeat === alchemist.seatNumber ||
+                                 (engineContext.bloodMoonSilenceNight === engineContext.nightCount);
+            if (!isRestricted) canDelay = true;
+        }
+
+        if (canDelay) {
+            engineContext.pendingDawnDeaths = deathMap;
+            engineContext.alchemistSnakePending = true;
+            engineContext.systemLog = "【系統宣告】煉金魔女「蛇」未發動，昨夜死訊將延後至投票前公布。";
+            Engine.EventBus.emit('BROADCAST_MESSAGE', engineContext.systemLog);
+            Engine.EventBus.emit('AFTER_DEATH_ANNOUNCE_ROUTINE');
+            return;
+        }
+
         engineContext.players.forEach(p => {
             if (!p.isDead && deathMap[p.seatNumber]) p.kill(deathMap[p.seatNumber], engineContext);
         });
@@ -518,7 +544,7 @@ function resumeRoutinePhase() {
 
 function syncStateToAll() {
     const ctx = engineContext;
-    const isDayPhase = ['BEAR_ROAR_ANNOUNCE', 'DAWN_DEATH_ANNOUNCE', 'DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'SHERIFF_ORDER_SELECTION', 'DAY_DISCUSSION', 'DAY_VOTING', 'DAY_PK_SPEECH', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'POST_VOTE_SKILL', 'PRINCE_SPEECH', 'LAST_WORDS', 'DAY_SKILL_LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION', 'BLOODMOON_ACTION'].includes(ctx.phase);
+    const isDayPhase = ['BEAR_ROAR_ANNOUNCE', 'DAWN_DEATH_ANNOUNCE', 'DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'SHERIFF_ORDER_SELECTION', 'DAY_DISCUSSION', 'DAY_VOTING', 'DAY_PK_SPEECH', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'POST_VOTE_SKILL', 'PRINCE_SPEECH', 'LAST_WORDS', 'DAY_SKILL_LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION', 'BLOODMOON_ACTION', 'ALCHEMIST_SNAKE_ACTION', 'DELAYED_DEATH_ANNOUNCE'].includes(ctx.phase);
     const hostState = {
         systemLog: ctx.systemLog,
         masterLog: ctx.masterLog || [],
@@ -811,6 +837,37 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             actionPanel.prompt = "系統結算中，請等待...";
         }
     }
+    else if (ctx.phase === 'ALCHEMIST_SNAKE_ACTION') {
+        actionPanel.show = true;
+        actionPanel.deadline = ctx.deadline;
+        if (player.role === '煉金魔女' && !player.isDead) {
+            const victim = ctx.nightTags?.killed?.length > 0 ? ctx.nightTags.killed[0] : "無";
+            let canSave = victim !== "無" && !player.data.snakeUsed;
+            if (canSave && victim === player.seatNumber) {
+                if (ctx.rules.witchSave === 'never') canSave = false;
+                if (ctx.rules.witchSave === 'first_night' && ctx.nightCount > 1) canSave = false;
+            }
+            if (ctx.currentStepActions.some(act => act.player.seatNumber === player.seatNumber)) {
+                actionPanel.prompt = "行動已送出。";
+                actionPanel.buttons = [];
+                actionPanel.deadline = null;
+            } else {
+                actionPanel.prompt = `昨晚被襲擊的是 ${victim} 號。\n請選擇是否使用蛇解救：`;
+                actionPanel.buttons = [];
+                if (canSave) actionPanel.buttons.push({ id: 'save', text: '使用蛇', requiresTarget: false });
+                actionPanel.buttons.push({ id: 'pass', text: '不使用', requiresTarget: false });
+            }
+        } else {
+            actionPanel.prompt = "等待煉金魔女行動...";
+            actionPanel.buttons = [];
+        }
+    }
+    else if (ctx.phase === 'DELAYED_DEATH_ANNOUNCE') {
+        actionPanel.show = true;
+        actionPanel.deadline = ctx.deadline;
+        actionPanel.prompt = ctx.deathAnnounceText;
+        actionPanel.buttons = [];
+    }
 
     if (player.data.tempPrivateMessage) {
         personalMessage += "\n" + player.data.tempPrivateMessage;
@@ -932,6 +989,7 @@ function getPhaseMessageForPlayer(phase, ctx) {
         'MIDNIGHT_RESULT_DISPLAY': "夜間行動中...",
         'BEAR_ROAR_ANNOUNCE': "熊咆哮結果展示...", 'DAWN_DEATH_ANNOUNCE': "宣告昨晚死訊...",
         'SHERIFF_CANDIDACY': "登記上警意願...", 'SHERIFF_ORDER_SELECTION': "決定發言順序中...",
+        'ALCHEMIST_SNAKE_ACTION': "煉金魔女行動中...", 'DELAYED_DEATH_ANNOUNCE': "宣告延遲死訊...",
         'SHERIFF_SPEECH': ctx ? (ctx.sheriffSpeechPrompt || "警長發言中...") : "警長發言中...", 
         'SHERIFF_RE_ELECTION_BAILOUT': "延遲選舉退水時間...", 'SHERIFF_PK_SPEECH': "警長 PK 發言...", 
         'SHERIFF_VOTING': "警長首次投票...", 'SHERIFF_PK_VOTING': "警長 PK 投票...", 
@@ -944,12 +1002,12 @@ function getPhaseMessageForPlayer(phase, ctx) {
 }
 
 function getDayBtnText(phase) {
-    const dict = { 'BEAR_ROAR_ANNOUNCE': "結束展示，進入下一階段", 'DAWN_DEATH_ANNOUNCE': "結束展示，進入下一階段", 'SHERIFF_CANDIDACY': "強制結束上警登記", 'SHERIFF_VOTING': "強制結算投票", 'SHERIFF_PK_VOTING': "強制結算投票", 'SHERIFF_SPEECH': "發起警長投票", 'SHERIFF_PK_SPEECH': "發起警長 PK 投票", 'DAY_DISCUSSION': "發起放逐投票", 'DAY_PK_SPEECH': "發起放逐 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入下一階段", 'POST_VOTE_SKILL': "結束技能等待", 'PRINCE_SPEECH': "發起放逐投票", 'LAST_WORDS': "結束遺言，進入下一階段", 'DAY_SKILL_LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍...", 'WOLFKING_ACTION': "等待狼王開槍...", 'BLOODMOON_ACTION': "等待血月使徒發動技能..." };
+    const dict = { 'BEAR_ROAR_ANNOUNCE': "結束展示，進入下一階段", 'DAWN_DEATH_ANNOUNCE': "結束展示，進入下一階段", 'SHERIFF_CANDIDACY': "強制結束上警登記", 'SHERIFF_VOTING': "強制結算投票", 'SHERIFF_PK_VOTING': "強制結算投票", 'SHERIFF_SPEECH': "發起警長投票", 'SHERIFF_PK_SPEECH': "發起警長 PK 投票", 'DAY_DISCUSSION': "發起放逐投票", 'DAY_PK_SPEECH': "發起放逐 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入下一階段", 'POST_VOTE_SKILL': "結束技能等待", 'PRINCE_SPEECH': "發起放逐投票", 'LAST_WORDS': "結束遺言，進入下一階段", 'DAY_SKILL_LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍...", 'WOLFKING_ACTION': "等待狼王開槍...", 'BLOODMOON_ACTION': "等待血月使徒發動技能...", 'ALCHEMIST_SNAKE_ACTION': "強制結束蛇階段", 'DELAYED_DEATH_ANNOUNCE': "結束展示，進入放逐" };
     return dict[phase] || "投票/行動進行中...";
 }
 
 function getDayBtnCommand(phase) {
-    const dict = { 'BEAR_ROAR_ANNOUNCE': "FORCE_TIMEOUT", 'DAWN_DEATH_ANNOUNCE': "FORCE_TIMEOUT", 'SHERIFF_CANDIDACY': "FORCE_TIMEOUT", 'SHERIFF_VOTING': "FORCE_TIMEOUT", 'SHERIFF_PK_VOTING': "FORCE_TIMEOUT", 'SHERIFF_SPEECH': "START_SHERIFF_VOTE", 'SHERIFF_PK_SPEECH': "START_SHERIFF_PK_VOTE", 'DAY_DISCUSSION': "START_VOTE", 'DAY_PK_SPEECH': "START_DAY_PK_VOTE", 'VOTE_RESULT_DISPLAY': "END_VOTE_DISPLAY", 'POST_VOTE_SKILL': "FORCE_TIMEOUT", 'PRINCE_SPEECH': "START_VOTE", 'LAST_WORDS': "END_LAST_WORDS", 'DAY_SKILL_LAST_WORDS': "END_SKILL_LAST_WORDS" };
+    const dict = { 'BEAR_ROAR_ANNOUNCE': "FORCE_TIMEOUT", 'DAWN_DEATH_ANNOUNCE': "FORCE_TIMEOUT", 'SHERIFF_CANDIDACY': "FORCE_TIMEOUT", 'SHERIFF_VOTING': "FORCE_TIMEOUT", 'SHERIFF_PK_VOTING': "FORCE_TIMEOUT", 'SHERIFF_SPEECH': "START_SHERIFF_VOTE", 'SHERIFF_PK_SPEECH': "START_SHERIFF_PK_VOTE", 'DAY_DISCUSSION': "START_VOTE", 'DAY_PK_SPEECH': "START_DAY_PK_VOTE", 'VOTE_RESULT_DISPLAY': "END_VOTE_DISPLAY", 'POST_VOTE_SKILL': "FORCE_TIMEOUT", 'PRINCE_SPEECH': "START_VOTE", 'LAST_WORDS': "END_LAST_WORDS", 'DAY_SKILL_LAST_WORDS': "END_SKILL_LAST_WORDS", 'ALCHEMIST_SNAKE_ACTION': "FORCE_TIMEOUT", 'DELAYED_DEATH_ANNOUNCE': "END_DELAYED_DEATH_DISPLAY" };
     return dict[phase] || "";
 }
 
@@ -960,8 +1018,23 @@ function handleHostCommand(cmd) {
     } 
     else if (cmd === 'START_SHERIFF_VOTE') stateMachine.transitionTo('SHERIFF_VOTING');
     else if (cmd === 'START_SHERIFF_PK_VOTE') stateMachine.transitionTo('SHERIFF_PK_VOTING'); 
-    else if (cmd === 'START_VOTE') { engineContext.routineOrigin = 'AFTERNOON'; stateMachine.transitionTo('DAY_VOTING'); }
+    else if (cmd === 'START_VOTE') { 
+        engineContext.routineOrigin = 'AFTERNOON'; 
+        if (engineContext.alchemistSnakePending) {
+            stateMachine.transitionTo('ALCHEMIST_SNAKE_ACTION');
+        } else {
+            stateMachine.transitionTo('DAY_VOTING'); 
+        }
+    }
     else if (cmd === 'START_DAY_PK_VOTE') { engineContext.routineOrigin = 'AFTERNOON'; stateMachine.transitionTo('DAY_PK_VOTING'); } 
+    else if (cmd === 'END_DELAYED_DEATH_DISPLAY') {
+        if (engineContext.phase === 'GAME_OVER') return;
+        const dead = engineContext.deadThisNight || [];
+        engineContext.lastWordsTargets = (engineContext.nightCount === 1 && dead.length > 0) ? [...dead] : [];
+        engineContext.destinationPhase = 'DAY_VOTING';
+        engineContext.routineOrigin = 'AFTERNOON';
+        resumeRoutinePhase();
+    }
     else if (cmd === 'END_VOTE_DISPLAY') {
         if (engineContext.postVoteSkillPhasePending) {
             engineContext.postVoteSkillPhasePending = false;
