@@ -445,18 +445,27 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     transform: rotateY(180deg);
 }
 
-.card-front, .card-back {
-    position: absolute;
-    width: 100%;
+.card-front {
+    position: relative;
     height: 100%;
-    /* 隱藏背對著螢幕的那一面，交由 GPU 運算 */
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden; 
     border-radius: 8px;
     display: flex;
+    justify-content: center;
 }
 
+/* [修復] 背面維持 absolute，其寬高會自動繼承已被正面撐開的父容器尺寸，維持 3D 翻轉的物理穩定性 */
 .card-back {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden; 
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
     transform: rotateY(180deg);
     background: #1e1e1e;
     border: 2px solid var(--border-color);
@@ -465,8 +474,6 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     color: #eee;
     overflow-y: auto;
     box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
-    display: flex;
-    flex-direction: column;
 }
 
 /* 隱藏背面文字說明區的滾動條，但保留上下滑動功能 */
