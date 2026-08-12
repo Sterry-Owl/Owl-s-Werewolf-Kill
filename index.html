@@ -174,10 +174,14 @@
         <div id="section-player" class="hidden">
             <div class="player-app-container">
                 <div class="app-header">
-                    <div>座位：<span id="player-seat-number"></span> 號</div>
-                    <div id="dynamic-board-name" style="flex: 1; text-align: center; color: #fff; font-size: 10px;"></div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span>身分：<span id="player-role-name">等待發牌</span></span>
+                    <div class="header-left">
+                        <span id="player-seat-number" class="seat-num"></span><span class="seat-unit">號</span>
+                    </div>
+            
+                    <div id="dynamic-board-name" class="header-center"></div>
+                    
+                    <div class="header-right">
+                        <span class="role-text">身分：<span id="player-role-name">等待發牌</span></span>
                         <span id="btn-board-details" class="btn-board-details">版型詳情 ℹ️</span>
                     </div>
                 </div>
