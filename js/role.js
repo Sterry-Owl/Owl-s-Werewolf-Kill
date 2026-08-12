@@ -41,6 +41,12 @@ window.RoleRegistry = {
                 calc.dreamed = sanitize(calc.dreamed);
                 calc.guarded = sanitize(calc.guarded);
                 calc.lastDreamed = sanitize(calc.lastDreamed);
+                ctx.players.forEach(p => {
+                    if (p.data.luckyGuardedSeat) {
+                        calc.guarded.push(parseInt(p.data.luckyGuardedSeat));
+                        p.data.luckyGuardedSeat = null; 
+                    }
+                });
                 
                 if (ctx.magicianSwap) {
                     const swapMap = (arr) => arr.map(seat => ctx.getActualTarget(seat));
@@ -1269,15 +1275,6 @@ RoleRegistry.register("奇蹟商人", {
 
 RoleRegistry.register("幸運兒", {
     actionType: "single_select",
-    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
-        if (player.data.luckyGuardedSeat) {
-            const gSeat = player.data.luckyGuardedSeat;
-            if (deathMap[gSeat] === 'killed' || deathMap[gSeat] === 'poisoned') {
-                delete deathMap[gSeat];
-            }
-            player.data.luckyGuardedSeat = null; 
-        }
-    },
     hasAction: (ctx, mySeat) => {
         const p = ctx.getPlayer(mySeat);
         return p.data.grantedSkill && !p.data.grantedSkillUsed;
