@@ -89,6 +89,7 @@ const NETWORK_CONFIG = {
 };
 
 const BOARD_TEMPLATES = [
+    { id: "test-1_6", name: "1人 (測試)", category: 'test', playerCount: 1, deck: ["預言家"] },
     { id: "test-2_6", name: "6人 狼王守衛(測試)", category: 'test', playerCount: 6, deck: ["預言家", "守衛", "狼王", "狼人", "平民", "平民"] },
     { id: "test-3_6", name: "6人 狼王魔術師(測試)", category: 'test', playerCount: 6, deck: ["預言家", "魔術師", "狼王", "狼人", "女巫", "平民"] },    
     { id: "test-4_6", name: "6人 白狼王騎士(測試)", category: 'test', playerCount: 6, deck: ["預言家", "騎士", "白狼王", "狼人", "平民", "平民"] },
