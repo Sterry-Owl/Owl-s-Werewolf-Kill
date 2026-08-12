@@ -354,15 +354,16 @@ const UI = {
                 const baseRoleName = state.myRole.split(/[-()]/)[0].trim();
                 const imgEl = document.getElementById('my-card-img');
                 
-                // [重構] 根據伺服器傳來的布林值，動態切換圖片目錄 (無髒代碼)
                 const imgDir = state.useSquareCard ? './img/square' : './img';
-                imgEl.src = `${imgDir}/${baseRoleName}.webp`;
-                
-                // [防呆機制] 若方形卡面遺失，嘗試抓取對應目錄下的 back.webp，否則降級至預設目錄的 back.webp
+                imgEl.onerror = null;
                 imgEl.onerror = function() { 
-                    this.onerror = function() { this.src = './img/back.webp'; };
+                    this.onerror = function() {
+                        this.onerror = null;
+                        this.src = './img/back.webp'; 
+                    };
                     this.src = `${imgDir}/back.webp`; 
                 }; 
+                imgEl.src = `${imgDir}/${baseRoleName}.webp`;
                 
                 document.getElementById('role-desc-title').textContent = displayRoleName;
                 document.getElementById('role-desc-content').textContent = def ? def.description : '無技能說明。';
