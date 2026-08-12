@@ -401,6 +401,12 @@ const UI = {
             if (state.actionPanel && state.actionPanel.show && (state.actionPanel.type !== 'none' || state.actionPanel.forceTargets)) {
                 slotsContainer.classList.remove('hidden');
 
+                if (state.actionPanel.type === 'triple_select') {
+                    slotsContainer.classList.add('triple-mode');
+                } else {
+                    slotsContainer.classList.remove('triple-mode');
+                }
+
                 const createSlot = (seatNum, labelText, specialClass) => {
                     const slot = document.createElement('div');
                     slot.className = 'target-slot' + (seatNum ? ' filled' : '');
