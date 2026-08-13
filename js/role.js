@@ -2690,6 +2690,7 @@ RoleRegistry.register("煉金魔女", {
         return `【發動霧：拘束 ${targets.join('、')} 號】`;
     }
 });
+
 const ScholarMechanics = {
     handleAction: function(ctx, act, isScholar) {
         if (!act || act.actionId === 'pass') return "【保留技能】";
@@ -2702,7 +2703,7 @@ const ScholarMechanics = {
         ctx.nightTags.scholarOps = ctx.nightTags.scholarOps || { individuals: {}, wolfFactionCount: 0, wolfTargets: [] };
         
         const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
-        const isWolf = ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
+        const isWolf = typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
 
         // 1. 標記操作者狀態並結算計數池
         let isOverloaded = false;
@@ -2763,7 +2764,7 @@ const ScholarMechanics = {
             if (buffPhase && buffPhase.roles[0]) {
                 buffPhase.roles[0].activePlayers = buffPhase.roles[0].activePlayers.filter(p => {
                     const pRole = p.data.camouflageRole || p.role;
-                    return ROLE_DICTIONARY[pRole]?.faction !== 'wolf';
+                    return typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[pRole]?.faction !== 'wolf';
                 });
             }
             
@@ -2771,9 +2772,11 @@ const ScholarMechanics = {
             ctx.nightTags.wolfTeamScholarDebuffed = false;
             if (ctx.nightTags.scholarDebuffTarget) {
                 const debuffedP = ctx.getPlayer(ctx.nightTags.scholarDebuffTarget);
-                const cRole = debuffedP.data.camouflageRole || debuffedP.role;
-                if (ROLE_DICTIONARY[cRole]?.faction === 'wolf') {
-                    ctx.nightTags.scholarDebuffTarget = null;
+                if (debuffedP) {
+                    const cRole = debuffedP.data.camouflageRole || debuffedP.role;
+                    if (typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[cRole]?.faction === 'wolf') {
+                        ctx.nightTags.scholarDebuffTarget = null;
+                    }
                 }
             }
 
@@ -2820,6 +2823,27 @@ const ScholarMechanics = {
     }
 };
 
+RoleRegistry.register("白晝學者", {
+    canSelfExplode: false,
+    nightPhase: "first_half",
+    actionType: "single_select",
+    hasAction: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        return ctx.nightCount >= 2 && (!p.data.hasBuffed || !p.data.hasDebuffed);
+    },
+    getPrompt: () => "選擇發動增幅或削弱",
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+    getButtons: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        let btns = [];
+        if (!p.data.hasBuffed) btns.push({ id: 'buff', text: '增幅', requiresTarget: true });
+        if (!p.data.hasDebuffed) btns.push({ id: 'debuff', text: '削弱', requiresTarget: true });
+        btns.push({ id: 'pass', text: '跳過', requiresTarget: false });
+        return btns;
+    },
+    resolveNightAction: (ctx, actions) => ScholarMechanics.handleAction(ctx, actions[0], true)
+});
+
 RoleRegistry.register("寂夜導師", {
     canSelfExplode: true,
     canSeeWolves: false,
@@ -2849,14 +2873,14 @@ RoleRegistry.register("受增幅者", {
     actionType: "single_select",
     hasAction: (ctx, mySeat) => {
         const p = ctx.getPlayer(mySeat);
-        return ['預言家', '女巫', '守衛'].includes(p.role) || ROLE_DICTIONARY[p.role]?.faction === 'wolf';
+        return typeof ROLE_DICTIONARY !== 'undefined' && (['預言家', '女巫', '守衛'].includes(p.role) || ROLE_DICTIONARY[p.role]?.faction === 'wolf');
     },
     getPrompt: (ctx, mySeat) => {
         const role = ctx.getPlayer(mySeat).role;
         if (role === '預言家') return "【被動：增幅】\n你獲得了額外的查驗機會";
         if (role === '女巫') return "【被動：增幅】\n你獲得了額外的毒藥機會";
         if (role === '守衛') return "【被動：增幅】\n你獲得了額外的守護機會無視連續守護限制";
-        if (ROLE_DICTIONARY[role]?.faction === 'wolf') return "【被動：增幅】\n你獲得了額外的襲擊機會";
+        if (typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[role]?.faction === 'wolf') return "【被動：增幅】\n你獲得了額外的襲擊機會";
         return "你獲得了增幅，但無法使用";
     },
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
@@ -2865,7 +2889,7 @@ RoleRegistry.register("受增幅者", {
         if (role === '預言家') return [{ id: 'check', text: '額外查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
         if (role === '女巫') return [{ id: 'poison', text: '額外毒殺', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
         if (role === '守衛') return [{ id: 'guard', text: '額外守護', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
-        if (ROLE_DICTIONARY[role]?.faction === 'wolf') return [{ id: 'kill', text: '額外襲擊', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
+        if (typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[role]?.faction === 'wolf') return [{ id: 'kill', text: '額外襲擊', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
         return [{ id: 'pass', text: '確認', requiresTarget: false }];
     },
     resolveNightAction: (ctx, actions) => {
@@ -2880,7 +2904,7 @@ RoleRegistry.register("受增幅者", {
             const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', p.seatNumber) : parseInt(target);
             const tPlayer = ctx.getPlayer(actualTarget);
             const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
-            const isWolf = ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
+            const isWolf = typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
             let alignment = isWolf ? "狼人" : "好人";
             const pluginDef = RoleRegistry.plugins[tPlayer.role];
             if (pluginDef && pluginDef.seenBySeerAsGood) alignment = "好人";
@@ -2902,7 +2926,7 @@ RoleRegistry.register("受增幅者", {
             p.data.scholarGuardedSeat = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'guard', p.seatNumber) : parseInt(target);
             return `【額外守護: ${target}號】`;
         }
-        if (ROLE_DICTIONARY[role]?.faction === 'wolf' && act.actionId === 'kill') {
+        if (typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[role]?.faction === 'wolf' && act.actionId === 'kill') {
             ctx.nightTags = ctx.nightTags || {};
             ctx.nightTags.killed = ctx.nightTags.killed || [];
             ctx.nightTags.killed.push(parseInt(target));
