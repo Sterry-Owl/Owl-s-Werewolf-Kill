@@ -408,6 +408,10 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     color: #fff; 
     border: 1px solid #703688;
 }
+
+.side-tag.tag-buff { background: #3d7da8; color: #fff; }
+.side-tag.tag-debuff { background: #555555; color: #fff; }
+
 .btn-board-details {
     cursor: pointer; 
     color: var(--accent-gold, #ffdb4d); 
