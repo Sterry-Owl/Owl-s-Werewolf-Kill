@@ -248,7 +248,7 @@ RoleRegistry.register("狼人", {
     hasWolfChatAccess: true,
     nightPhase: "midnight",      
     actionType: "consensus",     
-    getPrompt: () => "選擇今晚的襲擊目標 (或選擇跳過以空刀)",
+    getPrompt: () => "選擇今晚的襲擊目標",
     getSelectableSeats: (ctx, mySeat) => {
         let seats = ctx.getAlivePlayers()
             .filter(p => !RoleRegistry.plugins[p.role]?.immuneToWolfBite)
@@ -465,7 +465,7 @@ RoleRegistry.register("狼王", {
     hasWolfChatAccess: true,
     nightPhase: "midnight",      
     actionType: "consensus",     
-    getPrompt: () => "選擇今晚的襲擊目標 (或跳過以空刀)",
+    getPrompt: () => "選擇今晚的襲擊目標",
     getSelectableSeats: RoleRegistry.plugins["狼人"].getSelectableSeats,
     getButtons: () => [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
     resolveNightAction: RoleRegistry.plugins["狼人"].resolveNightAction,
@@ -500,7 +500,7 @@ RoleRegistry.register("白狼王", {
     isAttacker: true,
     hasWolfChatAccess: true,
     nightPhase: "midnight", actionType: "consensus",     
-    getPrompt: () => "選擇今晚的襲擊目標 (或跳過以空刀)",
+    getPrompt: () => "選擇今晚的襲擊目標",
     getSelectableSeats: RoleRegistry.plugins["狼人"].getSelectableSeats,
     getButtons: () => [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
     resolveNightAction: RoleRegistry.plugins["狼人"].resolveNightAction,
@@ -664,8 +664,8 @@ RoleRegistry.register("石像鬼", {
     },
     getPrompt: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex];
-        if (step.phaseId === 'first_half') return "選擇今晚的揭示目標";
-        return "已無其他狼人存活，請選擇襲擊目標。";
+        if (step.phaseId === 'first_half') return "選擇今晚揭示具體身分的目標";
+        return "選擇今晚的襲擊目標";
     },
     getSelectableSeats: (ctx, mySeat) => {
         if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
@@ -734,7 +734,7 @@ RoleRegistry.register("隱狼", {
         const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
         return otherWolves.length === 0; 
     },
-    getPrompt: () => "狼同伴已全數陣亡，請選擇襲擊目標。",
+    getPrompt: () => "選擇今晚的襲擊目標",
     getSelectableSeats: RoleRegistry.plugins["狼人"].getSelectableSeats,
     getButtons: () => [{ id: 'kill', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
@@ -790,8 +790,8 @@ RoleRegistry.register("噩夢之影", {
         }
     },
     getPrompt: (ctx, mySeat) => {
-        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half') return "選擇今晚恐懼的目標 (使其今晚無法行動)";
-        return "選擇今晚的襲擊目標 (或跳過以空刀)";
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half') return "選擇今晚恐懼的目標(不可連續恐懼同一人)";
+        return "選擇今晚的襲擊目標";
     },
     getSelectableSeats: (ctx, mySeat) => {
         if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
@@ -863,8 +863,8 @@ RoleRegistry.register("狼美人", {
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
     isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
     getPrompt: (ctx, mySeat) => {
-        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') return "選擇今晚的襲擊目標 (或跳過以空刀)";
-        return "選擇今晚的魅惑目標 (死亡時目標將會殉情)";
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') return "選擇今晚的襲擊目標";
+        return "選擇今晚的魅惑目標(不可連續魅惑同一人)";
     },
     getSelectableSeats: (ctx, mySeat) => {
         if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
@@ -912,7 +912,7 @@ RoleRegistry.register("攝夢人", {
     canSelfExplode: false,
     nightPhase: "second_half", 
     actionType: "single_select",
-    getPrompt: () => "選擇今晚的攝夢目標 (不可選擇自己，不可跳過)",
+    getPrompt: () => "選擇今晚的夢遊者，連續夢遊將致死",
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [{ id: 'dream', text: '攝夢', requiresTarget: true }],
     onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
@@ -965,9 +965,8 @@ RoleRegistry.register("暗戀者", {
     type: "villager",      
     nightPhase: "first_half", 
     actionType: "single_select",
-    getPrompt: (ctx) => (ctx.nightCount === 1 && !ctx.crushTarget) 
-        ? "選擇你的暗戀對象 (僅首夜可使用，不可選擇自己)" 
-        : "你已經有暗戀對象了，今晚好好休息。",
+    hasAction: (ctx) => ctx.nightCount === 1 && !ctx.crushTarget,
+    getPrompt: (ctx) => "選擇你的暗戀對象",
     getSelectableSeats: (ctx, mySeat) => {
         if (ctx.nightCount === 1 && !ctx.crushTarget) {
             return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
@@ -1012,7 +1011,7 @@ RoleRegistry.register("惡靈騎士", {
     immuneToWolfBite: true, 
     nightPhase: "midnight",      
     actionType: "consensus",     
-    getPrompt: () => "選擇今晚的襲擊目標\n(或跳過以空刀)",
+    getPrompt: () => "選擇今晚的襲擊目標",
     getSelectableSeats: RoleRegistry.plugins["狼人"].getSelectableSeats,
     getButtons: RoleRegistry.plugins["狼人"].getButtons,
     onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
@@ -1057,7 +1056,7 @@ RoleRegistry.register("魔鏡少女", {
     nightPhase: "second_half",
     actionType: "single_select",
     isSeer: true, 
-    getPrompt: () => "選擇今晚的查驗目標 (系統將顯示具體身分)",
+    getPrompt: () => "選擇今晚揭示具體身分的目標",
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [
         { id: 'confirm', text: '確認', requiresTarget: true }, 
@@ -1137,8 +1136,8 @@ RoleRegistry.register("機械狼", {
     actionType: "single_select",
     getPrompt: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
-        if (step === 'midnight') return "其餘狼人均已出局\n請選擇襲擊目標";
-        if (step === 'first_half') return "選擇一名玩家進行學習\n（獲得其技能，並改變自己被查驗的結果）";
+        if (step === 'midnight') return "選擇今晚的襲擊目標";
+        if (step === 'first_half') return "選擇學習的目標";
         
         const role = ctx.getPlayer(mySeat).data.learnedRole;
         if (['魔鏡少女', '預言家', '燈影預言家'].includes(role)) return `【技能: ${role}】選擇查驗目標`;
@@ -1277,7 +1276,7 @@ RoleRegistry.register("奇蹟商人", {
     hasAction: (ctx, mySeat) => {
         return !ctx.getPlayer(mySeat).data.hasTraded; 
     },
-    getPrompt: () => "選擇交易對象 (限用一次)\n若贈與狼人將遭到反噬死亡",
+    getPrompt: () => "選擇今晚的交易對象\n交易到狼人將遭受反噬",
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [
         { id: 'give_check', text: '贈與查驗', requiresTarget: true },
@@ -1399,10 +1398,9 @@ RoleRegistry.register("魔術師", {
     onNightStart: (ctx, player) => {
         player.data.usedMagicianTargets = player.data.usedMagicianTargets || [];
     },
-    getPrompt: () => "選擇兩位玩家進行魔術交換\n(每個號碼全局只能被你選擇一次)",
+    getPrompt: () => "選擇交換兩位玩家的號碼\n被交換過的號碼無法再被選擇",
     getSelectableSeats: (ctx, mySeat) => {
         const used = ctx.getPlayer(mySeat).data.usedMagicianTargets || [];
-        // 過濾掉曾經選過的號碼，確保不重複
         return ctx.getAlivePlayers().filter(p => !used.includes(p.seatNumber)).map(p => p.seatNumber);
     },
     getButtons: () => [
@@ -1520,7 +1518,7 @@ RoleRegistry.register("血月使徒", {
     nightPhase: "midnight",      
     actionType: "consensus",
     suppressWolfDeathTick: (ctx, player, reason) => {
-        return reason !== 'voted'; // 僅在被放逐時，才允許核心計入群體死亡結算
+        return reason !== 'voted';
     },
     onPlayerDied: (ctx, player, reason) => {
         if (reason === 'voted') ctx.bloodMoonSeat = player.seatNumber;
@@ -1528,7 +1526,7 @@ RoleRegistry.register("血月使徒", {
     onSelfExplode: (ctx, player) => {
         ctx.bloodMoonSilenceNight = ctx.nightCount + 1;
     },
-    getPrompt: () => "選擇今晚的襲擊目標 (或選擇跳過以空刀)",
+    getPrompt: () => "選擇今晚的襲擊目標",
     getSelectableSeats: RoleRegistry.plugins["狼人"].getSelectableSeats,
     getButtons: RoleRegistry.plugins["狼人"].getButtons,
     resolveNightAction: RoleRegistry.plugins["狼人"].resolveNightAction
@@ -1557,7 +1555,7 @@ RoleRegistry.register("獵魔人", {
         }
     },
     hasAction: (ctx) => ctx.nightCount >= 2,
-    getPrompt: () => "選擇狩獵目標",
+    getPrompt: () => "選擇今晚的狩獵目標",
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [{ id: 'hunt', text: '狩獵', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
@@ -1882,8 +1880,8 @@ RoleRegistry.register("蝕時狼妃", {
         return true; 
     },
     getPrompt: (ctx, mySeat) => {
-        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half') return "選擇今晚的封鎖目標\n(不可與過去重複，反彈成功過就不能使用技能)";
-        return "選擇今晚的襲擊目標 (或跳過以空刀)";
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half') return "選擇今晚的封鎖目標\n封鎖過的目標不可再封鎖\n技能生效後將失去技能";
+        return "選擇今晚的襲擊目標";
     },
     getSelectableSeats: (ctx, mySeat) => {
         if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
@@ -2064,7 +2062,7 @@ RoleRegistry.register("純白之女", {
             }
         }
     },
-    getPrompt: () => "選擇今晚的查驗目標 (系統將顯示具體身分，第二晚起查到狼人將直接擊殺)",
+    getPrompt: () => "選擇今晚揭示具體身分的目標",
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [
         { id: 'check', text: '查驗', requiresTarget: true }, 
@@ -2113,8 +2111,8 @@ RoleRegistry.register("狼巫", {
         }
     },
     getPrompt: (ctx, mySeat) => {
-        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') return "選擇今晚的襲擊目標 (或跳過以空刀)";
-        return "選擇今晚的查驗目標 (系統將顯示具體身分，第二晚起查到純白之女將直接擊殺)";
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') return "選擇今晚的襲擊目標";
+        return "選擇今晚揭示具體身分的目標";
     },
     getSelectableSeats: (ctx, mySeat) => {
         if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
@@ -2239,9 +2237,7 @@ RoleRegistry.register("不死鳥", {
         const p = ctx.getPlayer(mySeat);
         return ctx.nightCount >= 2 && !p.data.hasResurrected;
     },
-    
-    getPrompt: () => "選擇一名已死亡的玩家進行復活\n(全局限用一次)",
-    
+    getPrompt: () => "選擇是否要復活已死亡的玩家",
     getSelectableSeats: (ctx) => {
         return ctx.players.filter(p => p.isDead).map(p => p.seatNumber);
     },
@@ -2793,7 +2789,7 @@ RoleRegistry.register("白晝學者", {
         const p = ctx.getPlayer(mySeat);
         return ctx.nightCount >= 2 && (!p.data.hasBuffed || !p.data.hasDebuffed);
     },
-    getPrompt: () => "選擇發動增幅或削弱\n(每局各限用一次，不可同夜使用。對不具備增幅/削弱條件的目標無效)",
+    getPrompt: () => "選擇發動增幅或削弱",
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: (ctx, mySeat) => {
         const p = ctx.getPlayer(mySeat);
@@ -2818,7 +2814,7 @@ RoleRegistry.register("寂夜導師", {
         const p = ctx.getPlayer(mySeat);
         return ctx.nightCount >= 2 && (!p.data.hasBuffed || !p.data.hasDebuffed);
     },
-    getPrompt: () => "選擇發動增幅或削弱\n(每局各限用一次，不可同夜使用。對不具備條件的目標無效)",
+    getPrompt: () => "選擇發動增幅或削弱",
     getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: (ctx, mySeat) => {
         const p = ctx.getPlayer(mySeat);
