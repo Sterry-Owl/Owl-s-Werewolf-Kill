@@ -2699,13 +2699,11 @@ const ScholarMechanics = {
         const tPlayer = ctx.getPlayer(actualTarget);
         
         ctx.nightTags = ctx.nightTags || {};
-        // 將過載池區分為：非狼人個體計數、狼隊群體計數
         ctx.nightTags.scholarOps = ctx.nightTags.scholarOps || { individuals: {}, wolfFactionCount: 0, wolfTargets: [] };
         
         const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
         const isWolf = typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
 
-        // 1. 標記操作者狀態並結算計數池
         let isOverloaded = false;
         let isWolfOverloaded = false;
 
@@ -2742,9 +2740,6 @@ const ScholarMechanics = {
                 ctx.nightTags.scholarDebuffTarget = null;
             }
             
-            tPlayer.data.seerRecords = tPlayer.data.seerRecords || {};
-            tPlayer.data.seerRecords[actualTarget] = "過載死亡";
-            
             return act.actionId === 'buff' ? `【增幅: ${target}號 (力量衝突)】` : `【削弱: ${target}號 (力量衝突)】`;
         }
 
@@ -2755,11 +2750,8 @@ const ScholarMechanics = {
             
             if (mentor && !ctx.nightTags.clashDeaths.includes(mentor.seatNumber)) {
                 ctx.nightTags.clashDeaths.push(mentor.seatNumber);
-                mentor.data.seerRecords = mentor.data.seerRecords || {};
-                mentor.data.seerRecords[mentor.seatNumber] = "過載反噬";
             }
             
-            // 註銷全狼隊的增幅標籤
             const buffPhase = ctx.nightSequence.find(seq => seq.phaseId === 'scholar_action');
             if (buffPhase && buffPhase.roles[0]) {
                 buffPhase.roles[0].activePlayers = buffPhase.roles[0].activePlayers.filter(p => {
@@ -2768,7 +2760,6 @@ const ScholarMechanics = {
                 });
             }
             
-            // 註銷全狼隊的削弱封印
             ctx.nightTags.wolfTeamScholarDebuffed = false;
             if (ctx.nightTags.scholarDebuffTarget) {
                 const debuffedP = ctx.getPlayer(ctx.nightTags.scholarDebuffTarget);
@@ -2779,15 +2770,6 @@ const ScholarMechanics = {
                     }
                 }
             }
-
-            // 更新目標 UI 回饋
-            ctx.nightTags.scholarOps.wolfTargets.forEach(seat => {
-                 const wp = ctx.getPlayer(seat);
-                 if (wp) {
-                     wp.data.seerRecords = wp.data.seerRecords || {};
-                     wp.data.seerRecords[seat] = "過載失效";
-                 }
-            });
 
             return act.actionId === 'buff' ? `【增幅: ${target}號 (陣營過載)】` : `【削弱: ${target}號 (陣營過載)】`;
         }
