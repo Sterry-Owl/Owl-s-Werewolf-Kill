@@ -21,7 +21,7 @@ window.RoleRegistry = {
                 let actual = ctx.getActualTarget ? ctx.getActualTarget(targetSeat) : parseInt(targetSeat);
                 
                 if (this.nightTags && this.nightTags.sealedSeat === actual) {
-                    if (['check', 'poison', 'guard', 'dream', 'bless', 'curse', 'hunt'].includes(skillType)) {
+                    if (['check', 'poison', 'guard', 'dream', 'bless', 'curse', 'hunt', 'sanction'].includes(skillType)) {
                         const sealer = this.getPlayer(this.nightTags.sealerSeat);
                         if (sealer) sealer.data.sealPermanentlyLost = true;
                         if (typeof Engine !== 'undefined' && Engine.EventBus) {
