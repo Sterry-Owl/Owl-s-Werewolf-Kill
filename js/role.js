@@ -2613,14 +2613,7 @@ RoleRegistry.register("煉金魔女", {
         if (act && act.actionId === 'save') {
             const victim = ctx.nightTags?.killed?.[0];
             if (victim) {
-                if (!ctx.pendingDawnDeaths) ctx.pendingDawnDeaths = {};
-                
-                const isGuarded = ctx.guardedSeat === victim;
-                if (isGuarded) {
-                    ctx.pendingDawnDeaths[victim] = 'killed'; 
-                } else {
-                    delete ctx.pendingDawnDeaths[victim]; 
-                }
+                ctx.nightTags.savedBySnake = [victim];
                 act.player.data.snakeUsed = true;
                 ctx.systemLog = `煉金魔女使用了蛇。`;
             }
@@ -2628,6 +2621,18 @@ RoleRegistry.register("煉金魔女", {
             ctx.systemLog = `煉金魔女未使用蛇。`;
         }
         Engine.EventBus.emit('MASTER_LOG', ctx.systemLog);
+        const calculation = {
+            killed: [...(ctx.nightTags.killed || [])],
+            poisoned: [...(ctx.nightTags.poisoned || [])],
+            saved: ctx.witchState?.savedSeat ? [ctx.witchState.savedSeat] : [],
+            guarded: ctx.guardedSeat ? [ctx.guardedSeat] : [],
+            dreamed: ctx.dreamedSeat ? [ctx.dreamedSeat] : [],
+            lastDreamed: ctx.lastDreamedSeat ? [ctx.lastDreamedSeat] : []
+        };
+        if (ctx.nightTags.savedBySnake) {
+            calculation.saved.push(...ctx.nightTags.savedBySnake);
+        }
+        ctx.pendingDawnDeaths = ctx.applyFilter('DAWN_DEATH_EVALUATION', calculation);
     },
     getPrompt: () => "選擇拘束的三名玩家\n(使狼人今晚只能從中選刀，且不可空刀)",
     getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
@@ -2761,10 +2766,10 @@ RoleRegistry.register("白晝學者", {
 
 RoleRegistry.register("寂夜導師", {
     canSelfExplode: true,
-    canSeeWolves: true,
+    canSeeWolves: false,
     seenAsWolf: true,
     isAttacker: false,
-    hasWolfChatAccess: true,
+    hasWolfChatAccess: false,
     nightPhase: "first_half",
     actionType: "single_select",
     hasAction: (ctx, mySeat) => {
