@@ -113,7 +113,7 @@ const BOARD_TEMPLATES = [
     { id: "test-22_6", name: "7人 獵日逐光(測試)", category: 'test', playerCount: 7, deck: ["預言家", "女巫", "攝夢人", "流光伯爵", "狼人", "蝕日侍女", "平民"] },
     { id: "test-23_6", name: "6人 白天動畫(測試)", category: 'test', playerCount: 6, deck: ["騎士", "定序王子", "河豚", "白狼王", "狼人", "平民"] },
     { id: "test-24_6", name: "6人 煉金魔女(測試)", category: 'test', playerCount: 6, deck: ["煉金魔女", "預言家", "狼鴉之爪", "狼人", "平民", "平民"] },
-    { id: "test-25_6", name: "6人 時波之亂(測試)", category: 'test', playerCount: 6, deck: ["白晝學者", "預言家", "女巫", "守衛", "狼人", "平民"] },
+    { id: "test-25_6", name: "6人 時波之亂(測試)", category: 'test', playerCount: 6, deck: ["白晝學者", "預言家", "女巫", "守衛", "狼人", "寂夜導師"] },
     { id: "quick-1_6", name: "6人 獵人局", category: 'fun', playerCount: 6, deck: ["預言家", "獵人", "狼人", "狼人", "平民", "平民"] },
     { id: "quick-2_6", name: "6人 女巫局", category: 'fun', playerCount: 6, deck: ["預言家", "女巫", "狼王", "狼人", "平民", "平民"] },
     { id: "quick-3_6", name: "6人 守衛局", category: 'fun', playerCount: 6, deck: ["預言家", "守衛", "狼人", "狼人", "平民", "平民"] },
@@ -214,5 +214,6 @@ const ROLE_DICTIONARY = {
     "蝕日侍女": { faction: "wolf", type: "wolf", nightPhase: ["first_half", "second_half"], actionType: "dynamic", prompt: "選擇今晚吞噬的目標", description:"狼人陣營，不與狼隊見面，知道所有狼人的號碼；從第二晚起，每局可以吞噬一名非狼人的玩家，使被吞噬的玩家無法使用技能，且自己可以使用其技能。其餘狼人死亡後，蝕日侍女參與襲擊" },
     "流光伯爵": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚的保佑對象", description:"神職；每晚可以保佑一名非自己的玩家，不可連續兩晚保佑相同玩家。被保佑的玩家免疫狼刀、毒藥和連續攝夢，而且被蝕日侍女吞噬時會使蝕日侍女次日死亡。" },
     "煉金魔女": { faction: "good", type: "god", nightPhase: "first_half", actionType: "triple_select", prompt: "選擇未明之霧壟罩的三名玩家", description:"神職；擁有「法老之蛇」跟「未明之霧」各一個。霧可在夜晚拘束三名玩家，使狼隊當晚只能從中選刀且不可空刀。蛇未被使用時會延遲白天死訊至投票前，並可在白天發言結束後使用蛇救活被襲擊者。" },
-    "白晝學者": { faction: "good", type: "god", nightPhase: "first_half", actionType: "single_select", prompt: "選擇發動增幅或削弱", description:"神職；從第二晚起，可以使用各一次增幅或削弱（不可同夜使用）。增幅可讓神職額外發動技能或狼人額外刀人；削弱會讓神職被封印，或狼隊當夜空刀。" },
+    "白晝學者": { faction: "good", type: "god", nightPhase: "first_half", actionType: "single_select", prompt: "選擇發動增幅或削弱", description:"神職；從第二晚起，可以使用各一次增幅或削弱。增幅可讓神職額外發動技能或狼人額外刀人；削弱會讓神職被封印，或狼隊當夜空刀。" },
+    "寂夜導師": { faction: "wolf", type: "wolf", nightPhase: "first_half", actionType: "single_select", prompt: "選擇發動增幅或削弱", description:"狼人陣營；不參與襲擊、不與狼隊友相見、但被狼人所知。從第二晚起，可以使用各一次增幅或削弱。增幅可讓神職額外發動技能或狼人額外刀人；削弱會讓神職被封印，或狼隊當夜空刀。" },
 };
