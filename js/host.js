@@ -674,9 +674,9 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                     actionPanel.prompt = plugin.getPrompt(ctx, player.seatNumber);
                 }
             } else {
-                // [擴充] 被恐懼或被吞噬的專屬靜態 UI 回饋
                 const isFeared = ctx.fearedSeat === player.seatNumber;
-                const isDevoured = ctx.devouredSeat === player.seatNumber; // [新增] 吞噬判定
+                const isDevoured = ctx.devouredSeat === player.seatNumber;
+                const isDebuffed = ctx.nightTags?.scholarDebuffTarget === player.seatNumber;
                 const isGod = typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[player.role]?.type === 'god';
                 
                 if (isDevoured) {
@@ -684,6 +684,13 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                     actionPanel.deadline = ctx.deadline;
                     actionPanel.type = 'none';
                     actionPanel.prompt = "你被獵日了，無法使用技能";
+                    actionPanel.buttons = [];
+                    actionPanel.hasActed = true;
+                } else if (isDebuffed && isGod) {
+                    actionPanel.show = true;
+                    actionPanel.deadline = ctx.deadline;
+                    actionPanel.type = 'none';
+                    actionPanel.prompt = "你被削弱了，無法使用技能";
                     actionPanel.buttons = [];
                     actionPanel.hasActed = true;
                 } else if (isFeared && isGod) {
