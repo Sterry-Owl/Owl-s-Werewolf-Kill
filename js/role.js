@@ -1921,21 +1921,30 @@ RoleRegistry.register("定序王子", {
     canSelfExplode: false,
     hasPostVoteSkill: true,
     nightPhase: "second_half",
+    actionType: "single_select",
     onNightStart: (ctx, player) => {
         if (player.data.hasUsedDaySkill && !player.data.hasReceivedPrinceInfo) {
-            let wolfCount = 0;
+            let hasWolf = false;
             if (ctx.exiledHistory) {
-                ctx.exiledHistory.forEach(seat => {
+                hasWolf = ctx.exiledHistory.some(seat => {
                     const targetPlayer = ctx.getPlayer(seat);
                     if (targetPlayer) {
                         const checkRole = targetPlayer.data.camouflageRole || targetPlayer.role;
-                        if (typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[checkRole]?.faction === 'wolf') {
-                            wolfCount++;
-                        }
+                        return typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
                     }
+                    return false;
                 });
             }
-            player.data.princeWolfCount = wolfCount; // 預計算結果存入狀態
+            player.data.princeHasExiledWolf = hasWolf;
+        }
+    },
+    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        if (ctx.nightTags?.princeSanctioned) {
+            const target = ctx.nightTags.princeSanctioned;
+            deathMap[target] = 'purified'; 
+            if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】定序王子發動制裁，擊殺 ${target} 號`);
+            }
         }
     },
     hasAction: (ctx, mySeat) => {
@@ -1944,16 +1953,47 @@ RoleRegistry.register("定序王子", {
     },
     getPrompt: (ctx, mySeat) => {
         const p = ctx.getPlayer(mySeat);
-        return `【被動技能】\n自遊戲開始至今被放逐的目標中，\n共有 【${p.data.princeWolfCount || 0}】 名狼人。`;
+        if (!p.data.princeHasExiledWolf) {
+            return `【被動技能】\n自遊戲開始至今被放逐的目標中，【沒有】狼人。\n你可以選擇制裁一名玩家 (無視防禦擊殺)：`;
+        }
+        return `【被動技能】\n自遊戲開始至今被放逐的目標中，【有】狼人。`;
     },
-    getSelectableSeats: () => [],
-    getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: false }],
+    getSelectableSeats: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        if (!p.data.princeHasExiledWolf) {
+            return ctx.getAlivePlayers().filter(x => x.seatNumber !== mySeat).map(x => x.seatNumber);
+        }
+        return [];
+    },
+    getButtons: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        if (!p.data.princeHasExiledWolf) {
+            return [
+                { id: 'sanction', text: '制裁', requiresTarget: true },
+                { id: 'pass', text: '跳過', requiresTarget: false }
+            ];
+        }
+        return [{ id: 'confirm', text: '確認', requiresTarget: false }];
+    },
     resolveNightAction: (ctx, actions) => {
         const act = actions[0];
-        if (act) {
-            act.player.data.hasReceivedPrinceInfo = true;
+        if (!act) return "【無效行動】";
+        act.player.data.hasReceivedPrinceInfo = true;
+        if (act.actionId === 'sanction' && act.targets && act.targets.length > 0) {
+            const target = act.targets[0];
+            const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'sanction', act.player.seatNumber) : parseInt(target);
+            
+            ctx.nightTags = ctx.nightTags || {};
+            ctx.nightTags.princeSanctioned = actualTarget;
+            
+            return `【制裁: ${target}號】`;
         }
-        return "確認資訊";
+
+        if (act.actionId === 'pass') {
+            return "【跳過制裁】";
+        }
+
+        return "【確認資訊】";
     },
     daySkill: {
         id: 'prince_reverse',
@@ -2004,7 +2044,9 @@ RoleRegistry.register("定序王子", {
             ctx.buildSpeakingQueue(player.seatNumber, 1, [player.seatNumber]);
             
             ctx.destinationPhase = 'PRINCE_SPEECH';
-            PhaseRegistry.sm.transitionTo('PRINCE_SPEECH');
+            if (typeof PhaseRegistry !== 'undefined' && PhaseRegistry.sm) {
+                PhaseRegistry.sm.transitionTo('PRINCE_SPEECH');
+            }
         }
     }
 });
