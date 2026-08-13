@@ -61,6 +61,7 @@ window.RoleRegistry = {
                 let deathMap = {};
                 if (ctx.nightTags?.demonHunterKills) ctx.nightTags.demonHunterKills.forEach(seat => deathMap[seat] = 'killed');
                 if (ctx.nightTags?.demonHunterBackfires) ctx.nightTags.demonHunterBackfires.forEach(seat => deathMap[seat] = 'skill_backfire');
+                if (ctx.nightTags?.clashDeaths) ctx.nightTags.clashDeaths.forEach(seat => deathMap[seat] = 'skill_backfire');
 
                 let allTargets = new Set([...calc.killed, ...calc.poisoned, ...calc.dreamed]);
 
@@ -159,9 +160,20 @@ window.RoleRegistry = {
             });
         });
 
-        // [控制反轉] 階段變更通用鉤子
         Engine.EventBus.on('PHASE_CHANGED', (payload) => {
             if (!ctx) return;
+            if (payload.phase === 'DAWN_DEATH_ANNOUNCE' || payload.phase === 'BEAR_ROAR_ANNOUNCE') {
+                ctx.players.forEach(p => {
+                    if (p.data.seerRecords) {
+                        for (let k in p.data.seerRecords) {
+                            if (p.data.seerRecords[k] === '被增幅' || p.data.seerRecords[k] === '被削弱') {
+                                delete p.data.seerRecords[k];
+                            }
+                        }
+                    }
+                });
+            }
+            
             ctx.players.forEach(p => {
                 const plugin = RoleRegistry.plugins[p.role];
                 if (plugin && typeof plugin.onPhaseChanged === 'function') plugin.onPhaseChanged(ctx, p, payload.phase);
@@ -2635,6 +2647,97 @@ RoleRegistry.register("煉金魔女", {
         return `【發動霧：拘束 ${targets.join('、')} 號】`;
     }
 });
+const ScholarMechanics = {
+    handleAction: function(ctx, act, isScholar) {
+        if (!act || act.actionId === 'pass') return "【保留技能】";
+        const target = act.targets[0];
+        const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+        const tPlayer = ctx.getPlayer(actualTarget);
+        
+        ctx.nightTags = ctx.nightTags || {};
+        ctx.nightTags.scholarOps = ctx.nightTags.scholarOps || {};
+        if (!ctx.nightTags.scholarOps[actualTarget]) {
+            ctx.nightTags.scholarOps[actualTarget] = { buff: 0, debuff: 0, from: [] };
+        }
+
+        const opRec = ctx.nightTags.scholarOps[actualTarget];
+        if (act.actionId === 'buff') {
+            act.player.data.hasBuffed = true;
+            opRec.buff++;
+            opRec.from.push(isScholar ? '學者增幅' : '導師增幅');
+        } else if (act.actionId === 'debuff') {
+            act.player.data.hasDebuffed = true;
+            opRec.debuff++;
+            opRec.from.push(isScholar ? '學者削弱' : '導師削弱');
+        }
+
+        // [衝突過載判定]
+        if (opRec.buff + opRec.debuff >= 2) {
+            // 取消所有效果並致死
+            ctx.nightTags.clashDeaths = ctx.nightTags.clashDeaths || [];
+            if (!ctx.nightTags.clashDeaths.includes(actualTarget)) {
+                ctx.nightTags.clashDeaths.push(actualTarget);
+            }
+            
+            // 註銷增幅：從白晝增幅佇列中拔除
+            const buffPhase = ctx.nightSequence.find(seq => seq.phaseId === 'scholar_action');
+            if (buffPhase && buffPhase.roles[0]) {
+                buffPhase.roles[0].activePlayers = buffPhase.roles[0].activePlayers.filter(p => p.seatNumber !== actualTarget);
+            }
+            
+            // 註銷削弱：如果原本被削弱了，解除標籤
+            if (ctx.nightTags.scholarDebuffTarget === actualTarget) {
+                ctx.nightTags.scholarDebuffTarget = null;
+            }
+            // 重算狼隊是否仍有其他人被削弱
+            ctx.nightTags.wolfTeamScholarDebuffed = false;
+            if (ctx.nightTags.scholarDebuffTarget) {
+                 const debuffedP = ctx.getPlayer(ctx.nightTags.scholarDebuffTarget);
+                 const cRole = debuffedP.data.camouflageRole || debuffedP.role;
+                 if (ROLE_DICTIONARY[cRole]?.faction === 'wolf') ctx.nightTags.wolfTeamScholarDebuffed = true;
+            }
+
+            // 給予自己過載提示
+            tPlayer.data.seerRecords = tPlayer.data.seerRecords || {};
+            tPlayer.data.seerRecords[actualTarget] = "過載死亡";
+
+            return act.actionId === 'buff' ? `【增幅: ${target}號 (力量衝突)】` : `【削弱: ${target}號 (力量衝突)】`;
+        }
+
+        // [單一作用正常生效]
+        if (act.actionId === 'buff') {
+            tPlayer.data.virtualRoles = tPlayer.data.virtualRoles || [];
+            if (!tPlayer.data.virtualRoles.includes('受增幅者')) tPlayer.data.virtualRoles.push('受增幅者');
+            
+            let buffPhase = ctx.nightSequence.find(seq => seq.phaseId === 'scholar_action');
+            if (!buffPhase) {
+                ctx.nightSequence.push({
+                    phaseId: 'scholar_action', phaseName: '增幅行動',
+                    roles: [{ roleName: '受增幅者', roleDef: RoleRegistry.plugins['受增幅者'], activePlayers: [tPlayer], resultLog: "" }]
+                });
+            } else {
+                if (!buffPhase.roles[0].activePlayers.some(ap => ap.seatNumber === actualTarget)) {
+                    buffPhase.roles[0].activePlayers.push(tPlayer);
+                }
+            }
+            // 寫入 SideTag (隔天早上清除)
+            tPlayer.data.seerRecords = tPlayer.data.seerRecords || {};
+            tPlayer.data.seerRecords[actualTarget] = "被增幅";
+            return `【增幅: ${target}號】`;
+        } else {
+            ctx.nightTags.scholarDebuffTarget = actualTarget;
+            const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
+            if (ROLE_DICTIONARY[checkRole]?.faction === 'wolf') {
+                ctx.nightTags.wolfTeamScholarDebuffed = true;
+            }
+            // 寫入 SideTag (隔天早上清除)
+            tPlayer.data.seerRecords = tPlayer.data.seerRecords || {};
+            tPlayer.data.seerRecords[actualTarget] = "被削弱";
+            return `【削弱: ${target}號】`;
+        }
+    }
+};
+
 RoleRegistry.register("白晝學者", {
     canSelfExplode: false,
     nightPhase: "first_half",
@@ -2653,51 +2756,35 @@ RoleRegistry.register("白晝學者", {
         btns.push({ id: 'pass', text: '跳過', requiresTarget: false });
         return btns;
     },
-    resolveNightAction: (ctx, actions) => {
-        const act = actions[0];
-        if (!act || act.actionId === 'pass') return "【保留技能】";
-
-        const target = act.targets[0];
-        const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
-        const tPlayer = ctx.getPlayer(actualTarget);
-
-        if (act.actionId === 'buff') {
-            act.player.data.hasBuffed = true;
-            
-            tPlayer.data.virtualRoles = tPlayer.data.virtualRoles || [];
-            if (!tPlayer.data.virtualRoles.includes('白晝增幅')) {
-                tPlayer.data.virtualRoles.push('白晝增幅');
-            }
-            
-            // 將虛擬角色動態排入時序，完美銜接於後半夜執行
-            let buffPhase = ctx.nightSequence.find(seq => seq.phaseId === 'scholar_action');
-            if (!buffPhase) {
-                ctx.nightSequence.push({
-                    phaseId: 'scholar_action', phaseName: '白晝增幅行動',
-                    roles: [{ roleName: '白晝增幅', roleDef: RoleRegistry.plugins['白晝增幅'], activePlayers: [tPlayer], resultLog: "" }]
-                });
-            } else {
-                if (!buffPhase.roles[0].activePlayers.some(ap => ap.seatNumber === tPlayer.seatNumber)) {
-                    buffPhase.roles[0].activePlayers.push(tPlayer);
-                }
-            }
-            return `【增幅: ${target}號】`;
-            
-        } else if (act.actionId === 'debuff') {
-            act.player.data.hasDebuffed = true;
-            ctx.nightTags = ctx.nightTags || {};
-            ctx.nightTags.scholarDebuffTarget = actualTarget;
-            
-            const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
-            if (ROLE_DICTIONARY[checkRole]?.faction === 'wolf') {
-                ctx.nightTags.wolfTeamScholarDebuffed = true;
-            }
-            return `【削弱: ${target}號】`;
-        }
-    }
+    resolveNightAction: (ctx, actions) => ScholarMechanics.handleAction(ctx, actions[0], true)
 });
 
-RoleRegistry.register("白晝增幅", {
+RoleRegistry.register("寂夜導師", {
+    canSelfExplode: true,
+    canSeeWolves: true,
+    seenAsWolf: true,
+    isAttacker: false,
+    hasWolfChatAccess: true,
+    nightPhase: "first_half",
+    actionType: "single_select",
+    hasAction: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        return ctx.nightCount >= 2 && (!p.data.hasBuffed || !p.data.hasDebuffed);
+    },
+    getPrompt: () => "選擇發動增幅或削弱\n(每局各限用一次，不可同夜使用。對不具備條件的目標無效)",
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+    getButtons: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        let btns = [];
+        if (!p.data.hasBuffed) btns.push({ id: 'buff', text: '增幅', requiresTarget: true });
+        if (!p.data.hasDebuffed) btns.push({ id: 'debuff', text: '削弱', requiresTarget: true });
+        btns.push({ id: 'pass', text: '跳過', requiresTarget: false });
+        return btns;
+    },
+    resolveNightAction: (ctx, actions) => ScholarMechanics.handleAction(ctx, actions[0], false)
+});
+
+RoleRegistry.register("受增幅者", {
     actionType: "single_select",
     hasAction: (ctx, mySeat) => {
         const p = ctx.getPlayer(mySeat);
