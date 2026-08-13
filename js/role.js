@@ -2698,56 +2698,98 @@ const ScholarMechanics = {
         const tPlayer = ctx.getPlayer(actualTarget);
         
         ctx.nightTags = ctx.nightTags || {};
-        ctx.nightTags.scholarOps = ctx.nightTags.scholarOps || {};
-        if (!ctx.nightTags.scholarOps[actualTarget]) {
-            ctx.nightTags.scholarOps[actualTarget] = { buff: 0, debuff: 0, from: [] };
+        // 將過載池區分為：非狼人個體計數、狼隊群體計數
+        ctx.nightTags.scholarOps = ctx.nightTags.scholarOps || { individuals: {}, wolfFactionCount: 0, wolfTargets: [] };
+        
+        const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
+        const isWolf = ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
+
+        // 1. 標記操作者狀態並結算計數池
+        let isOverloaded = false;
+        let isWolfOverloaded = false;
+
+        if (act.actionId === 'buff') act.player.data.hasBuffed = true;
+        if (act.actionId === 'debuff') act.player.data.hasDebuffed = true;
+
+        if (isWolf) {
+            ctx.nightTags.scholarOps.wolfFactionCount++;
+            if (!ctx.nightTags.scholarOps.wolfTargets.includes(actualTarget)) {
+                ctx.nightTags.scholarOps.wolfTargets.push(actualTarget);
+            }
+            if (ctx.nightTags.scholarOps.wolfFactionCount >= 2) {
+                isWolfOverloaded = true;
+            }
+        } else {
+            ctx.nightTags.scholarOps.individuals[actualTarget] = (ctx.nightTags.scholarOps.individuals[actualTarget] || 0) + 1;
+            if (ctx.nightTags.scholarOps.individuals[actualTarget] >= 2) {
+                isOverloaded = true;
+            }
         }
 
-        const opRec = ctx.nightTags.scholarOps[actualTarget];
-        if (act.actionId === 'buff') {
-            act.player.data.hasBuffed = true;
-            opRec.buff++;
-            opRec.from.push(isScholar ? '學者增幅' : '導師增幅');
-        } else if (act.actionId === 'debuff') {
-            act.player.data.hasDebuffed = true;
-            opRec.debuff++;
-            opRec.from.push(isScholar ? '學者削弱' : '導師削弱');
-        }
-
-        // [衝突過載判定]
-        if (opRec.buff + opRec.debuff >= 2) {
-            // 取消所有效果並致死
+        // 2. 處理【非狼人】陣營個人過載 (導致目標死亡)
+        if (isOverloaded && !isWolf) {
             ctx.nightTags.clashDeaths = ctx.nightTags.clashDeaths || [];
             if (!ctx.nightTags.clashDeaths.includes(actualTarget)) {
                 ctx.nightTags.clashDeaths.push(actualTarget);
             }
             
-            // 註銷增幅：從白晝增幅佇列中拔除
             const buffPhase = ctx.nightSequence.find(seq => seq.phaseId === 'scholar_action');
             if (buffPhase && buffPhase.roles[0]) {
                 buffPhase.roles[0].activePlayers = buffPhase.roles[0].activePlayers.filter(p => p.seatNumber !== actualTarget);
             }
-            
-            // 註銷削弱：如果原本被削弱了，解除標籤
             if (ctx.nightTags.scholarDebuffTarget === actualTarget) {
                 ctx.nightTags.scholarDebuffTarget = null;
             }
-            // 重算狼隊是否仍有其他人被削弱
-            ctx.nightTags.wolfTeamScholarDebuffed = false;
-            if (ctx.nightTags.scholarDebuffTarget) {
-                 const debuffedP = ctx.getPlayer(ctx.nightTags.scholarDebuffTarget);
-                 const cRole = debuffedP.data.camouflageRole || debuffedP.role;
-                 if (ROLE_DICTIONARY[cRole]?.faction === 'wolf') ctx.nightTags.wolfTeamScholarDebuffed = true;
-            }
-
-            // 給予自己過載提示
+            
             tPlayer.data.seerRecords = tPlayer.data.seerRecords || {};
             tPlayer.data.seerRecords[actualTarget] = "過載死亡";
-
+            
             return act.actionId === 'buff' ? `【增幅: ${target}號 (力量衝突)】` : `【削弱: ${target}號 (力量衝突)】`;
         }
 
-        // [單一作用正常生效]
+        // 3. 處理【狼人陣營】群體過載反噬 (導致導師死亡，狼隊狀態重置)
+        if (isWolfOverloaded && isWolf) {
+            ctx.nightTags.clashDeaths = ctx.nightTags.clashDeaths || [];
+            const mentor = ctx.players.find(p => p.role === '寂夜導師' && !p.isDead);
+            
+            if (mentor && !ctx.nightTags.clashDeaths.includes(mentor.seatNumber)) {
+                ctx.nightTags.clashDeaths.push(mentor.seatNumber);
+                mentor.data.seerRecords = mentor.data.seerRecords || {};
+                mentor.data.seerRecords[mentor.seatNumber] = "過載反噬";
+            }
+            
+            // 註銷全狼隊的增幅標籤
+            const buffPhase = ctx.nightSequence.find(seq => seq.phaseId === 'scholar_action');
+            if (buffPhase && buffPhase.roles[0]) {
+                buffPhase.roles[0].activePlayers = buffPhase.roles[0].activePlayers.filter(p => {
+                    const pRole = p.data.camouflageRole || p.role;
+                    return ROLE_DICTIONARY[pRole]?.faction !== 'wolf';
+                });
+            }
+            
+            // 註銷全狼隊的削弱封印
+            ctx.nightTags.wolfTeamScholarDebuffed = false;
+            if (ctx.nightTags.scholarDebuffTarget) {
+                const debuffedP = ctx.getPlayer(ctx.nightTags.scholarDebuffTarget);
+                const cRole = debuffedP.data.camouflageRole || debuffedP.role;
+                if (ROLE_DICTIONARY[cRole]?.faction === 'wolf') {
+                    ctx.nightTags.scholarDebuffTarget = null;
+                }
+            }
+
+            // 更新目標 UI 回饋
+            ctx.nightTags.scholarOps.wolfTargets.forEach(seat => {
+                 const wp = ctx.getPlayer(seat);
+                 if (wp) {
+                     wp.data.seerRecords = wp.data.seerRecords || {};
+                     wp.data.seerRecords[seat] = "過載失效";
+                 }
+            });
+
+            return act.actionId === 'buff' ? `【增幅: ${target}號 (陣營過載)】` : `【削弱: ${target}號 (陣營過載)】`;
+        }
+
+        // 4. 正常單一作用生效
         if (act.actionId === 'buff') {
             tPlayer.data.virtualRoles = tPlayer.data.virtualRoles || [];
             if (!tPlayer.data.virtualRoles.includes('受增幅者')) tPlayer.data.virtualRoles.push('受增幅者');
@@ -2763,44 +2805,20 @@ const ScholarMechanics = {
                     buffPhase.roles[0].activePlayers.push(tPlayer);
                 }
             }
-            // 寫入 SideTag (隔天早上清除)
             tPlayer.data.seerRecords = tPlayer.data.seerRecords || {};
             tPlayer.data.seerRecords[actualTarget] = "被增幅";
             return `【增幅: ${target}號】`;
         } else {
             ctx.nightTags.scholarDebuffTarget = actualTarget;
-            const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
-            if (ROLE_DICTIONARY[checkRole]?.faction === 'wolf') {
+            if (isWolf) {
                 ctx.nightTags.wolfTeamScholarDebuffed = true;
             }
-            // 寫入 SideTag (隔天早上清除)
             tPlayer.data.seerRecords = tPlayer.data.seerRecords || {};
             tPlayer.data.seerRecords[actualTarget] = "被削弱";
             return `【削弱: ${target}號】`;
         }
     }
 };
-
-RoleRegistry.register("白晝學者", {
-    canSelfExplode: false,
-    nightPhase: "first_half",
-    actionType: "single_select",
-    hasAction: (ctx, mySeat) => {
-        const p = ctx.getPlayer(mySeat);
-        return ctx.nightCount >= 2 && (!p.data.hasBuffed || !p.data.hasDebuffed);
-    },
-    getPrompt: () => "選擇發動增幅或削弱",
-    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
-    getButtons: (ctx, mySeat) => {
-        const p = ctx.getPlayer(mySeat);
-        let btns = [];
-        if (!p.data.hasBuffed) btns.push({ id: 'buff', text: '增幅', requiresTarget: true });
-        if (!p.data.hasDebuffed) btns.push({ id: 'debuff', text: '削弱', requiresTarget: true });
-        btns.push({ id: 'pass', text: '跳過', requiresTarget: false });
-        return btns;
-    },
-    resolveNightAction: (ctx, actions) => ScholarMechanics.handleAction(ctx, actions[0], true)
-});
 
 RoleRegistry.register("寂夜導師", {
     canSelfExplode: true,
