@@ -932,6 +932,12 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     }
 
     // ==========================================
+    // [新增] 廣播特殊資訊區域過濾器
+    // ==========================================
+    let specialInfos = [];
+    specialInfos = ctx.applyFilter('BUILD_SPECIAL_INFOS', specialInfos, { context: ctx, player: player });
+
+    // ==========================================
     // 3. 打包回傳封包給前端渲染
     // ==========================================
     const roleCounts = {};
@@ -950,8 +956,10 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         nightStepIndex: ctx.currentNightStepIndex,
         nightCount: ctx.nightCount,
         mySeat: player.seatNumber, myRole: myDisplayRole,
-        message: personalMessage, players: mappedPlayers, actionPanel, latestCheckResult: player.data.latestCheckResult || null,
-        voteHistory: ctx.voteHistory, 
+        message: personalMessage, players: mappedPlayers, actionPanel, 
+        specialInfos: specialInfos, // [新增] 將陣列打包進封包
+        latestCheckResult: player.data.latestCheckResult || null,
+        voteHistory: ctx.voteHistory,
         allowSelfExplode: !player.isDead && ['SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'DAY_DISCUSSION', 'DAY_PK_SPEECH', 'PRINCE_SPEECH'].includes(ctx.phase) && RoleRegistry.plugins[player.role]?.canSelfExplode,
         canUseWolfChat: canUseWolfChat,
         isMidnight: isMidnight,
