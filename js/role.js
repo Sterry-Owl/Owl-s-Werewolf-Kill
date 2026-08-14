@@ -160,11 +160,11 @@ window.RoleRegistry = {
 
                 // 2. 增幅 / 削弱 (僅在夜晚且非前半夜顯示)
                 const isNightPhase = ['NIGHT_ACTION', 'MIDNIGHT_RESULT_DISPLAY'].includes(currentPhase);
-                if (isNightPhase && !isFirstHalf && player.data.seerRecords) {
-                    const status = player.data.seerRecords[player.seatNumber];
-                    if (status === '被增幅') {
+                if (isNightPhase && !isFirstHalf) {
+                    // [解耦] 直接讀取物理狀態標記，不再依賴 seerRecords 的字串
+                    if (player.data.virtualRoles && player.data.virtualRoles.includes('受增幅者')) {
                         infos.push({ text: "你受到增幅", subtext: "可以多使用一次自身技能" });
-                    } else if (status === '被削弱') {
+                    } else if (context.nightTags?.scholarDebuffTarget === player.seatNumber) {
                         infos.push({ text: "你受到削弱", subtext: "無法使用自身技能" });
                     }
                 }
@@ -217,12 +217,8 @@ window.RoleRegistry = {
 
             if (payload.phase === 'DAWN_DEATH_ANNOUNCE' || payload.phase === 'BEAR_ROAR_ANNOUNCE') {
                 ctx.players.forEach(p => {
-                    if (p.data.seerRecords) {
-                        for (let k in p.data.seerRecords) {
-                            if (p.data.seerRecords[k] === '被增幅' || p.data.seerRecords[k] === '被削弱') {
-                                delete p.data.seerRecords[k];
-                            }
-                        }
+                    if (p.data.virtualRoles) {
+                        p.data.virtualRoles = p.data.virtualRoles.filter(role => role !== '受增幅者');
                     }
                 });
             }
@@ -2881,16 +2877,14 @@ const ScholarMechanics = {
                     buffPhase.roles[0].activePlayers.push(tPlayer);
                 }
             }
-            tPlayer.data.seerRecords = tPlayer.data.seerRecords || {};
-            tPlayer.data.seerRecords[actualTarget] = "被增幅";
+            // [淨化] 刪除寫入 seerRecords 的邏輯
             return `【增幅: ${target}號】`;
         } else {
             ctx.nightTags.scholarDebuffTarget = actualTarget;
             if (isWolf) {
                 ctx.nightTags.wolfTeamScholarDebuffed = true;
             }
-            tPlayer.data.seerRecords = tPlayer.data.seerRecords || {};
-            tPlayer.data.seerRecords[actualTarget] = "被削弱";
+            // [淨化] 刪除寫入 seerRecords 的邏輯
             return `【削弱: ${target}號】`;
         }
     }
