@@ -141,10 +141,17 @@ window.RoleRegistry = {
                 const isNightAction = currentPhase === 'NIGHT_ACTION';
                 const stepId = context.nightSequence?.[context.currentNightStepIndex]?.phaseId;
                 const isFirstHalf = isNightAction && stepId === 'first_half';
-
-                // 1. 煉金魔女 (白天顯示刀口，直到發動技能階段)
-                const alchemistPhases = ['BEAR_ROAR_ANNOUNCE', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_RE_ELECTION_BAILOUT'];
-                if (player.role === '煉金魔女' && !player.isDead && !player.data.snakeUsed && alchemistPhases.includes(currentPhase)) {
+                const alchemistPreDecisionPhases = [
+                    'BEAR_ROAR_ANNOUNCE', 'DAWN_DEATH_ANNOUNCE', 'SHERIFF_CANDIDACY', 
+                    'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 
+                    'SHERIFF_ORDER_SELECTION', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 
+                    'DAY_DISCUSSION', 'DAY_PK_SPEECH', 'PRINCE_SPEECH'
+                ];
+                const isWitchRestricted = context.fearedSeat === player.seatNumber ||
+                                          context.devouredSeat === player.seatNumber ||
+                                          (context.bloodMoonSilenceNight === context.nightCount);
+                                          
+                if (player.role === '煉金魔女' && !player.isDead && !player.data.snakeUsed && !isWitchRestricted && alchemistPreDecisionPhases.includes(currentPhase)) {
                     const victim = context.nightTags?.killed?.[0];
                     if (victim) {
                         infos.push({ text: `昨晚被襲擊的是${victim}號`, subtext: "煉金魔女會事先得知刀口" });
@@ -2676,26 +2683,35 @@ RoleRegistry.register("煉金魔女", {
         return !ctx.getPlayer(mySeat).data.mistUsed;
     },
     onDeathAnnounceIntercept: (ctx, player, deathMap) => {
-        if (!player.data.snakeUsed && !player.isDead) {
-            const isRestricted = ctx.fearedSeat === player.seatNumber ||
-                                 ctx.devouredSeat === player.seatNumber ||
-                                 (ctx.bloodMoonSilenceNight === ctx.nightCount);
-            if (!isRestricted) {
-                return { 
-                    prevented: true, 
-                    initiator: player.seatNumber, 
-                    logMessage: "【系統宣告】法老之蛇存在於場上，昨夜死訊將延後至投票前公布。" 
-                };
-            }
-        }
-        return { prevented: false };
+        // [修改] 無條件攔截。只要版型有煉金魔女，絕對沒收清晨死訊，強制延遲至下午 (完美防場外)
+        return { 
+            prevented: true, 
+            initiator: player.seatNumber, 
+            logMessage: "【系統宣告】法老之蛇存在於場上，昨夜死訊將延後至投票前公布。" 
+        };
     },
     getInterruptUI: (ctx, viewer, actionPanel) => {
         actionPanel.show = true;
-        actionPanel.deadline = ctx.deadline;
-        if (viewer.role === '煉金魔女' && !viewer.isDead) {
+        actionPanel.deadline = ctx.deadline; 
+        
+        if (viewer.role === '煉金魔女') {
+            const isRestricted = ctx.fearedSeat === viewer.seatNumber ||
+                                 ctx.devouredSeat === viewer.seatNumber ||
+                                 (ctx.bloodMoonSilenceNight === ctx.nightCount);
+
+            if (viewer.isDead || viewer.data.snakeUsed || isRestricted) {
+                let reasonText = "等待系統結算中...";
+                if (viewer.isDead) reasonText = "你已出局，等待系統結算中...";
+                else if (viewer.data.snakeUsed) reasonText = "法老之蛇已使用，等待系統結算中...";
+                else if (isRestricted) reasonText = "你遭受控制，無法發動技能，等待系統結算中...";
+
+                actionPanel.prompt = reasonText;
+                actionPanel.buttons = [];
+                return actionPanel; 
+            }
             const victim = ctx.nightTags?.killed?.length > 0 ? ctx.nightTags.killed[0] : "無";
-            let canSave = victim !== "無" && !viewer.data.snakeUsed;
+            let canSave = victim !== "無";
+            
             if (canSave && victim === viewer.seatNumber) {
                 if (ctx.rules.witchSave === 'never') canSave = false;
                 if (ctx.rules.witchSave === 'first_night' && ctx.nightCount > 1) canSave = false;
@@ -2716,7 +2732,7 @@ RoleRegistry.register("煉金魔女", {
                 actionPanel.buttons.push({ id: 'pass', text: '不使用', requiresTarget: false });
             }
         } else {
-            actionPanel.prompt = "等待特殊技能發動中...";
+            actionPanel.prompt = "等待玩家發動技能";
             actionPanel.buttons = [];
         }
         return actionPanel;
