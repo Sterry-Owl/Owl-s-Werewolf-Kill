@@ -483,6 +483,35 @@ const UI = {
             }
         }
 
+        // ===============================================
+        // [新增] 渲染特殊資訊區域 (Special Info Panel)
+        // 完全不帶角色邏輯，純資料驅動 DOM 掛載
+        // ===============================================
+        let specialInfoContainer = document.getElementById('special-info-container');
+        if (!specialInfoContainer) {
+            specialInfoContainer = document.createElement('div');
+            specialInfoContainer.id = 'special-info-container';
+            specialInfoContainer.className = 'special-info-container hidden';
+            
+            // 緊貼在操作面板之下掛載
+            if (actionPanelEl && actionPanelEl.parentNode) {
+                actionPanelEl.parentNode.insertBefore(specialInfoContainer, actionPanelEl.nextSibling);
+            }
+        }
+
+        if (state.specialInfos && state.specialInfos.length > 0) {
+            specialInfoContainer.innerHTML = state.specialInfos.map(info => `
+                <div class="special-info-item">
+                    <div class="special-info-main">${info.text}</div>
+                    <div class="special-info-sub">${info.subtext}</div>
+                </div>
+            `).join('');
+            specialInfoContainer.classList.remove('hidden');
+        } else {
+            specialInfoContainer.innerHTML = '';
+            specialInfoContainer.classList.add('hidden');
+        }
+
         const leftSeats = document.getElementById('left-seats');
         const rightSeats = document.getElementById('right-seats');
         if (!leftSeats || !rightSeats) return;
