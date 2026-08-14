@@ -700,3 +700,43 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     /* 100%：向右側衝刺退出 */
     100% { transform: translateX(150%) scale(0.9); opacity: 0; }
 }
+/* ==================================================== */
+/* 特殊資訊區域 (Special Info Panel) */
+/* ==================================================== */
+.special-info-container {
+    width: 90%; 
+    max-width: 275px; 
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: auto;
+    z-index: 20;
+}
+.special-info-container.hidden {
+    display: none !important;
+}
+.special-info-item {
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid rgba(200, 175, 90, 0.8);
+    border-radius: 16px; 
+    padding: 15px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+}
+.special-info-main {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+.special-info-sub {
+    color: #aaaaaa;
+    font-size: 10px;
+    line-height: 1.3;
+}
