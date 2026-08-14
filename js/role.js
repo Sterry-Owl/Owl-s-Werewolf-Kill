@@ -131,6 +131,45 @@ window.RoleRegistry = {
                 }
                 return canAct;
             });
+
+            // ==========================================
+            // [新增] 特殊資訊區域過濾器 (完全收斂角色知識)
+            // ==========================================
+            ctx.addFilter('BUILD_SPECIAL_INFOS', (infos, args) => {
+                const { context, player } = args;
+                const currentPhase = context.phase;
+                const isNightAction = currentPhase === 'NIGHT_ACTION';
+                const stepId = context.nightSequence?.[context.currentNightStepIndex]?.phaseId;
+                const isFirstHalf = isNightAction && stepId === 'first_half';
+
+                // 1. 煉金魔女 (白天顯示刀口，直到發動技能階段)
+                const alchemistPhases = ['BEAR_ROAR_ANNOUNCE', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_RE_ELECTION_BAILOUT'];
+                if (player.role === '煉金魔女' && !player.isDead && !player.data.snakeUsed && alchemistPhases.includes(currentPhase)) {
+                    const victim = context.nightTags?.killed?.[0];
+                    if (victim) {
+                        infos.push({ text: `昨晚被襲擊的是${victim}號`, subtext: "煉金魔女會事先得知刀口" });
+                    }
+                }
+
+                // 2. 增幅 / 削弱 (僅在夜晚且非前半夜顯示)
+                const isNightPhase = ['NIGHT_ACTION', 'MIDNIGHT_RESULT_DISPLAY'].includes(currentPhase);
+                if (isNightPhase && !isFirstHalf && player.data.seerRecords) {
+                    const status = player.data.seerRecords[player.seatNumber];
+                    if (status === '被增幅') {
+                        infos.push({ text: "你受到增幅", subtext: "可以多使用一次自身技能" });
+                    } else if (status === '被削弱') {
+                        infos.push({ text: "你受到削弱", subtext: "無法使用自身技能" });
+                    }
+                }
+
+                // 3. 吹笛者誘引 (因動作生效於前半夜，我們判定只要不在前半夜且於名單內即可，不自然清除)
+                if (!isFirstHalf && context.charmedByPiper && context.charmedByPiper.includes(player.seatNumber)) {
+                    const charmedList = [...context.charmedByPiper].sort((a,b)=>a-b).join(', ');
+                    infos.push({ text: `你被誘引了，已被誘引者有${charmedList}號`, subtext: "吹笛者誘引存活的所有人將獲勝" });
+                }
+
+                return infos;
+            });
         }
 
         Engine.EventBus.on('START_NIGHT', () => {
