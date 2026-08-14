@@ -162,6 +162,13 @@ window.RoleRegistry = {
 
         Engine.EventBus.on('PHASE_CHANGED', (payload) => {
             if (!ctx) return;
+
+            if (payload.phase === 'SHERIFF_CANDIDACY' || payload.phase === 'DAY_DISCUSSION') {
+                ctx.fearedSeat = null;
+                ctx.devouredSeat = null;
+                if (ctx.nightTags) ctx.nightTags.scholarDebuffTarget = null;
+            }
+
             if (payload.phase === 'DAWN_DEATH_ANNOUNCE' || payload.phase === 'BEAR_ROAR_ANNOUNCE') {
                 ctx.players.forEach(p => {
                     if (p.data.seerRecords) {
@@ -437,7 +444,22 @@ RoleRegistry.register("燈影預言家", {
 RoleRegistry.register("平民", { canSelfExplode: false });
 RoleRegistry.register("獵人", { 
     canSelfExplode: false,
-    onPlayerDied: (ctx, player, reason) => { if (['killed', 'voted', 'shot'].includes(reason)) ctx.pendingHunter = player.seatNumber; },
+    onPlayerDied: (ctx, player, reason) => { 
+        if (['killed', 'voted', 'shot'].includes(reason)) {
+            if (reason !== 'voted') {
+                const isFeared = ctx.fearedSeat === player.seatNumber;
+                const isDevoured = ctx.devouredSeat === player.seatNumber;
+                const isDebuffed = ctx.nightTags?.scholarDebuffTarget === player.seatNumber;
+                if (isFeared || isDevoured || isDebuffed) {
+                    if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                        Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】獵人 ${player.seatNumber} 號死亡，因恐懼/吞噬/削弱無法開槍。`);
+                    }
+                    return; 
+                }
+            }
+            ctx.pendingHunter = player.seatNumber; 
+        }
+    },
 });
 RoleRegistry.register("白痴", { 
     canSelfExplode: false,
@@ -469,7 +491,21 @@ RoleRegistry.register("狼王", {
     getSelectableSeats: RoleRegistry.plugins["狼人"].getSelectableSeats,
     getButtons: () => [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
     resolveNightAction: RoleRegistry.plugins["狼人"].resolveNightAction,
-    onPlayerDied: (ctx, player, reason) => { if (['killed', 'voted', 'shot'].includes(reason)) ctx.pendingWolfKing = player.seatNumber; },
+    onPlayerDied: (ctx, player, reason) => { 
+        if (['killed', 'voted', 'shot'].includes(reason)) {
+            if (reason !== 'voted') {
+                const isFeared = ctx.fearedSeat === player.seatNumber;
+                const isDebuffed = ctx.nightTags?.scholarDebuffTarget === player.seatNumber;
+                if (isFeared || isDebuffed) {
+                    if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                        Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】狼王 ${player.seatNumber} 號死亡，但因受控(恐懼/削弱)無法開槍。`);
+                    }
+                    return; 
+                }
+            }
+            ctx.pendingWolfKing = player.seatNumber; 
+        }
+    },
 });
 
 RoleRegistry.register("守衛", {
