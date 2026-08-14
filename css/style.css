@@ -704,14 +704,18 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 /* 特殊資訊區域 (Special Info Panel) */
 /* ==================================================== */
 .special-info-container {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    /* 動態運算：卡牌高度(clamp) + 卡牌底距(min) + 安全範圍(env) + 緩衝間隔(15px) */
+    bottom: calc(clamp(144px, 30vh, 224px) + min(10vh, 20px) + env(safe-area-inset-bottom, 0px) + 15px);
     width: 90%; 
     max-width: 275px; 
-    margin-top: 15px;
     display: flex;
     flex-direction: column;
     gap: 12px;
     pointer-events: auto;
-    z-index: 20;
+    z-index: 30;
 }
 .special-info-container.hidden {
     display: none !important;
