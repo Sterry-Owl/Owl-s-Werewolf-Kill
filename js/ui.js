@@ -568,8 +568,6 @@ const UI = {
                 else if (p.sideTag === '狼人' || p.sideTag === '疑似狼人') colorClass = 'tag-red';
                 else if (p.sideTag === '暗戀對象') colorClass = 'tag-pink';
                 else if (p.sideTag === '被誘引') colorClass = 'tag-purple';
-                else if (p.sideTag === '被增幅') colorClass = 'tag-buff';
-                else if (p.sideTag === '被削弱') colorClass = 'tag-debuff';
 
                 tagsHtml += `<div class="side-tag ${alignClass} ${colorClass}">${p.sideTag}</div>`;
             }
