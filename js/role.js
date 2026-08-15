@@ -199,10 +199,14 @@ window.RoleRegistry = {
                     }
                 }
 
-                // 3. 吹笛者誘引 (因動作生效於前半夜，我們判定只要不在前半夜且於名單內即可，不自然清除)
-                if (!isFirstHalf && context.charmedByPiper && context.charmedByPiper.includes(player.seatNumber)) {
+                if (context.charmedByPiper && context.charmedByPiper.length > 0) {
                     const charmedList = [...context.charmedByPiper].sort((a,b)=>a-b).join(', ');
-                    infos.push({ text: `你被誘引了，已被誘引者有${charmedList}號`, subtext: "吹笛者誘引存活的所有人將獲勝" });
+                    if (!isFirstHalf && context.charmedByPiper.includes(player.seatNumber)) {
+                        infos.push({ text: `你被誘引了，已被誘引者有${charmedList}號`, subtext: "吹笛者誘引存活的所有人將獲勝" });
+                    }
+                    if (player.role === '吹笛者') {
+                        infos.push({ text: `已被誘引的名單者有${charmedList}號`, subtext: "誘引全場存活玩家即可獲勝" });
+                    }
                 }
 
                 return infos;
@@ -416,6 +420,8 @@ RoleRegistry.register("女巫", {
                 ctx.witchState.silverWater = victim; 
                 ctx.nightTags.witchUsedSaveTonight = true;
                 ctx.witchState.antidoteUsed = true;
+                act.player.data.customSideTags = act.player.data.customSideTags || {};
+                act.player.data.customSideTags[victim] = "銀水";
                 return "使用解藥";
             }
             return "使用解藥";
@@ -1080,6 +1086,11 @@ RoleRegistry.register("暗戀者", {
         if (target) {
             ctx.crushTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
             ctx.admirerSeat = mySeat; 
+            const actPlayer = ctx.getPlayer(mySeat);
+            if (actPlayer) {
+                actPlayer.data.customSideTags = actPlayer.data.customSideTags || {};
+                actPlayer.data.customSideTags[ctx.crushTarget] = "暗戀";
+            }
             return `【暗戀: ${target}號】`;
         }
         
@@ -2241,12 +2252,6 @@ RoleRegistry.register("吹笛者", {
 
     onNightStart: (ctx, player) => {
         ctx.charmedByPiper = ctx.charmedByPiper || [];
-        player.data.customTopTags = player.data.customTopTags || {};
-        ctx.players.forEach(p => {
-            if (p.seatNumber !== player.seatNumber && ctx.charmedByPiper.includes(p.seatNumber)) {
-                player.data.customTopTags[p.seatNumber] = "已誘引";
-            }
-        });
     },
 
     getPrompt: (ctx) => {
@@ -2275,19 +2280,8 @@ RoleRegistry.register("吹笛者", {
                 if (!ctx.charmedByPiper.includes(actualTarget)) {
                     ctx.charmedByPiper.push(actualTarget);
                 }
-                act.player.data.customTopTags = act.player.data.customTopTags || {};
-                act.player.data.customTopTags[actualTarget] = "已誘引";
             });
         }
-        
-        const aliveCharmed = ctx.getAlivePlayers().filter(p => ctx.charmedByPiper.includes(p.seatNumber));
-        aliveCharmed.forEach(p => {
-            p.data.seerRecords = p.data.seerRecords || {};
-            ctx.charmedByPiper.forEach(targetSeat => {
-                p.data.seerRecords[targetSeat] = "被誘引";
-            });
-        });
-
         if (!act || act.actionId === 'pass' || !act.targets || act.targets.length === 0) return "【跳過行動】";
         return `【誘引: ${act.targets.join('、')}號】`;
     }
@@ -2721,6 +2715,8 @@ RoleRegistry.register("煉金魔女", {
             if (victim) {
                 ctx.nightTags.savedBySnake = [victim];
                 act.player.data.snakeUsed = true;
+                act.player.data.customSideTags = act.player.data.customSideTags || {};
+                act.player.data.customSideTags[victim] = "銀水";
                 ctx.systemLog = `煉金魔女使用了蛇。`;
             }
         } else {
@@ -3031,10 +3027,14 @@ RoleRegistry.register("野孩子", {
                 const selectable = ctx.getAlivePlayers().filter(p => p.seatNumber !== act.player.seatNumber).map(p => p.seatNumber);
                 const target = selectable[Math.floor(Math.random() * selectable.length)];
                 act.player.data.wildModelTarget = target;
+                act.player.data.customSideTags = act.player.data.customSideTags || {};
+                act.player.data.customSideTags[target] = "榜樣";
                 return `【強制選擇榜樣: ${target}號】`;
             }
             const target = parseInt(act.targets[0]);
             act.player.data.wildModelTarget = target;
+            act.player.data.customSideTags = act.player.data.customSideTags || {};
+            act.player.data.customSideTags[target] = "榜樣";
             return `【選擇榜樣: ${target}號】`;
         }
     },
@@ -3078,10 +3078,14 @@ RoleRegistry.register("復仇者", {
             const selectable = ctx.getAlivePlayers().filter(p => p.seatNumber !== act.player.seatNumber).map(p => p.seatNumber);
             const target = selectable[Math.floor(Math.random() * selectable.length)];
             act.player.data.avengerTarget = target;
+            act.player.data.customSideTags = act.player.data.customSideTags || {};
+            act.player.data.customSideTags[target] = "仇恨";
             return `【強制選擇仇恨: ${target}號】`;
         }
         const target = parseInt(act.targets[0]);
         act.player.data.avengerTarget = target;
+        act.player.data.customSideTags = act.player.data.customSideTags || {};
+        act.player.data.customSideTags[target] = "仇恨";
         return `【選擇仇恨: ${target}號】`;
     }
 });
