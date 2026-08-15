@@ -32,116 +32,23 @@
             </div>
         </div>
 
-        <div id="section-host" class="hidden">
-            <h2 style="text-align: center; margin-bottom: 5px;">遊戲設定 (房號：<span id="display-room-id" style="color: var(--accent-red);"></span>)</h2>
-            <div id="host-status-log" class="system-log" style="text-align: center; font-weight: bold;">等待玩家加入...</div>
-            
-            <div id="host-setup-panel" class="section" style="max-width: 800px; margin: 0 auto;">
-                <!-- 雙欄佈局容器開始 -->
-                <div class="setup-layout">
-                    <!-- ================= 左欄：版型選擇 ================= -->
-                    <div class="setup-left">
-                        <h3 style="margin-bottom: 10px;">選擇遊戲版型</h3>
-                        <div class="toggle-group" id="template-category-tabs" style="margin-bottom: 12px;">
-                            <div class="toggle-option active" data-category="standard" style="--active-bg: #588da8; --active-color: #fff;">標準場</div>
-                            <div class="toggle-option" data-category="quick" style="--active-bg: #a358a8; --active-color: #fff;">快速場</div>
-                            <div class="toggle-option" data-category="fun" style="--active-bg: #6da858; --active-color: #fff;">娛樂場</div>
-                            <div class="toggle-option" data-category="test" style="--active-bg: #a88058; --active-color: #fff;">測試場</div>
-                        </div>
-                        <div id="board-template-container" class="template-scroll-container"></div>
-                        <input type="hidden" id="select-board-template" value="">
-
-                        <div id="template-deck-preview" style="margin-bottom: 20px; font-size: 14px; color: #aaa;"></div>
-                    </div>
-                    
-                    <!-- ================= 右欄：規則設定 ================= -->
-                    <div class="setup-right">
-                        <h3 style="margin-bottom: 15px; font-size: 16px; color: #fff;">遊戲規則設定</h3>
-
-                        <!-- 規則一：女巫自救 -->
-                        <label>女巫自救：</label>
-                        <div class="toggle-group" data-target="rule-witch-save">
-                            <div class="toggle-option active" data-value="never" style="--active-bg: #96a164; --active-color: #000;">全程不可自救</div>
-                            <div class="toggle-option" data-value="first_night" style="--active-bg: #69424e; --active-color: #000;">首夜可以自救</div>
-                        </div>
-                        <input type="hidden" id="rule-witch-save" value="never">
-                        <!-- 規則二：勝利條件 -->
-                        <label>勝利條件：</label>
-                        <div class="toggle-group" data-target="rule-win-condition">
-                            <div class="toggle-option active" data-value="kill_side" style="--active-bg: #96a164; --active-color: #000;">屠邊規則</div>
-                            <div class="toggle-option" data-value="kill_all" style="--active-bg: #69424e; --active-color: #000;">屠城規則</div>
-                        </div>
-                        <input type="hidden" id="rule-win-condition" value="kill_side">
-
-                        <!-- 規則三：放逐平票處置 -->
-                        <label>放逐平票：</label>
-                        <div class="toggle-group" data-target="rule-tie-resolution">
-                            <div class="toggle-option active" data-value="pk" style="--active-bg: #96a164; --active-color: #000;">PK 發言</div>
-                            <div class="toggle-option" data-value="peace" style="--active-bg: #69424e; --active-color: #000;">平安日</div>
-                        </div>
-                        <input type="hidden" id="rule-tie-resolution" value="pk">
-
-                        <!-- 規則四：警長機制 -->
-                        <label>警長機制：</label>
-                        <div class="toggle-group" data-target="rule-sheriff">
-                            <div class="toggle-option active" data-value="enabled" style="--active-bg: #96a164; --active-color: #000;">開啟</div>
-                            <div class="toggle-option" data-value="disabled" style="--active-bg: #69424e; --active-color: #000;">關閉</div>
-                        </div>
-                        <input type="hidden" id="rule-sheriff" value="enabled">
-
-                        <!-- 規則 4-1：警長自爆 -->
-                        <label>自爆吞警徽：</label>
-                        <div class="toggle-group" data-target="rule-sheriff-explode">
-                            <div class="toggle-option active" data-value="double" style="--active-bg: #96a164; --active-color: #000;">雙爆吞警徽</div>
-                            <div class="toggle-option" data-value="single" style="--active-bg: #69424e; --active-color: #000;">單爆吞警徽</div>
-                        </div>
-                        <input type="hidden" id="rule-sheriff-explode" value="double">
-                        
-                        <!-- 規則五：出局身分揭曉 -->
-                        <label>出局身分揭曉：</label>
-                        <div class="toggle-group" data-target="rule-death-reveal" style="margin-bottom: 15px;">
-                            <div class="toggle-option active" data-value="dark" style="--active-bg: #96a164; --active-color: #000;">暗牌</div>
-                            <div class="toggle-option" data-value="light" style="--active-bg: #69424e; --active-color: #000;">明牌</div>
-                        </div>
-                        <input type="hidden" id="rule-death-reveal" value="dark">
-
-                        <!-- 規則六：卡面樣式 -->
-                        <label>卡面樣式：</label>
-                        <div class="toggle-group" data-target="rule-square-card">
-                            <div class="toggle-option active" data-value="off" style="--active-bg: #96a164; --active-color: #000;">經典</div>
-                            <div class="toggle-option" data-value="on" style="--active-bg: #69424e; --active-color: #000;">舊日</div>
-                        </div>
-                        <input type="hidden" id="rule-square-card" value="off">
-                    </div>
-                </div>
-                <!-- 雙欄佈局容器結束 -->
-                <button id="btn-start-game" class="btn-success" style="width: 100%; margin-top: 20px;">確認並發牌</button>
-            </div>
-        </div>
+        
         <!-- ============================================== -->
         <!-- 區塊三：玩家端介面 (Player UI) -->
         <!-- ============================================== -->
         <div id="section-player" class="hidden">
             <div class="player-app-container">
 
-                <!-- [新增] 房主控制列 (僅房主可見) -->
-                <div id="local-host-action-bar" class="hidden" style="background: #1c2a4a; padding: 6px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f1620; flex-shrink: 0; z-index: 10;">
-                    <span style="color: #ff9900; font-size: 12px; font-weight: bold;">【房主控制】</span>
-                    <div style="display: flex; gap: 8px;">
-                        <button id="btn-local-force-next" class="btn-secondary hidden" style="font-size: 11px; padding: 4px 10px;">強制跳過</button>
-                        <button id="btn-local-host-action" class="btn-primary hidden" style="font-size: 11px; padding: 4px 10px;"></button>
-                    </div>
-                </div>
-
                 <div class="app-header">
-                    <!-- [新增] 房主後台紀錄按鈕 -->
-                    <button id="btn-host-debug" class="hidden" style="position: absolute; top: 12px; left: 65px; z-index: 100; padding: 2px 6px; font-size: 10px; background: var(--accent-red); border-radius: 4px; border: 1px solid #fff; color: white; cursor: pointer;">後台紀錄</button>
-                    
                     <div class="header-left">
                         <span id="player-seat-number" class="seat-num"></span><span class="seat-unit">號</span>
                     </div>
             
-                    <div id="dynamic-board-name" class="header-center"></div>
+                    <div class="header-center" style="display:flex; flex-direction:column; align-items:center; line-height: 1.2;">
+                        <div id="dynamic-board-name"></div>
+                        <!-- [新增] 房主設定專屬按鈕 -->
+                        <button id="btn-host-settings" class="hidden" style="background:transparent; border:1px solid var(--accent-red); color:var(--accent-red); border-radius:4px; font-size:9px; padding:2px 6px; margin-top:2px; cursor:pointer;">房間設定 ⚙️</button>
+                    </div>
                     
                     <div class="header-right">
                         <span class="role-text">身分：<span id="player-role-name">等待發牌</span></span>
@@ -214,14 +121,93 @@
                 </div>
 
                 <!-- [新增] 房主專用全知視角紀錄 Modal -->
-                <div id="host-debug-modal" class="modal hidden" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; width: 90%; max-width: 400px; background: rgba(0,0,0,0.95); border: 2px solid var(--accent-red); border-radius: 8px; padding: 15px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #555; padding-bottom: 10px; margin-bottom: 10px;">
-                        <h3 style="margin: 0; color: #fff;">【房主專用】全知視角紀錄</h3>
-                        <span id="close-host-debug-btn" style="color: #aaa; font-size: 24px; cursor: pointer;">&times;</span>
+                <div id="host-control-modal" class="hidden">
+                    <div style="background:var(--accent-red); color:#fff; font-size:14px; font-weight:bold; text-align:center; padding:10px; position:relative; flex-shrink:0;">
+                        【房主】控制區域
+                        <span id="close-host-modal-btn" style="position:absolute; right:15px; top:8px; font-size:20px; cursor:pointer;">&times;</span>
                     </div>
-                    <div id="host-master-log-content" style="height: 350px; overflow-y: auto; font-size: 12px; color: #ddd; line-height: 1.6;"></div>
-                </div>
+                    <div style="flex:1; overflow-y:auto; padding:15px; position:relative;">
+                        
+                        <!-- 狀態列 -->
+                        <div id="host-status-log" style="text-align:center; font-size:12px; color:var(--accent-red); margin-bottom:12px; font-weight:bold;"></div>
 
+                        <!-- 遊戲前：設定面板 -->
+                        <div id="host-setup-content">
+                            <div style="color:var(--accent-blue); font-size:12px; font-weight:bold; margin-bottom:8px; border-bottom:1px solid #444; padding-bottom:4px;">選擇版型</div>
+                            <div class="toggle-group" id="template-category-tabs" style="margin-bottom:8px; background:transparent; padding:0;">
+                                <div class="toggle-option active" data-category="standard" style="--active-bg: #333; --active-color: #fff;">標準</div>
+                                <div class="toggle-option" data-category="quick" style="--active-bg: #333; --active-color: #fff;">快速</div>
+                                <div class="toggle-option" data-category="fun" style="--active-bg: #333; --active-color: #fff;">娛樂</div>
+                                <div class="toggle-option" data-category="test" style="--active-bg: #333; --active-color: #fff;">測試</div>
+                            </div>
+                            <div id="board-template-container" class="board-grid"></div>
+                            <input type="hidden" id="select-board-template" value="">
+                            
+                            <div style="color:var(--accent-blue); font-size:12px; font-weight:bold; margin-top:15px; margin-bottom:8px; border-bottom:1px solid #444; padding-bottom:4px;">遊戲規則</div>
+                            <div class="rules-grid">
+                                <div class="rule-item">
+                                    <label>女巫自救</label>
+                                    <div class="toggle-group" data-target="rule-witch-save">
+                                        <div class="toggle-option active" data-value="never" style="--active-bg: #588da8; --active-color: #fff;">不可</div>
+                                        <div class="toggle-option" data-value="first_night" style="--active-bg: #a3263a; --active-color: #fff;">首夜</div>
+                                    </div><input type="hidden" id="rule-witch-save" value="never">
+                                </div>
+                                <div class="rule-item">
+                                    <label>勝利條件</label>
+                                    <div class="toggle-group" data-target="rule-win-condition">
+                                        <div class="toggle-option active" data-value="kill_side" style="--active-bg: #588da8; --active-color: #fff;">屠邊</div>
+                                        <div class="toggle-option" data-value="kill_all" style="--active-bg: #a3263a; --active-color: #fff;">屠城</div>
+                                    </div><input type="hidden" id="rule-win-condition" value="kill_side">
+                                </div>
+                                <div class="rule-item">
+                                    <label>放逐平票</label>
+                                    <div class="toggle-group" data-target="rule-tie-resolution">
+                                        <div class="toggle-option active" data-value="pk" style="--active-bg: #588da8; --active-color: #fff;">PK</div>
+                                        <div class="toggle-option" data-value="peace" style="--active-bg: #a3263a; --active-color: #fff;">平安</div>
+                                    </div><input type="hidden" id="rule-tie-resolution" value="pk">
+                                </div>
+                                <div class="rule-item">
+                                    <label>警長機制</label>
+                                    <div class="toggle-group" data-target="rule-sheriff">
+                                        <div class="toggle-option active" data-value="enabled" style="--active-bg: #588da8; --active-color: #fff;">開啟</div>
+                                        <div class="toggle-option" data-value="disabled" style="--active-bg: #a3263a; --active-color: #fff;">關閉</div>
+                                    </div><input type="hidden" id="rule-sheriff" value="enabled">
+                                </div>
+                                <div class="rule-item">
+                                    <label>自爆吞警徽</label>
+                                    <div class="toggle-group" data-target="rule-sheriff-explode">
+                                        <div class="toggle-option active" data-value="double" style="--active-bg: #588da8; --active-color: #fff;">雙爆</div>
+                                        <div class="toggle-option" data-value="single" style="--active-bg: #a3263a; --active-color: #fff;">單爆</div>
+                                    </div><input type="hidden" id="rule-sheriff-explode" value="double">
+                                </div>
+                                <div class="rule-item">
+                                    <label>身分揭曉</label>
+                                    <div class="toggle-group" data-target="rule-death-reveal">
+                                        <div class="toggle-option active" data-value="dark" style="--active-bg: #588da8; --active-color: #fff;">暗牌</div>
+                                        <div class="toggle-option" data-value="light" style="--active-bg: #a3263a; --active-color: #fff;">明牌</div>
+                                    </div><input type="hidden" id="rule-death-reveal" value="dark">
+                                </div>
+                                <div class="rule-item" style="grid-column: span 3;">
+                                    <label>卡面樣式</label>
+                                    <div class="toggle-group" data-target="rule-square-card">
+                                        <div class="toggle-option active" data-value="off" style="--active-bg: #588da8; --active-color: #fff;">經典</div>
+                                        <div class="toggle-option" data-value="on" style="--active-bg: #a3263a; --active-color: #fff;">舊日</div>
+                                    </div><input type="hidden" id="rule-square-card" value="off">
+                                </div>
+                            </div>
+                            <button id="btn-start-game" class="btn-success" style="width:100%; margin-top:20px;">確認．發牌</button>
+                        </div>
+                        <!-- 遊戲後：控制面板 -->
+                        <div id="host-action-content" class="hidden" style="display:flex; flex-direction:column; gap:12px;">
+                            <button id="btn-local-host-action" class="btn-primary" style="padding:15px; font-size:14px;"></button>
+                            <button id="btn-local-force-next" class="btn-secondary" style="padding:15px; font-size:14px;">強制跳過階段</button>
+                            <hr style="border:0; border-top:1px dashed #555; width:100%; margin: 5px 0;" />
+                            <button id="btn-toggle-master-log" class="btn-secondary" style="padding:10px;">展開、折疊．後台紀錄</button>
+                            <div id="host-master-log-content" class="hidden" style="background:#111; padding:10px; border-radius:6px; font-size:11px; color:#ddd; max-height:250px; overflow-y:auto; line-height:1.5;"></div>
+                        </div>
+
+                    </div>
+                </div>
             </div>
         </div> <!-- 關閉 section-player -->
     </div> <!-- 關閉 container -->
