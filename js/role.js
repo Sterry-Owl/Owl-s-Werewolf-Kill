@@ -211,29 +211,19 @@ window.RoleRegistry = {
 
                 if (context.lovers && context.lovers.includes(player.seatNumber)) {
                     const partner = context.lovers.find(s => s !== player.seatNumber);
-                    const l1 = context.getPlayer(context.lovers[0]);
-                    const l2 = context.getPlayer(context.lovers[1]);
-                    if (l1 && l2) {
-                        const isHumanWolf = context.getDynamicFaction(l1) !== context.getDynamicFaction(l2);
-                        infos.push({ 
-                            text: `你是情侶，伴侶是 ${partner} 號`, 
-                            subtext: "情侶一方出局，另一方隨之殉情"
-                        });
-                    }
+                    infos.push({ 
+                        text: `你是情侶，伴侶是 ${partner} 號`, 
+                        subtext: "情侶一方出局，另一方隨之殉情"
+                    });
                 }
-
                 if (player.role === '邱比特' && context.lovers) {
-                    const l1 = context.getPlayer(context.lovers[0]);
-                    const l2 = context.getPlayer(context.lovers[1]);
-                    if (l1 && l2) {
-                        const isHumanWolf = context.getDynamicFaction(l1) !== context.getDynamicFaction(l2);
-                        infos.push({
-                            text: `你指定的情侶是 ${l1.seatNumber} 與 ${l2.seatNumber} 號`,
-                            subtext: isHumanWolf ? "目前為人狼戀，須淘汰全場其他人獲勝" : "目前為同陣營，跟隨情侶陣營獲勝"
-                        });
-                    }
+                    const l1 = context.lovers[0];
+                    const l2 = context.lovers[1];
+                    infos.push({
+                        text: `你指定的情侶是 ${l1} 與 ${l2} 號`,
+                        subtext: "邱比特要竭盡所能幫助情侶"
+                    });
                 }
-
                 return infos;
             });
         }
