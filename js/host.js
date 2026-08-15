@@ -500,20 +500,24 @@ function setupEngineFlowControllers() {
         const alive = ctx.getAlivePlayers();
 
         // ===============================================
-        // [修改] 第三方陣營委託攔截器 (競速模式)
+        // [修改] 第三方陣營委託攔截器 (支援阻斷常規勝利)
         // ===============================================
         let thirdPartyWinner = null;
         let thirdPartyReason = "";
+        let preventNormalWin = false;
 
-        alive.forEach(p => {
+        ctx.players.forEach(p => {
             const def = typeof ROLE_DICTIONARY !== 'undefined' ? ROLE_DICTIONARY[p.role] : null;
             if (def && def.faction === 'third_party') {
                 const plugin = RoleRegistry.plugins[p.role];
                 if (plugin && typeof plugin.checkWinCondition === 'function') {
                     const result = plugin.checkWinCondition(ctx, p);
                     if (result) {
-                        thirdPartyWinner = result.winner;
-                        thirdPartyReason = result.reason;
+                        if (result.preventNormalWin) preventNormalWin = true;
+                        if (result.winner) {
+                            thirdPartyWinner = result.winner;
+                            thirdPartyReason = result.reason;
+                        }
                     }
                 }
             }
@@ -526,7 +530,7 @@ function setupEngineFlowControllers() {
             stateMachine.transitionTo('GAME_OVER');
             return;
         }
-
+        if (preventNormalWin) return; 
         const getDynamicFaction = (p) => engineContext.getDynamicFaction ? engineContext.getDynamicFaction(p) : ROLE_DICTIONARY[p.role]?.faction;
         const getDynamicType = (p) => engineContext.getDynamicType ? engineContext.getDynamicType(p) : ROLE_DICTIONARY[p.role]?.type;
 
