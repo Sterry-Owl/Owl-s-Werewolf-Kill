@@ -130,13 +130,15 @@
                     <div style="flex:1; overflow-y:auto; padding:15px; position:relative;">
                         
                         <!-- 狀態列 -->
-                        <div id="host-status-log" style="text-align:center; font-size:12px; color:var(--accent-red); margin-bottom:12px; font-weight:bold;"></div>
+                        <!-- [修改] margin-bottom 從 12px 縮減為 4px -->
+                        <div id="host-status-log" style="text-align:center; font-size:12px; color:var(--accent-red); margin-bottom:4px; font-weight:bold;"></div>
 
                         <!-- 遊戲前：設定面板 -->
                         <div id="host-setup-content">
-                            <!-- [修改] 標題置中 -->
-                            <div style="color:var(--accent-blue); font-size:12px; font-weight:bold; margin-bottom:8px; border-bottom:1px solid #444; padding-bottom:4px; text-align:center;">選擇版型</div>
-                            <div class="toggle-group" id="template-category-tabs" style="margin-bottom:8px; background:transparent; padding:0;">
+                            <!-- [修改] 標題置中，margin-bottom 從 8px 縮減為 4px，padding-bottom 從 4px 縮減為 2px -->
+                            <div style="color:var(--accent-blue); font-size:12px; font-weight:bold; margin-bottom:4px; border-bottom:1px solid #444; padding-bottom:2px; text-align:center;">選擇版型</div>
+                            <!-- [修改] margin-bottom 從 8px 縮減為 4px -->
+                            <div class="toggle-group" id="template-category-tabs" style="margin-bottom:4px; background:transparent; padding:0;">
                                 <div class="toggle-option active" data-category="standard" style="--active-bg: #444; --active-color: #fff;">標準</div>
                                 <div class="toggle-option" data-category="quick" style="--active-bg: #444; --active-color: #fff;">快速</div>
                                 <div class="toggle-option" data-category="fun" style="--active-bg: #444; --active-color: #fff;">娛樂</div>
