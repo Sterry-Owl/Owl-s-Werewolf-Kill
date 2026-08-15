@@ -72,7 +72,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-create-room')?.addEventListener('click', () => {
         const inputEl = document.getElementById('input-host-room-id');
+        const nameEl = document.getElementById('input-host-name'); // [新增]
         let rawId = inputEl ? inputEl.value.trim() : "";
+        let hostName = nameEl ? nameEl.value.trim() : "房主"; // [新增]
+        
         let roomId = rawId.replace(/\D/g, '');
         if (rawId.length > 0 && roomId.length !== 4) {
             return alert('自訂房號必須是「4 位數的純數字」！\n(或者您可以完全留空，讓系統自動產生)');
@@ -83,8 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('section-entry').classList.add('hidden');
         document.getElementById('section-host').classList.remove('hidden');
-        
-        if (typeof window.initHost === 'function') window.initHost(roomId);
+        if (typeof window.initHost === 'function') window.initHost(roomId, hostName);
     });
 
     document.getElementById('btn-join-room')?.addEventListener('click', () => {
@@ -100,21 +102,43 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('btn-start-game').addEventListener('click', () => {
-            const selectedBoardId = document.getElementById('select-board-template').value;
-            const board = BOARD_TEMPLATES.find(t => t.id === selectedBoardId);
-            if (!board) return alert("請先選擇版型！");
+        const selectedBoardId = document.getElementById('select-board-template').value;
+        const board = BOARD_TEMPLATES.find(t => t.id === selectedBoardId);
+        if (!board) return alert("請先選擇版型！");
 
-            const gameRules = {
-                witchSave: document.getElementById('rule-witch-save').value,
-                winCondition: document.getElementById('rule-win-condition').value,
-                tieResolution: document.getElementById('rule-tie-resolution').value,
-                sheriff: document.getElementById('rule-sheriff').value,
-                deathReveal: document.getElementById('rule-death-reveal').value,
-                // [新增] 讀取隱藏欄位的值 (single 或 double)，對應至 host.js 的判定
-                sheriffExplodeRule: document.getElementById('rule-sheriff-explode').value
-            };
+        const gameRules = {
+            witchSave: document.getElementById('rule-witch-save').value,
+            winCondition: document.getElementById('rule-win-condition').value,
+            tieResolution: document.getElementById('rule-tie-resolution').value,
+            sheriff: document.getElementById('rule-sheriff').value,
+            deathReveal: document.getElementById('rule-death-reveal').value,
+            sheriffExplodeRule: document.getElementById('rule-sheriff-explode').value
+        };
+        
+        // [重構] 發牌後隱藏設定面板，將房主的介面切換為「玩家視圖」
+        document.getElementById('section-host').classList.add('hidden');
+        document.getElementById('section-player').classList.remove('hidden');
+        
         if (typeof window.startGame === 'function') {
             window.startGame(board.deck, board.name, gameRules);
+        }
+    });
+
+    document.getElementById('btn-host-debug')?.addEventListener('click', () => {
+        const modal = document.getElementById('host-debug-modal');
+        if (modal) {
+            modal.style.display = 'block';
+            modal.classList.remove('hidden');
+            const logContent = document.getElementById('host-master-log-content');
+            if(logContent) logContent.scrollTop = logContent.scrollHeight;
+        }
+    });
+
+    document.getElementById('close-host-debug-btn')?.addEventListener('click', () => {
+        const modal = document.getElementById('host-debug-modal');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.add('hidden');
         }
     });
     document.getElementById('my-card-container')?.addEventListener('click', () => {
