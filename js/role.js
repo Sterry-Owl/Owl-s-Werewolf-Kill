@@ -2950,9 +2950,6 @@ RoleRegistry.register("受增幅者", {
         
         if (role === '預言家' && act.actionId === 'check') {
             const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', p.seatNumber) : parseInt(target);
-            const tPlayer = ctx.getPlayer(actualTarget);
-            if (role === '預言家' && act.actionId === 'check') {
-            const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', p.seatNumber) : parseInt(target);
             const alignment = ctx.getSeerAlignment(actualTarget);
             
             p.data.seerRecords = p.data.seerRecords || {};
