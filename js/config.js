@@ -115,7 +115,7 @@ const TEMPLATES_TEST = [
     { id: "test-24_6", name: "煉金魔女(測試)", category: 'test', playerCount: 6, deck: ["煉金魔女", "預言家", "狼鴉之爪", "狼人", "平民", "平民"] },
     { id: "test-25_6", name: "時波之亂(測試)", category: 'test', playerCount: 6, deck: ["白晝學者", "預言家", "女巫", "守衛", "狼人", "寂夜導師"] },
     { id: "test-26_6", name: "野孩子復仇者(測試)", category: 'test', playerCount: 7, deck: ["預言家", "女巫", "狼人", "狼人", "暗戀者", "復仇者", "野孩子"] },
-    { id: "test-27_6", name: "邱比特(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "邱比特", "平民"] },
+    { id: "test-27_6", name: "盜賊邱比特(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "邱比特", "平民", "平民", "盜賊"] },
 ];
 
 const TEMPLATES_FUN = [
@@ -181,6 +181,7 @@ const TEMPLATES_STANDARD = [
     { id: "pure_12", name: "12人 純白夜影", category: 'standard', playerCount: 12, deck: ["純白之女", "女巫", "守衛", "獵人", "狼巫", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "grabsun_12", name: "12人 獵日逐光", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "攝夢人", "流光伯爵", "蝕日侍女", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "mistclaw_12", name: "12人 迷霧鴉影", category: 'standard', playerCount: 12, deck: ["預言家", "煉金魔女", "攝夢人", "白痴", "狼鴉之爪", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "thiefandlove_12", name: "12人 盜賊邱比特", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民", "平民", "邱比特", "盜賊"] },
 ];
 
 const BOARD_TEMPLATES = [
