@@ -32,18 +32,13 @@
             </div>
         </div>
 
-        <!-- ============================================== -->
-        <!-- 區塊二：主機端介面 (Host) -->
-        <!-- ============================================== -->
         <div id="section-host" class="hidden">
-            <h2>主控台 (房間：<span id="display-room-id" style="color: var(--accent-red);"></span>)</h2>
-            <div id="host-status-log" class="system-log">等待遊戲開始...</div>
+            <h2 style="text-align: center; margin-bottom: 5px;">遊戲設定 (房號：<span id="display-room-id" style="color: var(--accent-red);"></span>)</h2>
+            <div id="host-status-log" class="system-log" style="text-align: center; font-weight: bold;">等待玩家加入...</div>
             
-           <div id="host-setup-panel" class="section">
-                
+            <div id="host-setup-panel" class="section" style="max-width: 800px; margin: 0 auto;">
                 <!-- 雙欄佈局容器開始 -->
                 <div class="setup-layout">
-                    
                     <!-- ================= 左欄：版型選擇 ================= -->
                     <div class="setup-left">
                         <h3 style="margin-bottom: 10px;">選擇遊戲版型</h3>
@@ -118,14 +113,11 @@
                         </div>
                         <input type="hidden" id="rule-square-card" value="off">
                     </div>
-                    
                 </div>
                 <!-- 雙欄佈局容器結束 -->
-
-                <!-- 滿版寬度的確認按鈕 -->
                 <button id="btn-start-game" class="btn-success" style="width: 100%; margin-top: 20px;">確認並發牌</button>
             </div>
-
+        </div>
         <!-- ============================================== -->
         <!-- 區塊三：玩家端介面 (Player UI) -->
         <!-- ============================================== -->
