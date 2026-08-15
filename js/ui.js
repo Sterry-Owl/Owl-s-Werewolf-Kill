@@ -776,6 +776,7 @@ const UI = {
                         };
                         btnContainer.appendChild(btn);
                     });
+                    }
                 }
             }
         } else {
