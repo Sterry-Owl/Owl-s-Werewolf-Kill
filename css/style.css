@@ -10,8 +10,27 @@
     --sheriff-gold: #c49c47;
 }
 
-body { font-family: 'Noto Serif TC', 'PingFang TC', 'Helvetica Neue', 'Microsoft JhengHei', Tahoma, sans-serif; padding: 0; background: var(--bg-dark); color: #e0e0e0; margin: 0; height: 100vh; display: flex; justify-content: center; align-items: center; }
-.container { width: 100%; max-width: 100%; margin: 0; background: transparent; padding: 0; box-shadow: none; display: flex; justify-content: center; align-items: center; }
+body { 
+    font-family: 'Noto Serif TC', 'PingFang TC', 'Helvetica Neue', 'Microsoft JhengHei', Tahoma, sans-serif; 
+    padding: 0; 
+    background: var(--bg-dark); 
+    color: #e0e0e0; 
+    margin: 0; 
+    height: 100vh; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+}
+
+.container { 
+    width: 100%; 
+    max-width: 100%; 
+    margin: 0; 
+    background: transparent; 
+    padding: 0; 
+    box-shadow: none; 
+    display: block; 
+}
 .hidden { display: none !important; }
 .section { margin-bottom: 25px; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; background: #2a2a2a; }
 
