@@ -526,7 +526,11 @@ function setupEngineFlowControllers() {
             stateMachine.transitionTo('GAME_OVER');
             return;
         }
-        const wolfCount = alive.filter(p => p.role && ctx.getDynamicFaction(p) === 'wolf').length;
+
+        const getDynamicFaction = (p) => engineContext.getDynamicFaction ? engineContext.getDynamicFaction(p) : ROLE_DICTIONARY[p.role]?.faction;
+        const getDynamicType = (p) => engineContext.getDynamicType ? engineContext.getDynamicType(p) : ROLE_DICTIONARY[p.role]?.type;
+
+        const wolfCount = alive.filter(p => p.role && getDynamicFaction(p) === 'wolf').length;
         if (wolfCount === 0 && ctx.wolvesDiedThisTick && ctx.wolvesDiedThisTick.includes('血月使徒') && !ctx.bloodMoonHasShot) {
             ctx.pendingBloodMoon = ctx.bloodMoonSeat;
             ctx.bloodMoonHasShot = true;
@@ -534,8 +538,8 @@ function setupEngineFlowControllers() {
         ctx.wolvesDiedThisTick = [];
         if (ctx.pendingBloodMoon) return;
 
-        const godCount = alive.filter(p => p.role && ctx.getDynamicType(p) === 'god').length;
-        const vilCount = alive.filter(p => p.role && ctx.getDynamicType(p) === 'villager').length;
+        const godCount = alive.filter(p => p.role && getDynamicType(p) === 'god').length;
+        const vilCount = alive.filter(p => p.role && getDynamicType(p) === 'villager').length;
         let winner = null, reason = "";
         if (ctx.rules.winCondition === 'kill_all' && godCount + vilCount === 0) { winner = "狼人"; reason = "好人陣營全數出局"; }
         else if (ctx.rules.winCondition === 'kill_side' && (godCount === 0 || vilCount === 0)) { winner = "狼人"; reason = godCount===0?"神職全滅":"平民全滅"; }
@@ -671,14 +675,19 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         let topTag = null, sideTag = null, wolfPreviewTags = [];
         const pDisplayRole = (ctx.phase !== 'GAME_OVER' && p.role === '燈影預言家') ? '預言家' : p.role;
 
+        const myPlugin = RoleRegistry.plugins[player.role];
+        const pPlugin = RoleRegistry.plugins[p.role];
+        const canSeeW = typeof myPlugin?.canSeeWolves === 'function' ? myPlugin.canSeeWolves(ctx, player) : !!myPlugin?.canSeeWolves;
+        const isSeenW = typeof pPlugin?.seenAsWolf === 'function' ? pPlugin.seenAsWolf(ctx, p.seatNumber) : !!pPlugin?.seenAsWolf;
+
         if (ctx.phase === 'GAME_OVER' || p.isRevealed || (p.isDead && ctx.rules.deathReveal === 'light')) topTag = pDisplayRole;
-        else if (RoleRegistry.plugins[player.role]?.canSeeWolves && RoleRegistry.plugins[p.role]?.seenAsWolf) topTag = pDisplayRole;
+        else if (canSeeW && isSeenW) topTag = pDisplayRole;
         else if (player.data.customTopTags && player.data.customTopTags[p.seatNumber]) topTag = player.data.customTopTags[p.seatNumber];
+        
         if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber]; 
         else if (player.role === '女巫' && ctx.witchState?.silverWater === p.seatNumber) sideTag = "銀水"; 
         else if (player.role === '暗戀者' && ctx.crushTarget === p.seatNumber) sideTag = "暗戀對象";
 
-        const myPlugin = RoleRegistry.plugins[player.role];
         const isMyAttacker = typeof myPlugin?.isAttacker === 'function' ? myPlugin.isAttacker(ctx, player.seatNumber) : myPlugin?.isAttacker;
 
         if (ctx.phase === 'NIGHT_ACTION' && isMyAttacker) {
