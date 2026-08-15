@@ -44,8 +44,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 targetGroup.push(`<span style="color:${color}; font-weight:bold;">${role}</span>`);
             });
-            const renderLine = (arr) => arr.length > 0 ? `<div style="margin-bottom:2px;">${arr.join('<span style="color:#555; margin:0 2px;">、</span>')}</div>` : '';
-            previewEl.innerHTML = renderLine(wolves) + renderLine(gods) + renderLine(others);
+
+            // 將各行包裹並維持靠左對齊
+            const renderLine = (arr) => arr.length > 0 ? `<div style="white-space:nowrap; margin-bottom:1px;">${arr.join('<span style="color:#555; margin:0 2px;">、</span>')}</div>` : '';
+            previewEl.innerHTML = `
+                <div class="role-preview-inner">
+                    ${renderLine(wolves)}
+                    ${renderLine(gods)}
+                    ${renderLine(others)}
+                </div>
+            `;
         };
 
         const renderBoardPage = () => {
