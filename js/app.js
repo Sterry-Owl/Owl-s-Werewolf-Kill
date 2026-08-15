@@ -17,19 +17,35 @@ document.addEventListener('DOMContentLoaded', () => {
             const previewEl = document.getElementById('board-role-preview');
             if (!previewEl) return;
             
-            const htmlStr = deck.map(role => {
-                let color = '#ccc'; // 預設灰色
+            const wolves = [];
+            const gods = [];
+            const others = []; // 平民與第三方
+
+            deck.forEach(role => {
+                let color = '#ccc';
+                let targetGroup = others;
+
                 if (typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[role]) {
                     const def = ROLE_DICTIONARY[role];
-                    if (def.faction === 'wolf') color = '#9e646a'; // 低飽和紅
-                    else if (def.type === 'god') color = '#c4a75c'; // 低飽和黃
-                    else if (def.type === 'villager') color = '#6a8c6e'; // 低飽和綠
-                    else if (def.faction === 'third_party') color = '#8a7096'; // 低飽和紫
+                    if (def.faction === 'wolf') {
+                        color = '#9e646a'; // 低飽和紅
+                        targetGroup = wolves;
+                    } else if (def.type === 'god') {
+                        color = '#c4a75c'; // 低飽和黃
+                        targetGroup = gods;
+                    } else if (def.type === 'villager') {
+                        color = '#6a8c6e'; // 低飽和綠
+                        targetGroup = others;
+                    } else if (def.faction === 'third_party') {
+                        color = '#8a7096'; // 低飽和紫
+                        targetGroup = others;
+                    }
                 }
-                return `<span style="color:${color}; font-weight:bold;">${role}</span>`;
-            }).join('<span style="color:#555; margin:0 2px;">、</span>');
-            
-            previewEl.innerHTML = htmlStr;
+                
+                targetGroup.push(`<span style="color:${color}; font-weight:bold;">${role}</span>`);
+            });
+            const renderLine = (arr) => arr.length > 0 ? `<div style="margin-bottom:2px;">${arr.join('<span style="color:#555; margin:0 2px;">、</span>')}</div>` : '';
+            previewEl.innerHTML = renderLine(wolves) + renderLine(gods) + renderLine(others);
         };
 
         const renderBoardPage = () => {
