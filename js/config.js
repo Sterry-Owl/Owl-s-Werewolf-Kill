@@ -78,17 +78,17 @@ const PACKET_TYPE = {
     WOLF_PREVIEW: 'WOLF_PREVIEW',
     WOLF_EXPLODE: 'WOLF_EXPLODE',
     SHERIFF_BAILOUT: 'SHERIFF_BAILOUT',
-    PING: 'PING',  // [新增] 應用層心跳檢測
-    PONG: 'PONG'   // [新增] 應用層心跳回應
+    PING: 'PING',
+    PONG: 'PONG'
 };
 
 const NETWORK_CONFIG = {
-    PING_INTERVAL: 3000,    // 主機每 3 秒發送一次心跳
-    TIMEOUT_LIMIT: 10000,   // 客戶端超過 10 秒未收到心跳視為斷線
-    RECONNECT_DELAY: 2000   // 觸發斷線後，延遲 2 秒執行靜默重連
+    PING_INTERVAL: 3000,
+    TIMEOUT_LIMIT: 10000,
+    RECONNECT_DELAY: 2000
 };
 
-const BOARD_TEMPLATES = [
+const TEMPLATES_TEST = [
     { id: "test-1_6", name: "一人介面(測試)", category: 'test', playerCount: 1, deck: ["預言家"] },
     { id: "test-2_6", name: "狼王守衛(測試)", category: 'test', playerCount: 6, deck: ["預言家", "守衛", "狼王", "狼人", "平民", "平民"] },
     { id: "test-3_6", name: "狼王魔術師(測試)", category: 'test', playerCount: 6, deck: ["預言家", "魔術師", "狼王", "狼人", "女巫", "平民"] },    
@@ -115,6 +115,9 @@ const BOARD_TEMPLATES = [
     { id: "test-24_6", name: "煉金魔女(測試)", category: 'test', playerCount: 6, deck: ["煉金魔女", "預言家", "狼鴉之爪", "狼人", "平民", "平民"] },
     { id: "test-25_6", name: "時波之亂(測試)", category: 'test', playerCount: 6, deck: ["白晝學者", "預言家", "女巫", "守衛", "狼人", "寂夜導師"] },
     { id: "test-26_6", name: "野孩子復仇者(測試)", category: 'test', playerCount: 7, deck: ["預言家", "女巫", "狼人", "狼人", "暗戀者", "復仇者", "野孩子"] },
+];
+
+const TEMPLATES_FUN = [
     { id: "quick-1_6", name: "6人 獵人局", category: 'fun', playerCount: 6, deck: ["預言家", "獵人", "狼人", "狼人", "平民", "平民"] },
     { id: "quick-2_6", name: "6人 女巫局", category: 'fun', playerCount: 6, deck: ["預言家", "女巫", "狼王", "狼人", "平民", "平民"] },
     { id: "quick-3_6", name: "6人 守衛局", category: 'fun', playerCount: 6, deck: ["預言家", "守衛", "狼人", "狼人", "平民", "平民"] },
@@ -127,11 +130,14 @@ const BOARD_TEMPLATES = [
     { id: "survivorstd_7", name: "7人 生還者", category: 'fun', playerCount: 7, deck: ["預言家", "守衛", "女巫", "獵人", "白狼王", "狼人", "平民"] },
     { id: "lastday_8", name: "8人 末日狂徒", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "騎士", "狼人", "狼人", "狼人", "平民", "平民"] },
     { id: "evening_8", name: "8人 諸神黃昏", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "獵人", "女巫", "白痴", "惡靈騎士", "狼王", "白狼王"] },
-    { id: "eveningnew_8", name: "8人 諸神清晨", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "白晝學者", "女巫", "獵人", "狼王", "狼美人", "寂夜導師"] },
+    { id: "eveningnew_8", name: "8人 諸神清晨", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "白晝學者", "女巫", "獵人", "狼王", "隱狼", "寂夜導師"] },
     { id: "evening_10", name: "10人 諸神黃昏", category: 'fun', playerCount: 10, deck: ["預言家", "女巫", "獵人", "流光伯爵", "攝夢人", "定序王子", "血月使徒", "狼王", "蝕時狼妃", "蝕日侍女"] },
     { id: "evening_11", name: "11人 諸神黃昏", category: 'fun', playerCount: 11, deck: ["預言家", "女巫", "獵人", "守衛", "白痴", "白狼王", "狼美人", "血月使徒", "平民", "平民", "平民"] },
+];
+
+const TEMPLATES_QUICK = [
     { id: "standard_9", name: "9人 標準局", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
-    { id: "her_9", name: "9人 混血局", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "暗戀者"] },
+    { id: "her_9", name: "9人 三重變動", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "守衛", "狼人", "狼人", "石像鬼", "暗戀者", "野孩子", "復仇者"] },
     { id: "standard_10", name: "10人 標準局", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_grd_10", name: "10人 狼王守衛", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "守衛", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_mag_10", name: "10人 狼王魔術師", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "魔術師", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
@@ -149,6 +155,9 @@ const BOARD_TEMPLATES = [
     { id: "mistclaw_10", name: "10人 迷霧鴉影", category: 'quick', playerCount: 10, deck: ["預言家", "煉金魔女", "攝夢人", "狼鴉之爪", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "grabsun_10", name: "10人 獵日逐光", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "流光伯爵", "蝕日侍女", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "flute_10", name: "10人 吹笛不死鳥", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "不死鳥", "狼鴉之爪", "狼人", "狼人", "平民", "平民", "平民", "吹笛者"] },
+];
+
+const TEMPLATES_STANDARD = [
     { id: "standard_12", name: "12人 標準局", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_grd_12", name: "12人 狼王守衛", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_mag_12", name: "12人 狼王魔術師", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "魔術師", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
@@ -170,6 +179,13 @@ const BOARD_TEMPLATES = [
     { id: "pure_12", name: "12人 純白夜影", category: 'standard', playerCount: 12, deck: ["純白之女", "女巫", "守衛", "獵人", "狼巫", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "grabsun_12", name: "12人 獵日逐光", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "攝夢人", "流光伯爵", "蝕日侍女", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "mistclaw_12", name: "12人 迷霧鴉影", category: 'standard', playerCount: 12, deck: ["預言家", "煉金魔女", "攝夢人", "白痴", "狼鴉之爪", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+];
+
+const BOARD_TEMPLATES = [
+    ...TEMPLATES_TEST,
+    ...TEMPLATES_FUN,
+    ...TEMPLATES_QUICK,
+    ...TEMPLATES_STANDARD
 ];
 
 const ROLE_DICTIONARY = {
