@@ -7,8 +7,56 @@ let hostPeer = null;
 let connections = {};
 let engineContext = null;
 let stateMachine = null;
+const HostPlayerLoopback = {
+    state: {},
+    actionTarget: [],
+    lockedSignature: null,
+    historyShowing: false,
+    handleSeatSelect: function(seatNumber) {
+        const ls = HostPlayerLoopback.state;
+        if (!ls.actionPanel || !ls.actionPanel.show) return;
+        
+        if (ls.actionPanel.type === 'single_select') HostPlayerLoopback.actionTarget = [seatNumber];
+        else if (ls.actionPanel.type === 'consensus') {
+            HostPlayerLoopback.actionTarget = [seatNumber];
+            handleIncomingPacket('LOCAL_HOST', { type: PACKET_TYPE.WOLF_PREVIEW, payload: { target: seatNumber } });
+        } else if (ls.actionPanel.type === 'triple_select') {
+            const idx = HostPlayerLoopback.actionTarget.indexOf(seatNumber);
+            if (idx > -1) HostPlayerLoopback.actionTarget.splice(idx, 1); 
+            else {
+                if (HostPlayerLoopback.actionTarget.length < 3) HostPlayerLoopback.actionTarget.push(seatNumber);
+                else { HostPlayerLoopback.actionTarget.shift(); HostPlayerLoopback.actionTarget.push(seatNumber); }
+            }
+        } else if (ls.actionPanel.type === 'double_select' || ls.actionPanel.type === 'up_to_two') {
+            const idx = HostPlayerLoopback.actionTarget.indexOf(seatNumber);
+            if (idx > -1) HostPlayerLoopback.actionTarget.splice(idx, 1); 
+            else {
+                if (HostPlayerLoopback.actionTarget.length < 2) HostPlayerLoopback.actionTarget.push(seatNumber);
+                else { HostPlayerLoopback.actionTarget.shift(); HostPlayerLoopback.actionTarget.push(seatNumber); }
+            }
+        } else {
+            HostPlayerLoopback.actionTarget = [seatNumber];
+        }
+        UI.renderPlayerView(ls, HostPlayerLoopback.handleSeatSelect, HostPlayerLoopback.handleActionSubmit, HostPlayerLoopback.actionTarget, HostPlayerLoopback.historyShowing);
+    },
+    handleActionSubmit: function(actionId, extraPayload = null) {
+        const ls = HostPlayerLoopback.state;
+        if (!ls.actionPanel || !ls.actionPanel.show) return;
+        
+        if (actionId === 'SPECIAL_DAY_SKILL_SUBMIT') {
+            handleIncomingPacket('LOCAL_HOST', { type: 'DAY_SKILL_SUBMIT', payload: { skillId: extraPayload, target: HostPlayerLoopback.actionTarget.length > 0 ? HostPlayerLoopback.actionTarget[0] : null } });
+            UI.blockActionPanel();
+            return; 
+        }
+        const packetType = ls.actionPanel.submitPacketType || PACKET_TYPE.ACTION_SUBMIT;
+        const isPass = (actionId === 'pass' || actionId === 'save' || actionId === 'cancel_day_skill');
+        handleIncomingPacket('LOCAL_HOST', { type: packetType, payload: { actionId: actionId, targets: isPass ? [] : HostPlayerLoopback.actionTarget } });
+        HostPlayerLoopback.lockedSignature = `${ls.phase}_${ls.nightStepIndex}`;
+        UI.blockActionPanel();
+    }
+};
 
-window.initHost = function(roomId) {
+window.initHost = function(roomId, hostName) {
     document.getElementById('display-room-id').textContent = roomId;
     
     engineContext = new Engine.GameContext();
