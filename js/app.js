@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             filteredTemplates.forEach((tpl, index) => {
                 const item = document.createElement('div');
-                item.className = 'board-btn'; // [修改] 套用新的 Grid Text 按鈕樣式
+                item.className = 'board-btn'; // 套用新的 Grid Text 按鈕樣式
                 if (index === 0) item.classList.add('active'); 
                 item.textContent = tpl.name;
                 
@@ -31,24 +31,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     boardContainer.querySelectorAll('.board-btn').forEach(b => b.classList.remove('active'));
                     item.classList.add('active');
                     hiddenSelectBoard.value = tpl.id;
-                });
-                boardContainer.appendChild(item);
-            });
-            hiddenSelectBoard.value = filteredTemplates[0].id;
-        };
-                
-                item.addEventListener('click', () => {
-                    boardContainer.querySelectorAll('.template-item').forEach(b => b.classList.remove('active'));
-                    item.classList.add('active');
-                    hiddenSelectBoard.value = tpl.id;
-                    deckPreview.innerHTML = `<strong>配置內容：</strong><br>${tpl.deck.join('、')}`;
+                    if (deckPreview) deckPreview.innerHTML = `<strong>配置內容：</strong><br>${tpl.deck.join('、')}`;
                 });
                 boardContainer.appendChild(item);
             });
             
             // 切換分類時，強制作業系統選中該分類的第一個版型 (防止資料不同步 Bug)
             hiddenSelectBoard.value = filteredTemplates[0].id;
-            deckPreview.innerHTML = `<strong>配置內容：</strong><br>${filteredTemplates[0].deck.join('、')}`;
+            if (deckPreview) deckPreview.innerHTML = `<strong>配置內容：</strong><br>${filteredTemplates[0].deck.join('、')}`;
         };
 
         // 綁定標籤切換事件
@@ -59,8 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderTemplatesByCategory(tab.getAttribute('data-category'));
             });
         });
+        
+        // 初始渲染
         renderTemplatesByCategory('standard');
     }
+
     // === 升級後：規則滑動開關邏輯 ===
     document.querySelectorAll('.toggle-group').forEach(group => {
         const targetId = group.getAttribute('data-target');
@@ -69,31 +62,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
         options.forEach(opt => {
             opt.addEventListener('click', () => {
-                // 切換 active 樣式
                 options.forEach(o => o.classList.remove('active'));
                 opt.classList.add('active');
-                // 將選中的 data-value 寫入對應的隱藏輸入框
-                if (hiddenInput) {
-                    hiddenInput.value = opt.getAttribute('data-value');
-                }
+                if (hiddenInput) hiddenInput.value = opt.getAttribute('data-value');
             });
         });
     });
 
+    // === 房主建立房間 ===
     document.getElementById('btn-create-room')?.addEventListener('click', () => {
         const inputEl = document.getElementById('input-host-room-id');
         const nameEl = document.getElementById('input-host-name');
+        
         let rawId = inputEl ? inputEl.value.trim() : "";
-        let hostName = nameEl ? nameEl.value.trim() : "房主";
-        // ... (中略) ...
+        let hostName = nameEl && nameEl.value.trim() !== "" ? nameEl.value.trim() : "房主";
+        
+        // 恢復被遺失的防呆邏輯
+        let roomId = rawId.replace(/\D/g, '');
+        if (rawId.length > 0 && roomId.length !== 4) {
+            return alert('自訂房號必須是「4 位數的純數字」！\n(或者您可以完全留空，讓系統自動產生)');
+        }
+        if (!roomId) {
+            roomId = Math.floor(1000 + Math.random() * 9000).toString();
+        }
+
         document.getElementById('section-entry').classList.add('hidden');
         document.getElementById('section-player').classList.remove('hidden');
-        // [重構] 創房時預設展開房主控制區域
-        document.getElementById('host-control-modal').classList.remove('hidden');
+        
+        // 創房時預設展開房主專屬設定 Modal
+        const hostModal = document.getElementById('host-control-modal');
+        if (hostModal) hostModal.classList.remove('hidden');
         
         if (typeof window.initHost === 'function') window.initHost(roomId, hostName);
     });
 
+    // === 玩家加入房間 ===
     document.getElementById('btn-join-room')?.addEventListener('click', () => {
         const roomId = document.getElementById('input-room-id').value.trim();
         const name = document.getElementById('input-player-name').value.trim();
@@ -106,7 +109,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof window.initPlayer === 'function') window.initPlayer(roomId, name);
     });
 
-    document.getElementById('btn-start-game').addEventListener('click', () => {
+    // === 房主確認發牌 ===
+    document.getElementById('btn-start-game')?.addEventListener('click', () => {
         const selectedBoardId = document.getElementById('select-board-template').value;
         const board = BOARD_TEMPLATES.find(t => t.id === selectedBoardId);
         if (!board) return alert("請先選擇版型！");
@@ -121,31 +125,35 @@ document.addEventListener('DOMContentLoaded', () => {
             squareCard: document.getElementById('rule-square-card').value
         };
         
-        // [重構] 發牌後隱藏控制視窗，讓房主專心看卡牌
-        document.getElementById('host-control-modal').classList.add('hidden');
+        // 發牌後自動隱藏控制視窗，讓房主專心看卡牌動畫
+        const hostModal = document.getElementById('host-control-modal');
+        if (hostModal) hostModal.classList.add('hidden');
         
         if (typeof window.startGame === 'function') {
             window.startGame(board.deck, board.name, gameRules);
         }
     });
-    // [新增] 房間設定 Modal 切換事件
+
+    // === 房主專屬 Modal 控制事件 ===
     document.getElementById('btn-host-settings')?.addEventListener('click', () => {
         document.getElementById('host-control-modal').classList.remove('hidden');
     });
+    
     document.getElementById('close-host-modal-btn')?.addEventListener('click', () => {
         document.getElementById('host-control-modal').classList.add('hidden');
     });
+    
     document.getElementById('btn-toggle-master-log')?.addEventListener('click', () => {
-        document.getElementById('host-master-log-content').classList.toggle('hidden');
-    });
-
-    document.getElementById('close-host-debug-btn')?.addEventListener('click', () => {
-        const modal = document.getElementById('host-debug-modal');
-        if (modal) {
-            modal.style.display = 'none';
-            modal.classList.add('hidden');
+        const logContent = document.getElementById('host-master-log-content');
+        if (logContent) {
+            logContent.classList.toggle('hidden');
+            if (!logContent.classList.contains('hidden')) {
+                logContent.scrollTop = logContent.scrollHeight;
+            }
         }
     });
+
+    // === 卡牌翻轉事件 ===
     document.getElementById('my-card-container')?.addEventListener('click', () => {
         document.getElementById('my-card-flipper')?.classList.toggle('flipped');
     });
