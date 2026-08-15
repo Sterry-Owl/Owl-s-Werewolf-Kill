@@ -1836,9 +1836,6 @@ RoleRegistry.register("覺醒預言家", {
         const t2 = act.targets.length > 1 ? parseInt(act.targets[1]) : t1;
         const checkAlignment = (target) => {
             const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
-            const tPlayer = ctx.getPlayer(actualTarget);
-            const checkAlignment = (target) => {
-            const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
             return ctx.getSeerAlignment(actualTarget);
         };
 
@@ -2151,8 +2148,7 @@ RoleRegistry.register("純白之女", {
         act.player.data.seerRecords[target] = exactRole;
         act.player.data.latestCheckResult = { seat: parseInt(target), alignment: exactRole, isSeerAction: true };
         act.player.data.tempPrivateMessage = `${target}號玩家的具體身分為【${exactRole}】。`;
-        
-        if (ctx.nightCount >= 2 && typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[exactRole]?.faction === 'wolf') {
+        if (ctx.nightCount >= 2 && ctx.getDynamicFaction(tPlayer) === 'wolf') {
             ctx.nightTags = ctx.nightTags || {};
             ctx.nightTags.pureWhiteKilled = actualTarget;
         }
@@ -2573,13 +2569,7 @@ RoleRegistry.register("蝕日侍女", {
             
             if (role === '預言家' && act.actionId === 'check') {
                 const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', p.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
-                const tPlayer = ctx.getPlayer(actualTarget);
-                const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
-                const isWolf = (checkRole && ROLE_DICTIONARY[checkRole]?.faction === 'wolf');
-                let alignment = isWolf ? "狼人" : "好人";
-                
-                const pluginDef = RoleRegistry.plugins[tPlayer.role];
-                if (pluginDef && pluginDef.seenBySeerAsGood) alignment = "好人";
+                const alignment = ctx.getSeerAlignment(actualTarget);
 
                 p.data.seerRecords = p.data.seerRecords || {};
                 p.data.seerRecords[target] = alignment;
