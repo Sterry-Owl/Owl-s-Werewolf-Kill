@@ -150,7 +150,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnExplode = document.getElementById('btn-self-explode');
     if (btnExplode) {
         btnExplode.addEventListener('click', () => {
-            if (hostConnection) hostConnection.send({ type: PACKET_TYPE.WOLF_EXPLODE });
+            if (!hostConnection) return; // [新增] 隔離房主
+            hostConnection.send({ type: PACKET_TYPE.WOLF_EXPLODE });
             btnExplode.classList.add('hidden');
         });
     }
@@ -159,6 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isHistoryShowing = false;
     if (btnHistory) {
         btnHistory.addEventListener('click', () => {
+            if (!hostConnection) return; // [新增] 隔離房主，防止空狀態渲染導致崩潰
             isHistoryShowing = !isHistoryShowing;
             UI.renderPlayerView(localState, handleSeatSelect, handleActionSubmit, currentActionTarget, isHistoryShowing);
         });
