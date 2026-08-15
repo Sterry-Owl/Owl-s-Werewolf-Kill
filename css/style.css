@@ -10,8 +10,8 @@
     --sheriff-gold: #c49c47;
 }
 
-body { font-family: 'Noto Serif TC', 'PingFang TC', 'Helvetica Neue', 'Microsoft JhengHei', Tahoma, sans-serif; padding: 15px; background: var(--bg-dark); color: #e0e0e0; margin: 0; }
-.container { max-width: 1000px; margin: auto; background: var(--container-bg); padding: 20px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.6); }
+body { font-family: 'Noto Serif TC', 'PingFang TC', 'Helvetica Neue', 'Microsoft JhengHei', Tahoma, sans-serif; padding: 0; background: var(--bg-dark); color: #e0e0e0; margin: 0; height: 100vh; display: flex; justify-content: center; align-items: center; }
+.container { width: 100%; max-width: 100%; margin: 0; background: transparent; padding: 0; box-shadow: none; display: flex; justify-content: center; align-items: center; }
 .hidden { display: none !important; }
 .section { margin-bottom: 25px; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; background: #2a2a2a; }
 
@@ -44,7 +44,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 
 .app-header { 
-    background: #1c2633; padding: 8px 15px; display: flex; justify-content: space-between; align-items: center;
+    background: #1c2633; padding: 6px 15px; display: flex; justify-content: space-between; align-items: center;
     font-weight: bold; color: #e0e6ed; border-bottom: 2px solid #0f1620; 
     flex-shrink: 0; z-index: 10; position: relative;
 }
@@ -748,6 +748,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     z-index: 3000; background: rgba(10, 10, 10, 0.95);
     border: 2px solid var(--accent-red); border-radius: 12px;
     display: flex; flex-direction: column; overflow: hidden;
+    box-sizing: border-box; /* [關鍵修復] 強制邊框向內計算，解決右側/下方紅框缺角問題 */
 }
 
 .board-grid { 
