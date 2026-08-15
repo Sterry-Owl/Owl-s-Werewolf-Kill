@@ -86,6 +86,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('section-entry').classList.add('hidden');
         document.getElementById('section-host').classList.remove('hidden');
+        document.getElementById('section-player').classList.remove('hidden');
+        
         if (typeof window.initHost === 'function') window.initHost(roomId, hostName);
     });
 
