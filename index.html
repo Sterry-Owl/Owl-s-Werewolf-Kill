@@ -123,9 +123,9 @@
 
                 <!-- [新增] 房主專用全知視角紀錄 Modal -->
                 <div id="host-control-modal" class="hidden">
-                    <div style="background:var(--accent-red); color:#fff; font-size:14px; font-weight:bold; text-align:center; padding:10px; position:relative; flex-shrink:0;">
+                    <div style="background:var(--accent-red); color:#fff; font-size:13px; font-weight:bold; text-align:center; padding:6px; position:relative; flex-shrink:0;">
                         【房主】控制區域 (房號：<span id="display-room-id" style="color: #ffdb4d;"></span>)
-                        <span id="close-host-modal-btn" style="position:absolute; right:15px; top:8px; font-size:20px; cursor:pointer;">&times;</span>
+                        <span id="close-host-modal-btn" style="position:absolute; right:15px; top:3px; font-size:18px; cursor:pointer;">&times;</span>
                     </div>
                     <div style="flex:1; overflow-y:auto; padding:15px; position:relative;">
                         
@@ -145,10 +145,12 @@
                             
                             <!-- 版型網格與分頁按鈕 -->
                             <div id="board-template-container" class="board-grid"></div>
+                            
+                            <div id="board-role-preview" style="text-align:center; font-size:10px; margin-bottom:8px; padding:0 5px; line-height:1.4; word-wrap:break-word;"></div>
                             <div id="board-pagination-controls" style="display:none; justify-content:center; gap:15px; margin-bottom:10px; align-items:center;">
-                                <button id="btn-prev-page" class="btn-secondary" style="padding:4px 12px; font-size:10px;">上一頁</button>
+                                <button id="btn-prev-page" class="btn-secondary" style="padding:2px 15px; font-size:14px;">◂</button>
                                 <span id="board-page-indicator" style="font-size:11px; color:#aaa; font-weight:bold;">1 / 1</span>
-                                <button id="btn-next-page" class="btn-secondary" style="padding:4px 12px; font-size:10px;">下一頁</button>
+                                <button id="btn-next-page" class="btn-secondary" style="padding:2px 15px; font-size:14px;">▸</button>
                             </div>
                             <input type="hidden" id="select-board-template" value="">
                             
