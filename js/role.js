@@ -209,6 +209,31 @@ window.RoleRegistry = {
                     }
                 }
 
+                if (context.lovers && context.lovers.includes(player.seatNumber)) {
+                    const partner = context.lovers.find(s => s !== player.seatNumber);
+                    const l1 = context.getPlayer(context.lovers[0]);
+                    const l2 = context.getPlayer(context.lovers[1]);
+                    if (l1 && l2) {
+                        const isHumanWolf = context.getDynamicFaction(l1) !== context.getDynamicFaction(l2);
+                        infos.push({ 
+                            text: `你是情侶，伴侶是 ${partner} 號`, 
+                            subtext: "情侶一方出局，另一方隨之殉情"
+                        });
+                    }
+                }
+
+                if (player.role === '邱比特' && context.lovers) {
+                    const l1 = context.getPlayer(context.lovers[0]);
+                    const l2 = context.getPlayer(context.lovers[1]);
+                    if (l1 && l2) {
+                        const isHumanWolf = context.getDynamicFaction(l1) !== context.getDynamicFaction(l2);
+                        infos.push({
+                            text: `你指定的情侶是 ${l1.seatNumber} 與 ${l2.seatNumber} 號`,
+                            subtext: isHumanWolf ? "目前為人狼戀，須淘汰全場其他人獲勝" : "目前為同陣營，跟隨情侶陣營獲勝"
+                        });
+                    }
+                }
+
                 return infos;
             });
         }
@@ -3087,5 +3112,76 @@ RoleRegistry.register("復仇者", {
         act.player.data.customSideTags = act.player.data.customSideTags || {};
         act.player.data.customSideTags[target] = "仇恨";
         return `【選擇仇恨: ${target}號】`;
+    }
+});
+RoleRegistry.register("邱比特", {
+    nightPhase: "first_half",
+    actionType: "double_select",
+    nightPriority: 0,
+    hasAction: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        return ctx.nightCount === 1 && !p.data.hasShotArrow;
+    },
+    getPrompt: () => "請選擇兩名玩家成為情侶\n(若為一好一狼將組成第三方陣營)",
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+    getButtons: () => [{ id: 'shoot_arrow', text: '指定情侶', requiresTarget: true }],
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || !act.targets || act.targets.length < 2) {
+            const selectable = ctx.getAlivePlayers().filter(p => p.seatNumber !== act.player.seatNumber).map(p => p.seatNumber);
+            act.targets = [selectable[0], selectable[1]];
+        }
+        const t1 = parseInt(act.targets[0]);
+        const t2 = parseInt(act.targets[1]);
+        
+        ctx.lovers = [t1, t2];
+        act.player.data.hasShotArrow = true;
+
+        act.player.data.customSideTags = act.player.data.customSideTags || {};
+        act.player.data.customSideTags[t1] = "情侶";
+        act.player.data.customSideTags[t2] = "情侶";
+
+        const p1 = ctx.getPlayer(t1);
+        if (p1) {
+            p1.data.customSideTags = p1.data.customSideTags || {};
+            p1.data.customSideTags[t2] = "伴侶";
+        }
+        const p2 = ctx.getPlayer(t2);
+        if (p2) {
+            p2.data.customSideTags = p2.data.customSideTags || {};
+            p2.data.customSideTags[t1] = "伴侶";
+        }
+        
+        return `【指定情侶: ${t1}號 與 ${t2}號】`;
+    },
+
+    onOtherPlayerDied: (ctx, observer, deadPlayer, reason) => {
+        if (ctx.lovers && ctx.lovers.includes(deadPlayer.seatNumber)) {
+            const otherLoverSeat = ctx.lovers.find(s => s !== deadPlayer.seatNumber);
+            const otherLover = ctx.getPlayer(otherLoverSeat);
+            if (otherLover && !otherLover.isDead) {
+                ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：情侶 ${deadPlayer.seatNumber} 號出局，${otherLoverSeat} 號隨之殉情)`;
+                otherLover.kill('martyr', ctx);
+            }
+        }
+    },
+
+    checkWinCondition: (ctx, player) => {
+        if (!ctx.lovers || ctx.lovers.length < 2) return null;
+        const l1 = ctx.getPlayer(ctx.lovers[0]);
+        const l2 = ctx.getPlayer(ctx.lovers[1]);
+        if (!l1 || !l2) return null;
+        const f1 = ctx.getDynamicFaction(l1);
+        const f2 = ctx.getDynamicFaction(l2);
+        if (f1 === f2) return null;
+        if (l1.isDead && l2.isDead) return null;
+        const alive = ctx.getAlivePlayers();
+        const otherAlive = alive.filter(p => p.seatNumber !== l1.seatNumber && p.seatNumber !== l2.seatNumber && p.seatNumber !== player.seatNumber);
+
+        if (otherAlive.length === 0) {
+            return { winner: "第三方陣營 (人狼戀)", reason: "情侶與邱比特成功淘汰全場其他玩家" };
+        } else {
+            return { preventNormalWin: true };
+        }
     }
 });
