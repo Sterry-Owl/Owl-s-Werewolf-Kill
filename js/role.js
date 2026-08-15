@@ -3175,3 +3175,101 @@ RoleRegistry.register("邱比特", {
         }
     }
 });
+RoleRegistry.register("盜賊", {
+    nightPhase: "thief_action",
+    actionType: "dynamic_buttons",
+    nightPriority: -1, // 確保最高優先級
+    hasAction: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        return ctx.nightCount === 1 && !p.data.hasStolen;
+    },
+    getPrompt: (ctx) => {
+        const cards = ctx.extraCards || [];
+        const hasWolf = cards.some(c => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[c]?.faction === 'wolf');
+        let prompt = `底牌為：【${cards[0]}】與【${cards[1]}】\n請選擇你要替換的身分`;
+        if (hasWolf) prompt += "\n(底牌包含狼人陣營，必須強制替換為狼人)";
+        return prompt;
+    },
+    getSelectableSeats: () => [],
+    getButtons: (ctx) => {
+        let btns = [];
+        const cards = ctx.extraCards || [];
+        const hasWolf = cards.some(c => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[c]?.faction === 'wolf');
+        
+        cards.forEach((card, idx) => {
+            const isWolf = typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[card]?.faction === 'wolf';
+            if (hasWolf && !isWolf) return; // 有狼必選狼，鎖死非狼按鈕
+            btns.push({ id: `pick_${idx}`, text: `選擇 ${card}`, requiresTarget: false });
+        });
+        
+        if (!hasWolf) {
+            btns.push({ id: 'pass', text: '不替換 (保持無陣營)', requiresTarget: false });
+        }
+        return btns;
+    },
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act) return "【無效行動】";
+        
+        const p = act.player;
+        p.data.hasStolen = true;
+
+        if (act.actionId === 'pass') {
+            p.data.customTopTags = p.data.customTopTags || {};
+            p.data.customTopTags[p.seatNumber] = "盜賊";
+            return "【選擇不替換身分】";
+        }
+
+        const pickIdx = parseInt(act.actionId.replace('pick_', ''));
+        const newRole = ctx.extraCards[pickIdx];
+        
+        // 1. 動態覆寫身分
+        p.role = newRole;
+        p.data.camouflageRole = newRole;
+        
+        // 給予前端即時更新的標籤
+        p.data.customTopTags = p.data.customTopTags || {};
+        p.data.customTopTags[p.seatNumber] = newRole;
+        
+        // 2. 序列注入 (Dynamic Injection)
+        const newDef = RoleRegistry.plugins[newRole];
+        if (newDef && newDef.nightPhase) {
+            const phaseArray = Array.isArray(newDef.nightPhase) ? newDef.nightPhase : [newDef.nightPhase];
+            // 以陣列順序保證正確插入位置
+            const orderMap = { 'thief_action': 0, 'first_half': 1, 'lucky_action': 2, 'scholar_action': 3, 'midnight': 4, 'second_half': 5 };
+            
+            const getPhaseDisplayName = (pid) => {
+                const m = { 'first_half': '前半夜', 'midnight': '午夜 (狼人)', 'second_half': '後半夜', 'lucky_action': '幸運兒行動', 'scholar_action': '增幅行動' };
+                return m[pid] || pid;
+            };
+
+            phaseArray.forEach(phaseName => {
+                let targetSeq = ctx.nightSequence.find(s => s.phaseId === phaseName);
+                if (!targetSeq) {
+                    // 若新身分所在的階段原先不存在，則創建並依權重插入排序
+                    targetSeq = { phaseId: phaseName, phaseName: getPhaseDisplayName(phaseName), roles: [] };
+                    ctx.nightSequence.push(targetSeq);
+                    ctx.nightSequence.sort((a, b) => (orderMap[a.phaseId]||99) - (orderMap[b.phaseId]||99));
+                }
+                
+                let rObj = targetSeq.roles.find(r => r.roleName === newRole);
+                if (!rObj) {
+                    // 若該身分群組不存在，建立並加入玩家
+                    targetSeq.roles.push({ roleName: newRole, roleDef: newDef, activePlayers: [p], resultLog: "" });
+                    targetSeq.roles.sort((a, b) => (RoleRegistry.plugins[a.roleName]?.nightPriority || 99) - (RoleRegistry.plugins[b.roleName]?.nightPriority || 99));
+                } else {
+                    // 若該身分群組已存在 (例如變成狼人)，將玩家推入行動名單
+                    if (!rObj.activePlayers.some(ap => ap.seatNumber === p.seatNumber)) {
+                        rObj.activePlayers.push(p);
+                    }
+                }
+            });
+        }
+
+        if (newDef && typeof newDef.onNightStart === 'function') {
+            newDef.onNightStart(ctx, p);
+        }
+
+        return `【替換身分: ${newRole}】`;
+    }
+});
