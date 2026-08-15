@@ -121,18 +121,6 @@ const UI = {
     },
 
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = [], showVoteHistory = false) {
-        if (state.isLocalHost) {
-            const hostSection = document.getElementById('section-host');
-            const playerSection = document.getElementById('section-player');
-            if (state.phase === 'LOBBY') {
-                if (hostSection) hostSection.classList.remove('hidden');
-                if (playerSection) playerSection.classList.remove('hidden');
-            } else {
-                if (hostSection) hostSection.classList.add('hidden');
-                if (playerSection) playerSection.classList.remove('hidden');
-            }
-        }
-
         if (state.latestAnimation) {
             if (UI.lastAnimationTime === undefined) {
                 UI.lastAnimationTime = state.latestAnimation.timestamp;
@@ -302,38 +290,47 @@ const UI = {
         }
         
         // [新增] 房主控制列與除錯按鈕顯示邏輯
-        const localHostBar = document.getElementById('local-host-action-bar');
-        const btnHostAction = document.getElementById('btn-local-host-action');
-        const btnForceNext = document.getElementById('btn-local-force-next');
-        const btnHostDebug = document.getElementById('btn-host-debug');
+        const btnHostSettings = document.getElementById('btn-host-settings');
 
         if (state.isLocalHost) {
-            if (btnHostDebug) btnHostDebug.classList.remove('hidden');
-            if (localHostBar && state.hostActions) {
-                localHostBar.classList.remove('hidden');
-                
+            // 房主專屬設定按鈕常駐顯示
+            if (btnHostSettings) btnHostSettings.classList.remove('hidden');
+            
+            // 更新 Modal 內的控制按鈕狀態
+            const btnHostAction = document.getElementById('btn-local-host-action');
+            const btnForceNext = document.getElementById('btn-local-force-next');
+            if (state.hostActions) {
                 if (state.hostActions.text && !state.hostActions.disabled) {
-                    btnHostAction.classList.remove('hidden');
-                    btnHostAction.textContent = state.hostActions.text;
-                    btnHostAction.onclick = () => { if (window.handleHostCommand) window.handleHostCommand(state.hostActions.command); };
+                    if (btnHostAction) {
+                        btnHostAction.classList.remove('hidden');
+                        btnHostAction.textContent = state.hostActions.text;
+                        btnHostAction.onclick = () => { 
+                            if (window.handleHostCommand) window.handleHostCommand(state.hostActions.command);
+                            // 點擊後自動關閉 Modal
+                            const modal = document.getElementById('host-control-modal');
+                            if (modal) modal.classList.add('hidden');
+                        };
+                    }
                 } else {
-                    btnHostAction.classList.add('hidden');
+                    if (btnHostAction) btnHostAction.classList.add('hidden');
                 }
                 
                 if (state.hostActions.allowForceNext) {
-                    btnForceNext.classList.remove('hidden');
-                    btnForceNext.onclick = () => { if (window.handleHostCommand) window.handleHostCommand('FORCE_NEXT'); };
+                    if (btnForceNext) {
+                        btnForceNext.classList.remove('hidden');
+                        btnForceNext.onclick = () => { 
+                            if (window.handleHostCommand) window.handleHostCommand('FORCE_NEXT'); 
+                            // 點擊後自動關閉 Modal
+                            const modal = document.getElementById('host-control-modal');
+                            if (modal) modal.classList.add('hidden');
+                        };
+                    }
                 } else {
-                    btnForceNext.classList.add('hidden');
-                }
-                
-                if (btnHostAction.classList.contains('hidden') && btnForceNext.classList.contains('hidden')) {
-                    localHostBar.classList.add('hidden');
+                    if (btnForceNext) btnForceNext.classList.add('hidden');
                 }
             }
         } else {
-            if (btnHostDebug) btnHostDebug.classList.add('hidden');
-            if (localHostBar) localHostBar.classList.add('hidden');
+            if (btnHostSettings) btnHostSettings.classList.add('hidden');
         }
 
         const btnDaySkill = document.getElementById('btn-day-skill');
@@ -757,13 +754,20 @@ const UI = {
     },
 
     renderHostView: function(state) {
-        // [重構] 極簡化的上帝視角渲染：僅負責遊戲前的設定面板切換，以及系統全知紀錄字串輸出
-        const setupPanel = document.getElementById('host-setup-panel');
-        if (setupPanel) {
-            if (state.layout.showSetupPanel) setupPanel.classList.remove('hidden');
-            else setupPanel.classList.add('hidden');
-        }
+        const setupContent = document.getElementById('host-setup-content');
+        const actionContent = document.getElementById('host-action-content');
         
+        if (state.layout.showSetupPanel) {
+            if (setupContent) setupContent.classList.remove('hidden');
+            if (actionContent) actionContent.classList.add('hidden');
+        } else {
+            if (setupContent) setupContent.classList.add('hidden');
+            if (actionContent) actionContent.classList.remove('hidden');
+        }
+
+        const statusLog = document.getElementById('host-status-log');
+        if (statusLog) statusLog.textContent = state.systemLog || '等待中...';
+
         const logContent = document.getElementById('host-master-log-content');
         if (logContent) {
             if (state.masterLog && state.masterLog.length > 0) {
