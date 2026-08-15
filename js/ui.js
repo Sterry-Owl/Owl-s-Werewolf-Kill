@@ -121,6 +121,18 @@ const UI = {
     },
 
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = [], showVoteHistory = false) {
+        if (state.isLocalHost) {
+            const hostSection = document.getElementById('section-host');
+            const playerSection = document.getElementById('section-player');
+            if (state.phase === 'LOBBY') {
+                if (hostSection) hostSection.classList.remove('hidden');
+                if (playerSection) playerSection.classList.remove('hidden');
+            } else {
+                if (hostSection) hostSection.classList.add('hidden');
+                if (playerSection) playerSection.classList.remove('hidden');
+            }
+        }
+
         if (state.latestAnimation) {
             if (UI.lastAnimationTime === undefined) {
                 UI.lastAnimationTime = state.latestAnimation.timestamp;
