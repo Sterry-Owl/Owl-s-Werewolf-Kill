@@ -710,6 +710,26 @@ const UI = {
     },
 
     renderHostView: function(state, onHostAction) {
+        if (!window.__hostLogToggleBound) {
+            document.addEventListener('click', (e) => {
+                const toggleBtn = e.target.closest('#btn-toggle-master-log');
+                if (toggleBtn) {
+                    const logContent = document.getElementById('host-master-log-content');
+                    if (logContent) {
+                        const isHidden = logContent.classList.contains('hidden');
+                        if (isHidden) {
+                            logContent.classList.remove('hidden');
+                            toggleBtn.textContent = '隱藏紀錄';
+                        } else {
+                            logContent.classList.add('hidden');
+                            toggleBtn.textContent = '展開紀錄';
+                        }
+                    }
+                }
+            });
+            window.__hostLogToggleBound = true;
+        }
+
         if (state.latestAnimation) {
             if (UI.lastAnimationTime === undefined) {
                 UI.lastAnimationTime = state.latestAnimation.timestamp;
@@ -801,9 +821,7 @@ const UI = {
                         seat.setAttribute('data-death-reason', reason);
                     }
 
-                    const roleText = p.role || '未分配';
-                    const styleStr = UI.getTopTagStyle(roleText);
-                    let tagsHtml = `<div class="top-tag" style="${styleStr} font-size:11px;">${roleText}</div>`;
+                    let tagsHtml = '';
                     if (p.isSheriff) tagsHtml += `<div class="sheriff-diamond"></div>`;
 
                     seat.innerHTML = `
