@@ -685,8 +685,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         else if (player.data.customTopTags && player.data.customTopTags[p.seatNumber]) topTag = player.data.customTopTags[p.seatNumber];
         
         if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber]; 
-        else if (player.role === '女巫' && ctx.witchState?.silverWater === p.seatNumber) sideTag = "銀水"; 
-        else if (player.role === '暗戀者' && ctx.crushTarget === p.seatNumber) sideTag = "暗戀對象";
+        else if (player.data.customSideTags && player.data.customSideTags[p.seatNumber]) sideTag = player.data.customSideTags[p.seatNumber];
 
         const isMyAttacker = typeof myPlugin?.isAttacker === 'function' ? myPlugin.isAttacker(ctx, player.seatNumber) : myPlugin?.isAttacker;
 
