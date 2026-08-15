@@ -780,3 +780,14 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .rule-item .toggle-option { 
     font-size: 10px; padding: 6px 0; border-radius: 4px; 
 }
+#btn-host-settings {
+    background: transparent;
+    border: 1px solid var(--accent-red);
+    color: var(--accent-red);
+    border-radius: 4px;
+    font-size: 9px;
+    padding: 2px 6px;
+    margin-top: 2px;
+    cursor: pointer;
+    pointer-events: auto; /* 在此處宣告覆蓋，符合模組化規範 */
+}
