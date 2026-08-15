@@ -10,21 +10,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoryTabs = document.querySelectorAll('#template-category-tabs .toggle-option');
 
     if (boardContainer && hiddenSelectBoard && typeof BOARD_TEMPLATES !== 'undefined') {
-        
-        // [乾淨架構] 抽離渲染函數，根據傳入的 category 過濾版型
-        const renderTemplatesByCategory = (category) => {
-            boardContainer.innerHTML = ''; 
-            const filteredTemplates = BOARD_TEMPLATES.filter(t => t.category === category || !t.category);
-            
-            if (filteredTemplates.length === 0) {
-                boardContainer.innerHTML = '<div style="color:#777; font-size:14px; padding:10px;">此分類尚無版型</div>';
+        let currentCategoryTemplates = [];
+        let currentBoardPage = 0;
+        const BOARDS_PER_PAGE = 12;
+        const renderBoardPage = () => {
+            boardContainer.innerHTML = '';
+            const start = currentBoardPage * BOARDS_PER_PAGE;
+            const end = start + BOARDS_PER_PAGE;
+            const pageItems = currentCategoryTemplates.slice(start, end);
+
+            if (currentCategoryTemplates.length === 0) {
+                boardContainer.innerHTML = '<div style="color:#777; font-size:14px; padding:10px; grid-column: span 4; text-align: center;">此分類尚無版型</div>';
+                document.getElementById('board-pagination-controls').style.display = 'none';
                 return;
             }
 
-            filteredTemplates.forEach((tpl, index) => {
+            pageItems.forEach((tpl) => {
                 const item = document.createElement('div');
-                item.className = 'board-btn'; // 套用新的 Grid Text 按鈕樣式
-                if (index === 0) item.classList.add('active'); 
+                item.className = 'board-btn'; 
+                if (hiddenSelectBoard.value === tpl.id) item.classList.add('active'); 
                 item.textContent = tpl.name;
                 
                 item.addEventListener('click', () => {
@@ -35,13 +39,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 boardContainer.appendChild(item);
             });
-            
-            // 切換分類時，強制作業系統選中該分類的第一個版型 (防止資料不同步 Bug)
-            hiddenSelectBoard.value = filteredTemplates[0].id;
-            if (deckPreview) deckPreview.innerHTML = `<strong>配置內容：</strong><br>${filteredTemplates[0].deck.join('、')}`;
+
+            const totalPages = Math.ceil(currentCategoryTemplates.length / BOARDS_PER_PAGE);
+            const indicator = document.getElementById('board-page-indicator');
+            const btnPrev = document.getElementById('btn-prev-page');
+            const btnNext = document.getElementById('btn-next-page');
+
+            if (indicator) indicator.textContent = `${currentBoardPage + 1} / ${totalPages}`;
+            if (btnPrev) btnPrev.disabled = currentBoardPage === 0;
+            if (btnNext) btnNext.disabled = currentBoardPage >= totalPages - 1;
+
+            const paginationCtrl = document.getElementById('board-pagination-controls');
+            if (paginationCtrl) paginationCtrl.style.display = totalPages > 1 ? 'flex' : 'none';
         };
 
-        // 綁定標籤切換事件
+        const renderTemplatesByCategory = (category) => {
+            currentCategoryTemplates = BOARD_TEMPLATES.filter(t => t.category === category || !t.category);
+            currentBoardPage = 0;
+            
+            if (currentCategoryTemplates.length > 0) {
+                hiddenSelectBoard.value = currentCategoryTemplates[0].id;
+                if (deckPreview) deckPreview.innerHTML = `<strong>配置內容：</strong><br>${currentCategoryTemplates[0].deck.join('、')}`;
+            }
+            renderBoardPage();
+        };
         categoryTabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 categoryTabs.forEach(t => t.classList.remove('active'));
@@ -49,8 +70,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderTemplatesByCategory(tab.getAttribute('data-category'));
             });
         });
-        
-        // 初始渲染
+        document.getElementById('btn-prev-page')?.addEventListener('click', () => {
+            if (currentBoardPage > 0) {
+                currentBoardPage--;
+                renderBoardPage();
+            }
+        });
+
+        document.getElementById('btn-next-page')?.addEventListener('click', () => {
+            const totalPages = Math.ceil(currentCategoryTemplates.length / BOARDS_PER_PAGE);
+            if (currentBoardPage < totalPages - 1) {
+                currentBoardPage++;
+                renderBoardPage();
+            }
+        });
         renderTemplatesByCategory('standard');
     }
 
