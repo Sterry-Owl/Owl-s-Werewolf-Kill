@@ -114,6 +114,7 @@ const BOARD_TEMPLATES = [
     { id: "test-23_6", name: "白天動畫(測試)", category: 'test', playerCount: 6, deck: ["騎士", "定序王子", "河豚", "白狼王", "狼人", "平民"] },
     { id: "test-24_6", name: "煉金魔女(測試)", category: 'test', playerCount: 6, deck: ["煉金魔女", "預言家", "狼鴉之爪", "狼人", "平民", "平民"] },
     { id: "test-25_6", name: "時波之亂(測試)", category: 'test', playerCount: 6, deck: ["白晝學者", "預言家", "女巫", "守衛", "狼人", "寂夜導師"] },
+    { id: "test-26_6", name: "野孩子復仇者(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "暗戀者", "復仇者", "野孩子"] },
     { id: "quick-1_6", name: "6人 獵人局", category: 'fun', playerCount: 6, deck: ["預言家", "獵人", "狼人", "狼人", "平民", "平民"] },
     { id: "quick-2_6", name: "6人 女巫局", category: 'fun', playerCount: 6, deck: ["預言家", "女巫", "狼王", "狼人", "平民", "平民"] },
     { id: "quick-3_6", name: "6人 守衛局", category: 'fun', playerCount: 6, deck: ["預言家", "守衛", "狼人", "狼人", "平民", "平民"] },
