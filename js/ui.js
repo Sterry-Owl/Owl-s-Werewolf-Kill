@@ -442,7 +442,7 @@ const UI = {
 
         if (slotsContainer) {
             slotsContainer.innerHTML = ''; 
-            if (state.actionPanel && state.actionPanel.show && (state.actionPanel.type !== 'none' || state.actionPanel.forceTargets)) {
+            if (state.actionPanel && state.actionPanel.show && (state.actionPanel.type !== 'none' || state.actionPanel.forceTargets) && state.actionPanel.type !== 'thief_pick') {
                 slotsContainer.classList.remove('hidden');
 
                 if (state.actionPanel.type === 'triple_select') {
@@ -674,11 +674,58 @@ const UI = {
             if (btnContainer) {
                 btnContainer.innerHTML = '';
                 if (state.actionPanel.buttons && state.actionPanel.buttons.length > 0) {
-                    state.actionPanel.buttons.forEach(bInfo => {
-                        const btn = document.createElement('button');
-                        btn.textContent = bInfo.text;
-                        
-                        if (bInfo.id === 'pass' || bInfo.id === 'cancel_day_skill') {
+                    // [新增] 盜賊專屬圖片選擇介面
+                    if (state.actionPanel.type === 'thief_pick') {
+                        const cardsWrapper = document.createElement('div');
+                        cardsWrapper.style.display = 'flex';
+                        cardsWrapper.style.justifyContent = 'center';
+                        cardsWrapper.style.gap = '25px';
+                        cardsWrapper.style.marginTop = '10px';
+                        cardsWrapper.style.marginBottom = '10px';
+
+                        state.actionPanel.buttons.forEach(bInfo => {
+                            // [規則強制] 盜賊是不可以不選擇的，前端徹底抹殺 pass (不替換) 按鈕
+                            if (bInfo.id === 'pass') return; 
+
+                            const imgDir = state.useSquareCard ? './img/square' : './img';
+                            const cardImg = document.createElement('img');
+                            cardImg.src = `${imgDir}/${bInfo.cardName}.webp`;
+                            
+                            // 延續系統標準的雙層防呆圖片載入機制
+                            cardImg.onerror = function() { 
+                                this.onerror = function() {
+                                    this.onerror = null;
+                                    this.src = './img/back.webp'; 
+                                };
+                                this.src = `${imgDir}/back.webp`; 
+                            };
+
+                            // 動態卡牌樣式
+                            cardImg.style.width = '110px';
+                            cardImg.style.height = 'auto';
+                            cardImg.style.borderRadius = state.useSquareCard ? '4px' : '8px';
+                            cardImg.style.boxShadow = '0 6px 15px rgba(0,0,0,0.5)';
+                            cardImg.style.transition = 'transform 0.2s';
+                            
+                            if (bInfo.isLocked) {
+                                cardImg.style.filter = 'grayscale(100%) brightness(40%)';
+                                cardImg.style.cursor = 'not-allowed';
+                            } else {
+                                cardImg.style.cursor = 'pointer';
+                                cardImg.onmouseover = () => cardImg.style.transform = 'scale(1.05)';
+                                cardImg.onmouseout = () => cardImg.style.transform = 'scale(1)';
+                                cardImg.onclick = () => onActionSubmit(bInfo.id);
+                            }
+                            
+                            cardsWrapper.appendChild(cardImg);
+                        });
+                        btnContainer.appendChild(cardsWrapper);
+                    } else {
+                        state.actionPanel.buttons.forEach(bInfo => {
+                            const btn = document.createElement('button');
+                            btn.textContent = bInfo.text;
+                            
+                            if (bInfo.id === 'pass' || bInfo.id === 'cancel_day_skill') {
                             btn.className = 'btn-secondary';
                             if (state.actionPanel.passTags && state.actionPanel.passTags.length > 0) {
                                 btn.style.position = 'relative';
