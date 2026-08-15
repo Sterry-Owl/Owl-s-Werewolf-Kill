@@ -131,9 +131,10 @@
         <!-- ============================================== -->
         <div id="section-player" class="hidden">
             <div class="player-app-container">
+
                 <!-- [新增] 房主控制列 (僅房主可見) -->
                 <div id="local-host-action-bar" class="hidden" style="background: #1c2a4a; padding: 6px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f1620; flex-shrink: 0; z-index: 10;">
-                    <span style="color: #ff9900; font-size: 10px; font-weight: bold;">【房主控制】</span>
+                    <span style="color: #ff9900; font-size: 12px; font-weight: bold;">【房主控制】</span>
                     <div style="display: flex; gap: 8px;">
                         <button id="btn-local-force-next" class="btn-secondary hidden" style="font-size: 11px; padding: 4px 10px;">強制跳過</button>
                         <button id="btn-local-host-action" class="btn-primary hidden" style="font-size: 11px; padding: 4px 10px;"></button>
@@ -141,7 +142,9 @@
                 </div>
 
                 <div class="app-header">
+                    <!-- [新增] 房主後台紀錄按鈕 -->
                     <button id="btn-host-debug" class="hidden" style="position: absolute; top: 12px; left: 65px; z-index: 100; padding: 2px 6px; font-size: 10px; background: var(--accent-red); border-radius: 4px; border: 1px solid #fff; color: white; cursor: pointer;">後台紀錄</button>
+                    
                     <div class="header-left">
                         <span id="player-seat-number" class="seat-num"></span><span class="seat-unit">號</span>
                     </div>
@@ -191,13 +194,16 @@
                 <button id="btn-wolf-chat" class="floating-btn purple hidden" style="background-image: url('./img/btn-chat.webp');"></button>
                 <button id="btn-day-skill" class="floating-btn hidden" style="left: 15px;"></button>
                 <button id="btn-bailout" class="floating-btn blue hidden"></button> 
+                <!-- 黃色票型紀錄按鈕依然安全存在 -->
                 <button id="btn-vote-history" class="floating-btn yellow hidden"></button>
                 <button id="btn-end-speech" class="floating-btn skip hidden"></button>
+                
                 <div id="local-day-skill-panel" class="action-panel hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.9);">
                     <div id="local-day-skill-prompt" class="action-prompt">請選擇目標：</div>
                     <div id="local-day-skill-targets" class="action-buttons-row" style="margin-top: 15px; margin-bottom: 15px; max-height: 200px; overflow-y: auto;"></div>
                     <button id="btn-cancel-day-skill" class="btn-secondary" style="width: 100%;">取消</button>
                 </div>
+                
                 <div id="board-details-panel" class="board-details-panel" style="display: none;">
                     <div style="padding:20px; text-align:center; font-size:14px; color:#ccc;">等待房主選擇版型...</div>
                 </div>
@@ -214,10 +220,11 @@
                     </div>
                     <div id="wolf-chat-lock-notice" style="color: #ff4d4d; font-size: 12px; margin-top: 5px; display: none;">⚠️ 目前非午夜階段，僅供讀取歷史紀錄。</div>
                 </div>
-                
+
+                <!-- [新增] 房主專用全知視角紀錄 Modal -->
                 <div id="host-debug-modal" class="modal hidden" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; width: 90%; max-width: 400px; background: rgba(0,0,0,0.95); border: 2px solid var(--accent-red); border-radius: 8px; padding: 15px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
                     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #555; padding-bottom: 10px; margin-bottom: 10px;">
-                        <h3 style="margin: 0; color: #fff;">【房主專用】系統紀錄</h3>
+                        <h3 style="margin: 0; color: #fff;">【房主專用】全知視角紀錄</h3>
                         <span id="close-host-debug-btn" style="color: #aaa; font-size: 24px; cursor: pointer;">&times;</span>
                     </div>
                     <div id="host-master-log-content" style="height: 350px; overflow-y: auto; font-size: 12px; color: #ddd; line-height: 1.6;"></div>
