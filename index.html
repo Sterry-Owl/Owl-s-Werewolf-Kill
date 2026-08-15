@@ -14,24 +14,25 @@
         <!-- ============================================== -->
         <!-- 區塊一：登入/建立房間介面 (Entry) -->
         <!-- ============================================== -->
-        <div id="section-entry">
-            <h2>天黑請閉眼</h2>
-            
-            <div class="section">
-                <h3>建立房間</h3>
-                <input type="text" id="input-host-room-id" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="輸入4位數房號（空白則隨機生成）">
-                <input type="text" id="input-host-name" placeholder="請輸入暱稱（您將成為 1 號玩家）">
-                <button id="btn-create-room">建立房間</button>
-            </div>
-            
-            <div class="section">
-                <h3>加入房間</h3>
-                <input type="text" id="input-room-id" placeholder="請輸入房間代碼">
-                <input type="text" id="input-player-name" placeholder="請輸入暱稱">
-                <button id="btn-join-room" class="btn-success">加入房間</button>
+        <div id="section-entry" class="player-app-container entry-screen">
+            <div class="entry-overlay">
+                <h2 class="game-title">天黑請閉眼</h2>
+                
+                <div class="entry-box">
+                    <h3 class="entry-box-title" style="color: var(--accent-blue);">建立房間</h3>
+                    <input type="text" id="input-host-room-id" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="輸入 4 位數房號（空白則隨機產生）">
+                    <input type="text" id="input-host-name" placeholder="請輸入暱稱（您將成為 1 號玩家）">
+                    <button id="btn-create-room" style="width: 100%; margin-top: 10px;">建立房間</button>
+                </div>
+                
+                <div class="entry-box">
+                    <h3 class="entry-box-title" style="color: var(--accent-green);">加入房間</h3>
+                    <input type="text" id="input-room-id" placeholder="請輸入房間代碼">
+                    <input type="text" id="input-player-name" placeholder="請輸入暱稱">
+                    <button id="btn-join-room" class="btn-success" style="width: 100%; margin-top: 10px;">加入房間</button>
+                </div>
             </div>
         </div>
-
         
         <!-- ============================================== -->
         <!-- 區塊三：玩家端介面 (Player UI) -->
