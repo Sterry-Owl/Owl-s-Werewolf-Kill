@@ -684,9 +684,6 @@ const UI = {
                         cardsWrapper.style.marginBottom = '10px';
 
                         state.actionPanel.buttons.forEach(bInfo => {
-                            // [規則強制] 盜賊是不可以不選擇的，前端徹底抹殺 pass (不替換) 按鈕
-                            if (bInfo.id === 'pass') return; 
-
                             const imgDir = state.useSquareCard ? './img/square' : './img';
                             const cardImg = document.createElement('img');
                             cardImg.src = `${imgDir}/${bInfo.cardName}.webp`;
