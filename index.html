@@ -18,13 +18,14 @@
             <h2>天黑請閉眼</h2>
             
             <div class="section">
-                <h3>建立遊戲（法官）</h3>
+                <h3>建立房間</h3>
                 <input type="text" id="input-host-room-id" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="輸入4位數房號（空白則隨機生成）">
+                <input type="text" id="input-host-name" placeholder="請輸入暱稱（您將成為 1 號玩家）">
                 <button id="btn-create-room">建立房間</button>
             </div>
             
             <div class="section">
-                <h3>加入遊戲（玩家）</h3>
+                <h3>加入房間</h3>
                 <input type="text" id="input-room-id" placeholder="請輸入房間代碼">
                 <input type="text" id="input-player-name" placeholder="請輸入暱稱">
                 <button id="btn-join-room" class="btn-success">加入房間</button>
@@ -124,59 +125,23 @@
                 <!-- 滿版寬度的確認按鈕 -->
                 <button id="btn-start-game" class="btn-success" style="width: 100%; margin-top: 20px;">確認並發牌</button>
             </div>
-            <!-- ============================================== -->
-            <!-- 新版主控台介面 (ver α.1.0.0 沉浸式監控) -->
-            <!-- ============================================== -->
-            <div id="host-control-panel" class="hidden">
-                <div class="player-app-container" style="max-width: 450px; border-color: var(--accent-blue);">
-                    <div class="app-header" style="background: #1c2a4a; border-bottom: 2px solid #0b152a;">
-                        <div>主控台 (房號：<span id="display-room-id-in-game"></span>)</div>
-                        <div id="host-phase-name" style="color: var(--sheriff-gold);"></div>
-                    </div>
-                    
-                    <div class="app-body">
-                        <!-- 左側座位區 -->
-                        <div id="host-left-seats" class="seat-column"></div>
-                        
-                        <!-- 中間控制與紀錄區 -->
-                        <div class="center-column" style="pointer-events: auto; justify-content: flex-start; gap: 10px; padding: 10px 0;">
-                            
-                            <!-- 狀態與操作面板 -->
-                            <div class="action-panel" style="min-height: auto; width: 95%; padding: 12px 10px;">
-                                <div id="host-status-log" class="action-prompt" style="margin-bottom: 12px; font-size: 13px;"></div>
-                                <button id="btn-host-action" class="btn-primary" style="width: 100%; padding: 10px;"></button>
-                                <button id="btn-force-next" class="btn-secondary hidden" style="width: 100%; padding: 10px; margin-top: 6px;">強制跳過</button>
-                            </div>
-                            
-                            <!-- 夜間行動面板 (僅夜晚顯示) -->
-                            <div id="host-night-panel" class="action-panel hidden" style="min-height: auto; width: 95%; padding: 10px; max-height: 180px; overflow-y: auto; justify-content: flex-start; background: #2b3a42;">
-                                <div style="color: #a8e8e2; font-size: 12px; font-weight: bold; margin-bottom: 6px;">【夜間行動進度】</div>
-                                <ul id="night-flow-list" class="flow-list" style="margin:0; width: 100%;"></ul>
-                            </div>
-
-                            <!-- 全知上帝視角紀錄 -->
-                            <div id="host-master-log-panel" class="vote-history-panel" style="width: 95%; max-height: 40vh; padding: 10px; display: flex; flex-direction: column; background: rgba(0,0,0,0.8); border-color: var(--accent-blue);">
-                                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #555; padding-bottom: 6px; margin-bottom: 6px; flex-shrink: 0;">
-                                    <div style="color: #fff; font-size: 13px; font-weight: bold;">全知視角紀錄</div>
-                                    <button id="btn-toggle-master-log" class="btn-secondary" style="font-size: 10px; padding: 4px 8px;">展開紀錄</button>
-                                </div>
-                                <div id="host-master-log-content" class="hidden" style="flex: 1; overflow-y: auto; font-size: 12px; color: #ddd; line-height: 1.5; text-align: left;"></div>
-                            </div>
-                        </div>
-                        
-                        <!-- 右側座位區 -->
-                        <div id="host-right-seats" class="seat-column"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- ============================================== -->
         <!-- 區塊三：玩家端介面 (Player UI) -->
         <!-- ============================================== -->
         <div id="section-player" class="hidden">
             <div class="player-app-container">
+                <!-- [新增] 房主控制列 (僅房主可見) -->
+                <div id="local-host-action-bar" class="hidden" style="background: #1c2a4a; padding: 6px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f1620; flex-shrink: 0; z-index: 10;">
+                    <span style="color: #ff9900; font-size: 10px; font-weight: bold;">【房主控制】</span>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="btn-local-force-next" class="btn-secondary hidden" style="font-size: 11px; padding: 4px 10px;">強制跳過</button>
+                        <button id="btn-local-host-action" class="btn-primary hidden" style="font-size: 11px; padding: 4px 10px;"></button>
+                    </div>
+                </div>
+
                 <div class="app-header">
+                    <button id="btn-host-debug" class="hidden" style="position: absolute; top: 12px; left: 65px; z-index: 100; padding: 2px 6px; font-size: 10px; background: var(--accent-red); border-radius: 4px; border: 1px solid #fff; color: white; cursor: pointer;">後台紀錄</button>
                     <div class="header-left">
                         <span id="player-seat-number" class="seat-num"></span><span class="seat-unit">號</span>
                     </div>
@@ -249,6 +214,15 @@
                     </div>
                     <div id="wolf-chat-lock-notice" style="color: #ff4d4d; font-size: 12px; margin-top: 5px; display: none;">⚠️ 目前非午夜階段，僅供讀取歷史紀錄。</div>
                 </div>
+                
+                <div id="host-debug-modal" class="modal hidden" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; width: 90%; max-width: 400px; background: rgba(0,0,0,0.95); border: 2px solid var(--accent-red); border-radius: 8px; padding: 15px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #555; padding-bottom: 10px; margin-bottom: 10px;">
+                        <h3 style="margin: 0; color: #fff;">【房主專用】系統紀錄</h3>
+                        <span id="close-host-debug-btn" style="color: #aaa; font-size: 24px; cursor: pointer;">&times;</span>
+                    </div>
+                    <div id="host-master-log-content" style="height: 350px; overflow-y: auto; font-size: 12px; color: #ddd; line-height: 1.6;"></div>
+                </div>
+
             </div>
         </div> <!-- 關閉 section-player -->
     </div> <!-- 關閉 container -->
