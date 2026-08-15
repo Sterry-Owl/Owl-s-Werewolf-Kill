@@ -106,6 +106,33 @@ window.initHost = function(roomId, hostName) {
         alert('建立房間失敗，請重新整理頁面再試一次。');
     });
     
+    // [擴充] 將房主註冊為 1 號玩家，並綁定專屬本地按鈕監聽 (防範與 player.js 衝突)
+    engineContext.addPlayer('LOCAL_HOST', hostName || '房主');
+    
+    document.getElementById('btn-self-explode')?.addEventListener('click', () => {
+        if (engineContext && engineContext.getPlayerByPeer('LOCAL_HOST')) {
+            handleIncomingPacket('LOCAL_HOST', { type: PACKET_TYPE.WOLF_EXPLODE });
+            document.getElementById('btn-self-explode').classList.add('hidden');
+        }
+    });
+    document.getElementById('btn-vote-history')?.addEventListener('click', () => {
+        if (engineContext && engineContext.getPlayerByPeer('LOCAL_HOST')) {
+            HostPlayerLoopback.historyShowing = !HostPlayerLoopback.historyShowing;
+            UI.renderPlayerView(HostPlayerLoopback.state, HostPlayerLoopback.handleSeatSelect, HostPlayerLoopback.handleActionSubmit, HostPlayerLoopback.actionTarget, HostPlayerLoopback.historyShowing);
+        }
+    });
+    document.getElementById('btn-bailout')?.addEventListener('click', () => {
+        if (engineContext && engineContext.getPlayerByPeer('LOCAL_HOST')) {
+            handleIncomingPacket('LOCAL_HOST', { type: PACKET_TYPE.SHERIFF_BAILOUT });
+            document.getElementById('btn-bailout').classList.add('hidden');
+        }
+    });
+    window.addEventListener('WOLF_CHAT_OUTGOING', (e) => {
+        if (engineContext && engineContext.getPlayerByPeer('LOCAL_HOST')) {
+            handleIncomingPacket('LOCAL_HOST', { type: 'WOLF_CHAT_SEND', payload: { text: e.detail } });
+        }
+    });
+
     setupEngineFlowControllers();
     RoleRegistry.initPassives(engineContext);
 
@@ -585,22 +612,47 @@ function resumeRoutinePhase() {
 function syncStateToAll() {
     const ctx = engineContext;
     const isDayPhase = ['BEAR_ROAR_ANNOUNCE', 'DAWN_DEATH_ANNOUNCE', 'DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'SHERIFF_ORDER_SELECTION', 'DAY_DISCUSSION', 'DAY_VOTING', 'DAY_PK_SPEECH', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'POST_VOTE_SKILL', 'PRINCE_SPEECH', 'LAST_WORDS', 'DAY_SKILL_LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION', 'BLOODMOON_ACTION', 'DAY_INTERRUPT_SKILL', 'DELAYED_DEATH_ANNOUNCE'].includes(ctx.phase);
+    
+    // [重構] 簡化主控台渲染，僅負責 Setup 面板與歷史紀錄視窗
     const hostState = {
-        systemLog: ctx.systemLog,
         masterLog: ctx.masterLog || [],
-        latestAnimation: ctx.latestAnimation || null,
-        players: ctx.players.map(p => ({ ...p })),
-        layout: { showSetupPanel: ctx.phase === 'LOBBY', showNightPanel: ['NIGHT_TRANSITION', 'NIGHT_ACTION'].includes(ctx.phase), showDayPanel: isDayPhase },
-        nightFlow: (ctx.nightSequence || []).map((step, idx) => ({ title: `[${step.phaseName}]`, status: idx < ctx.currentNightStepIndex ? 'completed' : (idx === ctx.currentNightStepIndex ? 'active' : 'pending'), result: step.roles.map(r => r.roleName).join(', ') })),
-        allowForceNext: ctx.phase === 'NIGHT_ACTION',
+        layout: { showSetupPanel: ctx.phase === 'LOBBY' },
         dayBtnText: getDayBtnText(ctx.phase),
         dayBtnDisabled: ['SHERIFF_CANDIDACY', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_ORDER_SELECTION', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'DAY_VOTING', 'DAY_PK_VOTING', 'HUNTER_ACTION', 'WOLFKING_ACTION', 'BLOODMOON_ACTION', 'GAME_OVER'].includes(ctx.phase),
-        dayBtnCommand: getDayBtnCommand(ctx.phase)
+        dayBtnCommand: getDayBtnCommand(ctx.phase),
+        allowForceNext: ctx.phase === 'NIGHT_ACTION'
     };
-    UI.renderHostView(hostState, handleHostCommand);
+    UI.renderHostView(hostState); // 拔除了對 renderHostView 過度複雜的依賴
+    
     ctx.players.forEach(player => {
-        if (connections[player.peerId]) {
-            try { connections[player.peerId].send({ type: PACKET_TYPE.STATE_SYNC, payload: buildUIStateForPlayer(ctx, player, isDayPhase) }); } 
+        const pState = buildUIStateForPlayer(ctx, player, isDayPhase);
+        
+        // [攔截] 將封包扣留並發送至本機端 (房主)
+        if (player.peerId === 'LOCAL_HOST') {
+            const isNewPhase = HostPlayerLoopback.state.phase !== pState.phase || HostPlayerLoopback.state.nightStepIndex !== pState.nightStepIndex;
+            HostPlayerLoopback.state = pState;
+            if (isNewPhase) {
+                HostPlayerLoopback.actionTarget = [];
+                HostPlayerLoopback.lockedSignature = null;
+            }
+            const currentSig = `${pState.phase}_${pState.nightStepIndex}`;
+            if (HostPlayerLoopback.lockedSignature === currentSig && pState.actionPanel) {
+                pState.actionPanel.buttons = [];
+                if (!pState.actionPanel.hasActed) pState.actionPanel.prompt = "行動已送出，等待系統確認...";
+            }
+            
+            // [注入] 賦予房主顯示除錯面板與控制台的權限
+            pState.isLocalHost = true;
+            pState.hostActions = {
+                text: hostState.dayBtnText,
+                command: hostState.dayBtnCommand,
+                disabled: hostState.dayBtnDisabled,
+                allowForceNext: hostState.allowForceNext
+            };
+            
+            UI.renderPlayerView(pState, HostPlayerLoopback.handleSeatSelect, HostPlayerLoopback.handleActionSubmit, HostPlayerLoopback.actionTarget, HostPlayerLoopback.historyShowing);
+        } else if (connections[player.peerId]) {
+            try { connections[player.peerId].send({ type: PACKET_TYPE.STATE_SYNC, payload: pState }); } 
             catch (e) {}
         }
     });
@@ -1052,7 +1104,7 @@ function getDayBtnCommand(phase) {
     return dict[phase] || "";
 }
 
-function handleHostCommand(cmd) {
+window.handleHostCommand = function(cmd) {
     if (cmd === 'FORCE_NEXT' || cmd === 'FORCE_TIMEOUT') {
         stateMachine.clearTimer();
         if (stateMachine.currentPhase && stateMachine.currentPhase.onTimeout) stateMachine.currentPhase.onTimeout(engineContext);
