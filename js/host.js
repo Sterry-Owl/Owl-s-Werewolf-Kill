@@ -387,8 +387,9 @@ function setupEngineFlowControllers() {
             const rightSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, 1);
             const isWolf = (p) => {
                 if (!p) return false;
-                const roleName = p.data.camouflageRole || p.role;
-                return ROLE_DICTIONARY[roleName]?.faction === 'wolf';
+                const baseFaction = engineContext.getDynamicFaction ? engineContext.getDynamicFaction(p) : ROLE_DICTIONARY[p.role]?.faction;
+                const camoFaction = ROLE_DICTIONARY[p.data.camouflageRole || p.role]?.faction;
+                return baseFaction === 'wolf' || camoFaction === 'wolf';
             };
             bearRoarText = (isWolf(engineContext.getPlayer(leftSeat)) || isWolf(engineContext.getPlayer(rightSeat))) 
                 ? "【熊有咆哮】" : "【熊沒有咆哮】";
@@ -525,7 +526,7 @@ function setupEngineFlowControllers() {
             stateMachine.transitionTo('GAME_OVER');
             return;
         }
-        const wolfCount = alive.filter(p => p.role && ROLE_DICTIONARY[p.role]?.faction === 'wolf').length;
+        const wolfCount = alive.filter(p => p.role && ctx.getDynamicFaction(p) === 'wolf').length;
         if (wolfCount === 0 && ctx.wolvesDiedThisTick && ctx.wolvesDiedThisTick.includes('血月使徒') && !ctx.bloodMoonHasShot) {
             ctx.pendingBloodMoon = ctx.bloodMoonSeat;
             ctx.bloodMoonHasShot = true;
@@ -533,8 +534,8 @@ function setupEngineFlowControllers() {
         ctx.wolvesDiedThisTick = [];
         if (ctx.pendingBloodMoon) return;
 
-        const godCount = alive.filter(p => p.role && ROLE_DICTIONARY[p.role]?.type === 'god').length;
-        const vilCount = alive.filter(p => p.role && ROLE_DICTIONARY[p.role]?.type === 'villager').length;
+        const godCount = alive.filter(p => p.role && ctx.getDynamicType(p) === 'god').length;
+        const vilCount = alive.filter(p => p.role && ctx.getDynamicType(p) === 'villager').length;
         let winner = null, reason = "";
         if (ctx.rules.winCondition === 'kill_all' && godCount + vilCount === 0) { winner = "狼人"; reason = "好人陣營全數出局"; }
         else if (ctx.rules.winCondition === 'kill_side' && (godCount === 0 || vilCount === 0)) { winner = "狼人"; reason = godCount===0?"神職全滅":"平民全滅"; }
