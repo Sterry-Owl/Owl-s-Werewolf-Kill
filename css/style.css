@@ -860,3 +860,21 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     border-bottom: 1px solid #444;
     padding-bottom: 6px;
 }
+#board-role-preview {
+    height: 48px; /* 嚴格鎖定固定高度，剛好容納 3 行文字，徹底消除畫面上下跳動 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center; /* 讓內部區塊整體置中 */
+    margin-bottom: 6px;
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+/* 內部文字群組維持靠左對齊，但整體在畫面上置中 */
+.role-preview-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* 文字內容絕對靠左對齊 */
+    width: fit-content;      /* 依據最長的那一行自動撐開寬度 */
+}
