@@ -239,4 +239,5 @@ const ROLE_DICTIONARY = {
     "野孩子": { faction: "good", type: "villager", nightPhase: "first_half", actionType: "single_select", prompt: "請選擇你的榜樣\n(點擊左右列頭貼以發動技能)", description:"平民；首夜必須選擇一名玩家作為榜樣。當榜樣出局後，野孩子變為狼人，參與夜間襲擊，且好人需淘汰狂暴的野孩子才可以獲勝。" },
     "復仇者": { faction: "good", type: "villager", nightPhase: "first_half", actionType: "single_select", prompt: "請選擇你的仇恨對象\n(點擊左右列頭貼以發動技能)", description:"平民；首夜必須選擇一名玩家作為仇恨對象。勝利條件永遠與仇恨對象相反。" },
     "邱比特": { faction: "third_party", type: "special", nightPhase: "first_half", actionType: "double_select", prompt: "請選擇兩名玩家成為情侶\n(點擊左右列頭貼以發動技能)", description:"獨立陣營；首夜指定兩名玩家成為情侶。情侶一方死亡另一方將殉情。若情侶為人狼戀，邱比特與情侶組成第三方陣營，須屠城獲勝；否則跟隨情侶所屬陣營獲勝。" },
+    "盜賊": { faction: "third_party", type: "special", nightPhase: "thief_action", actionType: "dynamic_buttons", prompt: "請選擇你要替換的身分\n(若底牌有狼人則必須選狼)", description:"獨立陣營；首夜最先行動，可以從多出來的兩張身分牌中挑選一張替換。若底牌包含狼人陣營，則盜賊必須選擇狼人陣營。" },
 };
