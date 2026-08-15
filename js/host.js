@@ -299,9 +299,37 @@ function handleIncomingPacket(peerId, data) {
 }
 
 window.startGame = function(selectedRoles, boardName, rules) {
-    if (selectedRoles.length !== engineContext.players.length) return alert('角色數量與玩家人數不符！');
+    const isThiefGame = selectedRoles.includes('盜賊');
+    const expectedCount = isThiefGame ? engineContext.players.length + 2 : engineContext.players.length;
     
-    let shuffled = [...selectedRoles].sort(() => Math.random() - 0.5);
+    if (selectedRoles.length !== expectedCount) {
+        return alert(isThiefGame ? '配置包含盜賊，角色數量必須為「玩家人數+2」！' : '角色數量與玩家人數不符！');
+    }
+    
+    let shuffled;
+    let extraCards = [];
+    let validShuffle = false;
+    
+    // [擴充] 防呆洗牌演算法：確保底牌合法
+    while (!validShuffle) {
+        shuffled = [...selectedRoles].sort(() => Math.random() - 0.5);
+        if (isThiefGame) {
+            extraCards = [shuffled[shuffled.length - 2], shuffled[shuffled.length - 1]];
+            const getFac = r => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[r] ? ROLE_DICTIONARY[r].faction : null;
+            const f1 = getFac(extraCards[0]);
+            const f2 = getFac(extraCards[1]);
+            const isThief1 = extraCards[0] === '盜賊';
+            const isThief2 = extraCards[1] === '盜賊';
+
+            // 規則：底牌不可為 雙狼 或 狼+盜賊
+            if ((f1 === 'wolf' && f2 === 'wolf') || ((f1 === 'wolf' || f2 === 'wolf') && (isThief1 || isThief2))) {
+                continue; 
+            }
+        }
+        validShuffle = true;
+    }
+    
+    engineContext.extraCards = extraCards;
     engineContext.players.forEach((p, idx) => p.role = shuffled[idx]);
     
     engineContext.boardName = boardName;
@@ -334,7 +362,8 @@ function setupEngineFlowControllers() {
         engineContext.players.forEach(p => p.data.latestCheckResult = null);
         
         const alive = engineContext.getAlivePlayers();
-        let phases = { 'first_half': [], 'midnight': [], 'second_half': [] };
+        // [新增] 擴充 thief_action 階段，位於最前方
+        let phases = { 'thief_action': [], 'first_half': [], 'midnight': [], 'second_half': [] };
         alive.forEach(p => {
             const def = RoleRegistry.plugins[p.role];
             if (def && def.nightPhase) {
@@ -350,6 +379,7 @@ function setupEngineFlowControllers() {
         });
         
         engineContext.nightSequence = [];
+        if (phases['thief_action'].length > 0) engineContext.nightSequence.push({ phaseId: 'thief_action', phaseName: '盜賊行動', roles: phases['thief_action'] });
         if (phases['first_half'].length > 0) engineContext.nightSequence.push({ phaseId: 'first_half', phaseName: '前半夜', roles: phases['first_half'] });
         if (phases['midnight'].length > 0) engineContext.nightSequence.push({ phaseId: 'midnight', phaseName: '午夜 (狼人)', roles: phases['midnight'] });
         if (phases['second_half'].length > 0) engineContext.nightSequence.push({ phaseId: 'second_half', phaseName: '後半夜', roles: phases['second_half'] });
