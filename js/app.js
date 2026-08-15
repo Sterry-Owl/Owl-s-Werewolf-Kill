@@ -13,6 +13,25 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentCategoryTemplates = [];
         let currentBoardPage = 0;
         const BOARDS_PER_PAGE = 12;
+        const updateRolePreview = (deck) => {
+            const previewEl = document.getElementById('board-role-preview');
+            if (!previewEl) return;
+            
+            const htmlStr = deck.map(role => {
+                let color = '#ccc'; // 預設灰色
+                if (typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[role]) {
+                    const def = ROLE_DICTIONARY[role];
+                    if (def.faction === 'wolf') color = '#9e646a'; // 低飽和紅
+                    else if (def.type === 'god') color = '#c4a75c'; // 低飽和黃
+                    else if (def.type === 'villager') color = '#6a8c6e'; // 低飽和綠
+                    else if (def.faction === 'third_party') color = '#8a7096'; // 低飽和紫
+                }
+                return `<span style="color:${color}; font-weight:bold;">${role}</span>`;
+            }).join('<span style="color:#555; margin:0 2px;">、</span>');
+            
+            previewEl.innerHTML = htmlStr;
+        };
+
         const renderBoardPage = () => {
             boardContainer.innerHTML = '';
             const start = currentBoardPage * BOARDS_PER_PAGE;
@@ -22,20 +41,24 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentCategoryTemplates.length === 0) {
                 boardContainer.innerHTML = '<div style="color:#777; font-size:14px; padding:10px; grid-column: span 4; text-align: center;">此分類尚無版型</div>';
                 document.getElementById('board-pagination-controls').style.display = 'none';
+                document.getElementById('board-role-preview').innerHTML = ''; // 清空預覽
                 return;
             }
 
             pageItems.forEach((tpl) => {
                 const item = document.createElement('div');
                 item.className = 'board-btn'; 
-                if (hiddenSelectBoard.value === tpl.id) item.classList.add('active'); 
+                if (hiddenSelectBoard.value === tpl.id) {
+                    item.classList.add('active');
+                    updateRolePreview(tpl.deck);
+                }
                 item.textContent = tpl.name;
                 
                 item.addEventListener('click', () => {
                     boardContainer.querySelectorAll('.board-btn').forEach(b => b.classList.remove('active'));
                     item.classList.add('active');
                     hiddenSelectBoard.value = tpl.id;
-                    if (deckPreview) deckPreview.innerHTML = `<strong>配置內容：</strong><br>${tpl.deck.join('、')}`;
+                    updateRolePreview(tpl.deck);
                 });
                 boardContainer.appendChild(item);
             });
