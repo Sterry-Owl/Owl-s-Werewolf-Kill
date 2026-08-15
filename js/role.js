@@ -33,6 +33,36 @@ window.RoleRegistry = {
                 return actual;
             };
 
+            ctx.getDynamicFaction = function(p) {
+                const plugin = RoleRegistry.plugins[p.role];
+                return (plugin && typeof plugin.getFaction === 'function') ? plugin.getFaction(this, p) : (ROLE_DICTIONARY[p.role]?.faction || 'good');
+            };
+
+            ctx.getDynamicType = function(p) {
+                const plugin = RoleRegistry.plugins[p.role];
+                return (plugin && typeof plugin.getType === 'function') ? plugin.getType(this, p) : (ROLE_DICTIONARY[p.role]?.type || 'villager');
+            };
+
+            ctx.getSeerAlignment = function(targetSeat) {
+                const tPlayer = this.getPlayer(targetSeat);
+                const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
+                const isWolf = typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
+                let alignment = isWolf ? "狼人" : "好人";
+                
+                const pluginDef = RoleRegistry.plugins[tPlayer.role];
+                if (pluginDef) {
+                    if (pluginDef.seenBySeerAsGood) {
+                        const forceGood = typeof pluginDef.seenBySeerAsGood === 'function' ? pluginDef.seenBySeerAsGood(this, targetSeat) : pluginDef.seenBySeerAsGood;
+                        if (forceGood) alignment = "好人";
+                    }
+                    if (pluginDef.seenBySeerAsWolf) {
+                        const forceWolf = typeof pluginDef.seenBySeerAsWolf === 'function' ? pluginDef.seenBySeerAsWolf(this, targetSeat) : pluginDef.seenBySeerAsWolf;
+                        if (forceWolf) alignment = "狼人";
+                    }
+                }
+                return alignment;
+            };
+
             ctx.addFilter('DAWN_DEATH_EVALUATION', (calc) => {
                 const sanitize = (arr) => (arr || []).map(x => parseInt(x));
                 calc.killed = sanitize(calc.killed);
@@ -422,19 +452,7 @@ RoleRegistry.register("預言家", {
             const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
             const tPlayer = ctx.getPlayer(actualTarget);
             // 優先讀取掩護身分 (供機械狼偽裝使用)
-            const checkRole = tPlayer.data.camouflageRole || tPlayer.role; 
-            
-            // 預言家 / 燈影預言家 使用陣營判定：
-            const isWolf = (checkRole && ROLE_DICTIONARY[checkRole]?.faction === 'wolf');
-            let alignment = isWolf ? "狼人" : "好人";
-            
-            const pluginDef = RoleRegistry.plugins[tPlayer.role];
-            if (pluginDef) {
-                const isCamouflaged = typeof pluginDef.seenBySeerAsGood === 'function' 
-                    ? pluginDef.seenBySeerAsGood(ctx, target) 
-                    : pluginDef.seenBySeerAsGood;
-                if (isCamouflaged) alignment = "好人";
-            }
+            const alignment = ctx.getSeerAlignment(actualTarget);
             act.player.data.seerRecords = act.player.data.seerRecords || {};
             act.player.data.seerRecords[target] = alignment; // (燈影為 fakeAlignment)
             act.player.data.latestCheckResult = { seat: parseInt(target), alignment: alignment, isSeerAction: true }; // (燈影為 fakeAlignment)
@@ -460,19 +478,8 @@ RoleRegistry.register("燈影預言家", {
         if (act.actionId === 'confirm' && target) {
             const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
             const tPlayer = ctx.getPlayer(actualTarget);
-            const checkRole = tPlayer.data.camouflageRole || tPlayer.role; 
-            const isWolf = (checkRole && ROLE_DICTIONARY[checkRole]?.faction === 'wolf');
-            let alignment = isWolf ? "狼人" : "好人";
-            
-            const pluginDef = RoleRegistry.plugins[tPlayer.role];
-            if (pluginDef) {
-                const isCamouflaged = typeof pluginDef.seenBySeerAsGood === 'function' 
-                    ? pluginDef.seenBySeerAsGood(ctx, target) 
-                    : pluginDef.seenBySeerAsGood;
-                if (isCamouflaged) alignment = "好人"; 
-            }
+            const alignment = ctx.getSeerAlignment(actualTarget);
             let fakeAlignment = (alignment === "狼人") ? "好人" : "狼人";
-
             act.player.data.seerRecords = act.player.data.seerRecords || {};
             act.player.data.seerRecords[target] = fakeAlignment;
             act.player.data.latestCheckResult = { seat: parseInt(target), alignment: fakeAlignment, isSeerAction: true };
@@ -1278,16 +1285,12 @@ RoleRegistry.register("機械狼", {
             if (act.actionId === 'check') {
                 const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
                 const tPlayer = ctx.getPlayer(actualTarget);
-                const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
-                const isWolf = (checkRole && ROLE_DICTIONARY[checkRole]?.faction === 'wolf');
-                let alignment = isWolf ? "狼人" : "好人";
-                
+                let alignment;
                 if (role === '預言家' || role === '燈影預言家') {
-                    const pluginDef = RoleRegistry.plugins[tPlayer.role];
-                    if (pluginDef && pluginDef.seenBySeerAsGood) alignment = "好人";
+                    alignment = ctx.getSeerAlignment(actualTarget);
                     if (role === '燈影預言家') alignment = (alignment === "狼人") ? "好人" : "狼人";
                 } else if (role === '魔鏡少女') {
-                    alignment = checkRole; 
+                    alignment = tPlayer.data.camouflageRole || tPlayer.role; 
                 }
 
                 p.data.seerRecords = p.data.seerRecords || {};
@@ -1438,12 +1441,7 @@ RoleRegistry.register("幸運兒", {
         if (skill === '查驗' && act.actionId === 'check') {
             const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
             const tPlayer = ctx.getPlayer(actualTarget);
-            const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
-            const isWolf = ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
-            let alignment = isWolf ? "狼人" : "好人";
-            
-            const pluginDef = RoleRegistry.plugins[tPlayer.role];
-            if (pluginDef && pluginDef.seenBySeerAsGood) alignment = "好人";
+            const alignment = ctx.getSeerAlignment(actualTarget);
 
             p.data.seerRecords = p.data.seerRecords || {};
             p.data.seerRecords[target] = alignment;
@@ -1839,16 +1837,9 @@ RoleRegistry.register("覺醒預言家", {
         const checkAlignment = (target) => {
             const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
             const tPlayer = ctx.getPlayer(actualTarget);
-            const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
-            const isWolf = (checkRole && ROLE_DICTIONARY[checkRole]?.faction === 'wolf');
-            let alignment = isWolf ? "狼人" : "好人";
-            
-            const pluginDef = RoleRegistry.plugins[tPlayer.role];
-            if (pluginDef && typeof pluginDef.seenBySeerAsGood !== 'undefined') {
-                const isCamouflaged = typeof pluginDef.seenBySeerAsGood === 'function' ? pluginDef.seenBySeerAsGood(ctx, target) : pluginDef.seenBySeerAsGood;
-                if (isCamouflaged) alignment = "好人";
-            }
-            return alignment;
+            const checkAlignment = (target) => {
+            const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
+            return ctx.getSeerAlignment(actualTarget);
         };
 
         const align1 = checkAlignment(t1);
@@ -2970,11 +2961,9 @@ RoleRegistry.register("受增幅者", {
         if (role === '預言家' && act.actionId === 'check') {
             const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', p.seatNumber) : parseInt(target);
             const tPlayer = ctx.getPlayer(actualTarget);
-            const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
-            const isWolf = typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
-            let alignment = isWolf ? "狼人" : "好人";
-            const pluginDef = RoleRegistry.plugins[tPlayer.role];
-            if (pluginDef && pluginDef.seenBySeerAsGood) alignment = "好人";
+            if (role === '預言家' && act.actionId === 'check') {
+            const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', p.seatNumber) : parseInt(target);
+            const alignment = ctx.getSeerAlignment(actualTarget);
             
             p.data.seerRecords = p.data.seerRecords || {};
             p.data.seerRecords[target] = alignment;
@@ -3000,5 +2989,112 @@ RoleRegistry.register("受增幅者", {
             return `【額外襲擊: ${target}號】`;
         }
         return "【無效行動】";
+    }
+});
+RoleRegistry.register("野孩子", {
+    getFaction: (ctx, player) => player.data.isEnraged ? 'wolf' : 'good',
+    getType: (ctx, player) => player.data.isEnraged ? 'wolf' : 'villager',
+    canSelfExplode: (ctx, player) => !!player.data.isEnraged,
+    canSeeWolves: (ctx, player) => !!player.data.isEnraged,
+    hasWolfChatAccess: (ctx, player) => !!player.data.isEnraged,
+    seenBySeerAsWolf: (ctx, seat) => !!ctx.getPlayer(seat).data.isEnraged,
+    isAttacker: (ctx, seat) => {
+        const p = typeof seat === 'object' ? seat : ctx.getPlayer(seat);
+        return !!p.data.isEnraged && ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight';
+    },
+
+    nightPhase: ["first_half", "midnight"],
+    nightPriority: 0, 
+    actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half' ? 'single_select' : 'consensus',
+    
+    hasAction: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        const p = ctx.getPlayer(mySeat);
+        if (step === 'first_half') return ctx.nightCount === 1 && !p.data.wildModelTarget;
+        if (step === 'midnight') return !!p.data.isEnraged;
+        return false;
+    },
+
+    getPrompt: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return "你已狂暴，請與狼同伴選擇襲擊目標";
+        return "選擇你的榜樣\n榜樣出局後你將狂暴成為狼人";
+    },
+    
+    getSelectableSeats: (ctx, mySeat) => {
+        if (ctx.nightSequence[ctx.currentNightStepIndex].phaseId === 'midnight') return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
+        return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
+    },
+    
+    getButtons: (ctx) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
+        return [{ id: 'choose_model', text: '選擇榜樣', requiresTarget: true }];
+    },
+
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act) return "【無效行動】";
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        
+        if (step === 'midnight') return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
+
+        if (step === 'first_half') {
+            if (act.actionId === 'pass' || !act.targets || act.targets.length === 0) {
+                const selectable = ctx.getAlivePlayers().filter(p => p.seatNumber !== act.player.seatNumber).map(p => p.seatNumber);
+                const target = selectable[Math.floor(Math.random() * selectable.length)];
+                act.player.data.wildModelTarget = target;
+                return `【強制選擇榜樣: ${target}號】`;
+            }
+            const target = parseInt(act.targets[0]);
+            act.player.data.wildModelTarget = target;
+            return `【選擇榜樣: ${target}號】`;
+        }
+    },
+
+    onOtherPlayerDied: (ctx, observer, deadPlayer, reason) => {
+        if (observer.data.wildModelTarget === deadPlayer.seatNumber && !observer.data.isEnraged) {
+            observer.data.isEnraged = true;
+            
+            observer.data.customTopTags = observer.data.customTopTags || {};
+            ctx.players.forEach(p => {
+                if (p.seatNumber !== observer.seatNumber && ctx.getDynamicFaction(p) === 'wolf') {
+                    observer.data.customTopTags[p.seatNumber] = p.role;
+                }
+            });
+            
+            ctx.players.forEach(p => {
+                if (p.seatNumber !== observer.seatNumber && ctx.getDynamicFaction(p) === 'wolf' && RoleRegistry.plugins[p.role]?.canSeeWolves) {
+                    p.data.customTopTags = p.data.customTopTags || {};
+                    p.data.customTopTags[observer.seatNumber] = observer.role;
+                }
+            });
+
+            ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：野孩子 ${observer.seatNumber} 號的榜樣出局，已狂暴成為狼人)`;
+        }
+    }
+});
+RoleRegistry.register("復仇者", {
+    nightPhase: "first_half", 
+    actionType: "single_select",
+    nightPriority: 0,
+    hasAction: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        return ctx.nightCount === 1 && !p.data.avengerTarget;
+    },
+    getPrompt: () => "請選擇你的仇恨對象\n你的勝利條件將與他相反",
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+    getButtons: () => [{ id: 'choose_hate', text: '選擇仇恨', requiresTarget: true }],
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || !act.targets || act.targets.length === 0) {
+            const selectable = ctx.getAlivePlayers().filter(p => p.seatNumber !== act.player.seatNumber).map(p => p.seatNumber);
+            const target = selectable[Math.floor(Math.random() * selectable.length)];
+            act.player.data.avengerTarget = target;
+            return `【強制選擇仇恨: ${target}號】`;
+        }
+        const target = parseInt(act.targets[0]);
+        act.player.data.avengerTarget = target;
+        return `【選擇仇恨: ${target}號】`;
     }
 });
