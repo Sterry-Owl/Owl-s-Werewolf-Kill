@@ -791,3 +791,52 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     cursor: pointer;
     pointer-events: auto; /* 在此處宣告覆蓋，符合模組化規範 */
 }
+
+/* =========================================
+   登入介面專屬樣式 (Entry Screen)
+   ========================================= */
+.entry-screen {
+    background-image: url('../img/bg-player.webp'); 
+    background-size: cover; 
+    background-position: center; 
+    background-repeat: no-repeat;
+    justify-content: center; 
+    align-items: center;
+}
+
+.entry-overlay {
+    background: rgba(18, 18, 18, 0.85);
+    padding: 25px 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    width: 85%;
+    box-sizing: border-box;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.game-title {
+    text-align: center;
+    margin: 0;
+    color: #e0e6ed;
+    font-size: 24px;
+    letter-spacing: 4px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.entry-box {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+
+.entry-box-title {
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-size: 15px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 6px;
+}
