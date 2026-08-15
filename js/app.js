@@ -82,7 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (currentCategoryTemplates.length > 0) {
                 hiddenSelectBoard.value = currentCategoryTemplates[0].id;
-                if (deckPreview) deckPreview.innerHTML = `<strong>配置內容：</strong><br>${currentCategoryTemplates[0].deck.join('、')}`;
             }
             renderBoardPage();
         };
