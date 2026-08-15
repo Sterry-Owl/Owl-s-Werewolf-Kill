@@ -64,8 +64,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (currentCategoryTemplates.length === 0) {
                 boardContainer.innerHTML = '<div style="color:#777; font-size:14px; padding:10px; grid-column: span 4; text-align: center;">此分類尚無版型</div>';
-                document.getElementById('board-pagination-controls').style.display = 'none';
-                document.getElementById('board-role-preview').innerHTML = ''; // 清空預覽
+                document.getElementById('board-pagination-controls').style.visibility = 'hidden';
+                document.getElementById('board-role-preview').innerHTML = ''; 
                 return;
             }
 
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (btnNext) btnNext.disabled = currentBoardPage >= totalPages - 1;
 
             const paginationCtrl = document.getElementById('board-pagination-controls');
-            if (paginationCtrl) paginationCtrl.style.display = totalPages > 1 ? 'flex' : 'none';
+            if (paginationCtrl) paginationCtrl.style.visibility = totalPages > 1 ? 'visible' : 'hidden';
         };
 
         const renderTemplatesByCategory = (category) => {
