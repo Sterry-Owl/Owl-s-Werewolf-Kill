@@ -23,9 +23,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             filteredTemplates.forEach((tpl, index) => {
                 const item = document.createElement('div');
-                item.className = 'template-item';
+                item.className = 'board-btn'; // [修改] 套用新的 Grid Text 按鈕樣式
                 if (index === 0) item.classList.add('active'); 
-                item.innerHTML = `<img src="img/choose/${tpl.name}.webp" alt="${tpl.name}" onerror="this.outerHTML='<div class=\\'template-fallback\\'>${tpl.name}</div>'">`;
+                item.textContent = tpl.name;
+                
+                item.addEventListener('click', () => {
+                    boardContainer.querySelectorAll('.board-btn').forEach(b => b.classList.remove('active'));
+                    item.classList.add('active');
+                    hiddenSelectBoard.value = tpl.id;
+                });
+                boardContainer.appendChild(item);
+            });
+            hiddenSelectBoard.value = filteredTemplates[0].id;
+        };
                 
                 item.addEventListener('click', () => {
                     boardContainer.querySelectorAll('.template-item').forEach(b => b.classList.remove('active'));
@@ -72,21 +82,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-create-room')?.addEventListener('click', () => {
         const inputEl = document.getElementById('input-host-room-id');
-        const nameEl = document.getElementById('input-host-name'); // [新增]
+        const nameEl = document.getElementById('input-host-name');
         let rawId = inputEl ? inputEl.value.trim() : "";
-        let hostName = nameEl ? nameEl.value.trim() : "房主"; // [新增]
-        
-        let roomId = rawId.replace(/\D/g, '');
-        if (rawId.length > 0 && roomId.length !== 4) {
-            return alert('自訂房號必須是「4 位數的純數字」！\n(或者您可以完全留空，讓系統自動產生)');
-        }
-        if (!roomId) {
-            roomId = Math.floor(1000 + Math.random() * 9000).toString();
-        }
-
+        let hostName = nameEl ? nameEl.value.trim() : "房主";
+        // ... (中略) ...
         document.getElementById('section-entry').classList.add('hidden');
-        document.getElementById('section-host').classList.remove('hidden');
         document.getElementById('section-player').classList.remove('hidden');
+        // [重構] 創房時預設展開房主控制區域
+        document.getElementById('host-control-modal').classList.remove('hidden');
         
         if (typeof window.initHost === 'function') window.initHost(roomId, hostName);
     });
@@ -114,26 +117,26 @@ document.addEventListener('DOMContentLoaded', () => {
             tieResolution: document.getElementById('rule-tie-resolution').value,
             sheriff: document.getElementById('rule-sheriff').value,
             deathReveal: document.getElementById('rule-death-reveal').value,
-            sheriffExplodeRule: document.getElementById('rule-sheriff-explode').value
+            sheriffExplodeRule: document.getElementById('rule-sheriff-explode').value,
+            squareCard: document.getElementById('rule-square-card').value
         };
         
-        // [重構] 發牌後隱藏設定面板，將房主的介面切換為「玩家視圖」
-        document.getElementById('section-host').classList.add('hidden');
-        document.getElementById('section-player').classList.remove('hidden');
+        // [重構] 發牌後隱藏控制視窗，讓房主專心看卡牌
+        document.getElementById('host-control-modal').classList.add('hidden');
         
         if (typeof window.startGame === 'function') {
             window.startGame(board.deck, board.name, gameRules);
         }
     });
-
-    document.getElementById('btn-host-debug')?.addEventListener('click', () => {
-        const modal = document.getElementById('host-debug-modal');
-        if (modal) {
-            modal.style.display = 'block';
-            modal.classList.remove('hidden');
-            const logContent = document.getElementById('host-master-log-content');
-            if(logContent) logContent.scrollTop = logContent.scrollHeight;
-        }
+    // [新增] 房間設定 Modal 切換事件
+    document.getElementById('btn-host-settings')?.addEventListener('click', () => {
+        document.getElementById('host-control-modal').classList.remove('hidden');
+    });
+    document.getElementById('close-host-modal-btn')?.addEventListener('click', () => {
+        document.getElementById('host-control-modal').classList.add('hidden');
+    });
+    document.getElementById('btn-toggle-master-log')?.addEventListener('click', () => {
+        document.getElementById('host-master-log-content').classList.toggle('hidden');
     });
 
     document.getElementById('close-host-debug-btn')?.addEventListener('click', () => {
