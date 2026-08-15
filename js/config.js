@@ -137,7 +137,7 @@ const TEMPLATES_FUN = [
 
 const TEMPLATES_QUICK = [
     { id: "standard_9", name: "9人 標準局", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
-    { id: "her_9", name: "9人 三重變動", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "守衛", "狼人", "狼人", "石像鬼", "暗戀者", "野孩子", "復仇者"] },
+    { id: "change_9", name: "9人 三重變動", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "守衛", "狼人", "狼人", "石像鬼", "暗戀者", "野孩子", "復仇者"] },
     { id: "standard_10", name: "10人 標準局", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_grd_10", name: "10人 狼王守衛", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "守衛", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_mag_10", name: "10人 狼王魔術師", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "魔術師", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
@@ -155,6 +155,7 @@ const TEMPLATES_QUICK = [
     { id: "mistclaw_10", name: "10人 迷霧鴉影", category: 'quick', playerCount: 10, deck: ["預言家", "煉金魔女", "攝夢人", "狼鴉之爪", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "grabsun_10", name: "10人 獵日逐光", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "流光伯爵", "蝕日侍女", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "flute_10", name: "10人 吹笛不死鳥", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "不死鳥", "狼鴉之爪", "狼人", "狼人", "平民", "平民", "平民", "吹笛者"] },
+    { id: "change_12", name: "12人 三重底限", category: 'quick', playerCount: 12, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "暗戀者", "野孩子", "復仇者"] },
 ];
 
 const TEMPLATES_STANDARD = [
