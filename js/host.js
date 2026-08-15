@@ -57,7 +57,8 @@ const HostPlayerLoopback = {
 };
 
 window.initHost = function(roomId, hostName) {
-    document.getElementById('display-room-id').textContent = roomId;
+    const roomEl = document.getElementById('display-room-id');
+    if (roomEl) roomEl.textContent = roomId;
     
     engineContext = new Engine.GameContext();
     stateMachine = new Engine.StateMachine(engineContext);
