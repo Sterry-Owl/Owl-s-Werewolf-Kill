@@ -249,7 +249,8 @@ const UI = {
                         sheriff: { 'enabled': '開啟', 'disabled': '關閉' },
                         sheriffExplodeRule: { 'double': '雙爆', 'single': '單爆' },
                         deathReveal: { 'dark': '暗牌', 'light': '明牌' },
-                        squareCard: { 'off': '經典', 'on': '舊日' }
+                        squareCard: { 'off': '經典', 'on': '舊日' },
+                        firstNightKill: { 'enabled': '預設', 'disabled': '首夜無刀' }
                     };
 
                     let deckHtml = '';
@@ -282,6 +283,8 @@ const UI = {
                     const r = state.rules;
                     const rulesHtml = `
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size:12px; color:#bbb; text-align:center;">
+                            <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333; grid-column: span 2;">發言時長：<span style="color:#fff;">${r.speechTime}s</span></div>
+                            <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">首夜襲擊：<span style="color:#fff;">${rulesTextMap.firstNightKill[r.firstNightKill] || r.firstNightKill}</span></div>
                             <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">女巫自救：<span style="color:#fff;">${rulesTextMap.witchSave[r.witchSave] || r.witchSave}</span></div>
                             <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">勝利條件：<span style="color:#fff;">${rulesTextMap.winCondition[r.winCondition] || r.winCondition}</span></div>
                             <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">放逐平票：<span style="color:#fff;">${rulesTextMap.tieResolution[r.tieResolution] || r.tieResolution}</span></div>
