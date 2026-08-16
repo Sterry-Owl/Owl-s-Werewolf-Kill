@@ -346,8 +346,12 @@ RoleRegistry.register("狼人", {
     hasWolfChatAccess: true,
     nightPhase: "midnight",      
     actionType: "consensus",     
-    getPrompt: () => "選擇今晚的襲擊目標",
+    getPrompt: (ctx) => {
+        if (ctx.nightCount === 1 && ctx.rules.firstNightKill === 'disabled') return "【規則：首夜無刀】\n今晚無法發起襲擊，可使用語音或右下角通訊頻道交流。";
+        return "選擇今晚的襲擊目標";
+    },
     getSelectableSeats: (ctx, mySeat) => {
+        if (ctx.nightCount === 1 && ctx.rules.firstNightKill === 'disabled') return [];
         let seats = ctx.getAlivePlayers()
             .filter(p => !RoleRegistry.plugins[p.role]?.immuneToWolfBite)
             .map(p => p.seatNumber);
@@ -357,7 +361,10 @@ RoleRegistry.register("狼人", {
         }
         return seats;
     },
-    getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }],
+    getButtons: (ctx) => {
+        if (ctx.nightCount === 1 && ctx.rules.firstNightKill === 'disabled') return [{ id: 'pass', text: '確認', requiresTarget: false }];
+        return [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
+    },
     resolveNightAction: (ctx, actions) => {
         if (ctx.nightTags.wolfKillResolvedThisTurn) return "已參與狼人陣營襲擊";
         if (ctx.nightTags.wolfTeamFeared || ctx.nightTags.wolfTeamConfused || ctx.nightTags.wolfTeamScholarDebuffed) {
