@@ -773,10 +773,10 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .board-grid { 
     display: grid; 
     grid-template-columns: repeat(4, 1fr); 
-    grid-auto-rows: 28px; /* 強制規定每一列按鈕的高度為 28px */
-    height: 96px;         /* (28px * 3列) + (6px 間距 * 2) = 96px，絕對鎖定總高度 */
+    grid-auto-rows: 28px; 
+    height: 96px;         
     gap: 6px; 
-    margin-bottom: 10px; 
+    margin-bottom: 5px;
 }
 .board-btn { 
     height: 100%; /* 填滿強制規定的列高 */
@@ -793,23 +793,23 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 
 .rules-grid { 
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; /* [微調] 網格間距縮減 2px */
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
 }
 .rule-item { 
     display: flex; flex-direction: column; align-items: center; 
-    background: #1a1a1a; padding: 4px; /* [微調] 內距縮小 */
-    border-radius: 8px; border: 1px solid #333; 
+    background: #1a1a1a; padding: 2px;
+    border-radius: 6px; border: 1px solid #333; 
 }
 .rule-item label { 
-    font-size: 10px; color: #bbb; margin-bottom: 4px; /* [微調] 標籤底距縮小 */
+    font-size: 10px; color: #bbb; margin-bottom: 2px;
     font-weight: bold; 
 }
 .rule-item .toggle-group { 
-    margin-bottom: 0; min-width: auto; width: 100%; border-radius: 6px; padding: 2px; gap: 2px; background: #000; 
+    margin-bottom: 0; min-width: auto; width: 100%; border-radius: 4px; padding: 1px; gap: 2px; background: #000; 
 }
 .rule-item .toggle-option { 
-    font-size: 10px; padding: 4px 0;
-    border-radius: 4px; 
+    font-size: 10px; padding: 2px 0;
+    border-radius: 3px; 
 }
 #btn-host-settings, #btn-board-details {
     background: transparent;
