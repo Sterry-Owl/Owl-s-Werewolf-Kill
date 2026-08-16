@@ -49,8 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
             previewEl.style.minHeight = '18px';
             
             previewEl.innerHTML = `
-                <div class="role-preview-inner" style="display:flex; flex-wrap:wrap; justify-content:center; gap:2px 4px; width:100%;">
-                    ${allRoles.join('<span style="color:#555;">、</span>')}
+                <div class="role-preview-inner" style="display:block; text-align:center; width:100%; line-height:1.6;">
+                    ${allRoles.join('<span style="color:#555; margin:0 2px;">、</span>')}
                 </div>
             `;
         };
