@@ -231,22 +231,75 @@ const UI = {
             });
             window.__boardDetailsEventBound = true;
         }
-
-        // 僅更新資料內容 (每次狀態同步時觸發，不破壞 DOM)
         let detailsPanel = document.getElementById('board-details-panel');
         if (detailsPanel) {
-            const currentMountedBoard = detailsPanel.getAttribute('data-current-board');
-            const targetBoard = state.boardName || 'empty';
+            const targetHash = state.boardName ? (state.boardName + JSON.stringify(state.rules || {})) : 'empty';
+            const currentMountedHash = detailsPanel.getAttribute('data-current-hash');
             
-            if (currentMountedBoard !== targetBoard) {
-                detailsPanel.setAttribute('data-current-board', targetBoard);
+            if (currentMountedHash !== targetHash) {
+                detailsPanel.setAttribute('data-current-hash', targetHash);
                 
-                if (targetBoard === 'empty') {
-                    // [修復] 於大廳階段給予明確視覺提示，避免產生點擊無反應的錯覺
-                    detailsPanel.innerHTML = '<div style="padding:20px; text-align:center; font-size:14px; color:#ccc;">等待房主選擇版型...</div>';
+                if (targetHash === 'empty' || !state.rules) {
+                    detailsPanel.innerHTML = '<div style="padding:20px; text-align:center; font-size:14px; color:#ccc;">等待房主選擇版型與規則...</div>';
                 } else {
-                    // 渲染圖片，並保留 onerror 防呆機制
-                    detailsPanel.innerHTML = `<img src="./img/info/${targetBoard}.webp" alt="${targetBoard}" style="width:100%; height:auto; display:block; border-radius:4px;" onerror="this.parentElement.innerHTML='<div style=\\'padding:20px; text-align:center; font-size:14px;\\'>找不到對應的版型圖片：<br>${targetBoard}.webp</div>';">`;
+                    const rulesTextMap = {
+                        witchSave: { 'never': '不可', 'first_night': '首夜' },
+                        winCondition: { 'kill_side': '屠邊', 'kill_all': '屠城' },
+                        tieResolution: { 'pk': 'PK', 'peace': '平安' },
+                        sheriff: { 'enabled': '開啟', 'disabled': '關閉' },
+                        sheriffExplodeRule: { 'double': '雙爆', 'single': '單爆' },
+                        deathReveal: { 'dark': '暗牌', 'light': '明牌' },
+                        squareCard: { 'off': '經典', 'on': '舊日' }
+                    };
+
+                    let deckHtml = '';
+                    const board = typeof BOARD_TEMPLATES !== 'undefined' ? BOARD_TEMPLATES.find(t => t.name === state.boardName) : null;
+                    if (board) {
+                        const deck = board.deck;
+                        const wolves = [], gods = [], others = [];
+                        deck.forEach(role => {
+                            let color = '#ccc';
+                            let targetGroup = others;
+                            const def = typeof ROLE_DICTIONARY !== 'undefined' ? ROLE_DICTIONARY[role] : null;
+                            if (def) {
+                                if (def.faction === 'wolf') { color = '#9e646a'; targetGroup = wolves; }
+                                else if (def.type === 'god') { color = '#c4a75c'; targetGroup = gods; }
+                                else if (def.type === 'villager') { color = '#6a8c6e'; targetGroup = others; }
+                                else if (def.faction === 'third_party') { color = '#8a7096'; targetGroup = others; }
+                            }
+                            targetGroup.push(`<span style="color:${color}; font-weight:bold;">${role}</span>`);
+                        });
+                        const renderLine = (arr) => arr.length > 0 ? `<div style="white-space:nowrap; margin-bottom:1px;">${arr.join('<span style="color:#555; margin:0 2px;">、</span>')}</div>` : '';
+                        deckHtml = `
+                            <div class="role-preview-inner" style="margin: 0 auto; line-height:1.4;">
+                                ${renderLine(wolves)}
+                                ${renderLine(gods)}
+                                ${renderLine(others)}
+                            </div>
+                        `;
+                    }
+
+                    const r = state.rules;
+                    const rulesHtml = `
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size:12px; color:#bbb; text-align:center;">
+                            <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">女巫自救：<span style="color:#fff;">${rulesTextMap.witchSave[r.witchSave] || r.witchSave}</span></div>
+                            <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">勝利條件：<span style="color:#fff;">${rulesTextMap.winCondition[r.winCondition] || r.winCondition}</span></div>
+                            <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">放逐平票：<span style="color:#fff;">${rulesTextMap.tieResolution[r.tieResolution] || r.tieResolution}</span></div>
+                            <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">警長機制：<span style="color:#fff;">${rulesTextMap.sheriff[r.sheriff] || r.sheriff}</span></div>
+                            <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">吞警徽：<span style="color:#fff;">${rulesTextMap.sheriffExplodeRule[r.sheriffExplodeRule] || r.sheriffExplodeRule}</span></div>
+                            <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">身分揭曉：<span style="color:#fff;">${rulesTextMap.deathReveal[r.deathReveal] || r.deathReveal}</span></div>
+                            <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333; grid-column: span 2;">卡面樣式：<span style="color:#fff;">${rulesTextMap.squareCard[r.squareCard] || r.squareCard}</span></div>
+                        </div>
+                    `;
+
+                    detailsPanel.innerHTML = `
+                        <div style="padding:20px;">
+                            <div style="color:var(--accent-blue); font-size:14px; font-weight:bold; margin-bottom:12px; text-align:center; border-bottom:1px solid #444; padding-bottom:6px;">${state.boardName}</div>
+                            <div style="display:flex; justify-content:center; align-items:center; flex-direction:column; font-size:10px;">${deckHtml}</div>
+                            <div style="color:var(--accent-blue); font-size:14px; font-weight:bold; margin-bottom:12px; margin-top:20px; text-align:center; border-bottom:1px solid #444; padding-bottom:6px;">遊戲規則</div>
+                            ${rulesHtml}
+                        </div>
+                    `;
                 }
             }
         }
