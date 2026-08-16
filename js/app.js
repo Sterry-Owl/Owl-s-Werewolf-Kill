@@ -201,7 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
             sheriff: document.getElementById('rule-sheriff').value,
             deathReveal: document.getElementById('rule-death-reveal').value,
             sheriffExplodeRule: document.getElementById('rule-sheriff-explode').value,
-            squareCard: document.getElementById('rule-square-card').value
+            squareCard: document.getElementById('rule-square-card').value,
+            firstNightKill: document.getElementById('rule-first-night-kill').value,
+            speechTime: parseInt(document.getElementById('rule-speech-time').value, 10)
         };
         
         // 發牌後自動隱藏控制視窗，讓房主專心看卡牌動畫
