@@ -9,11 +9,10 @@ window.PhaseRegistry = {
     init: function(stateMachine, ctx) {
         this.sm = stateMachine;
         const self = this; 
-        // [修改] 綁定 phaseIdStr 參數，徹底消除非同步狀態切換時 ctx.phase 的時差死鎖
-        const createSpeechPhase = (nextPhaseName, durationMs = 120000, phaseIdStr = null) => ({
+        const createSpeechPhase = (nextPhaseName, phaseIdStr = null) => ({
             allowDeadAction: true,
             onEnter: (ctx) => {
-                const currentPhase = phaseIdStr || ctx.phase; // 優先使用靜態綁定的階段名稱
+                const currentPhase = phaseIdStr || ctx.phase;
                 
                 let nextSpeaker = null;
                 while (ctx.speakingQueue && ctx.speakingQueue.length > 0) {
@@ -61,8 +60,17 @@ window.PhaseRegistry = {
                 }
                 
                 ctx.currentSpeaker = nextSpeaker;
+                let finalDurationMs = (ctx.rules.speechTime || 120) * 1000;
+                const isLastWords = ['LAST_WORDS', 'DAY_SKILL_LAST_WORDS'].includes(currentPhase);
+                
+                if (isLastWords) {
+                    finalDurationMs = finalDurationMs / 2;
+                } else if (ctx.currentSpeaker === ctx.sheriff.seat) {
+                    finalDurationMs += 30000;
+                }
+
                 ctx.systemLog = `現在由 ${ctx.currentSpeaker} 號玩家發言`;
-                self.sm.setTimer(durationMs);
+                self.sm.setTimer(finalDurationMs);
             },
             onAction: (ctx, player, actionId) => {
                 const currentPhase = phaseIdStr || ctx.phase;
@@ -100,13 +108,13 @@ window.PhaseRegistry = {
         });
 
         // [更新] 全面升級階段註冊，注入精確的時長與強綁定名稱
-        stateMachine.registerPhase('DAY_DISCUSSION', createSpeechPhase('DAY_VOTING', 120000, 'DAY_DISCUSSION'));
-        stateMachine.registerPhase('SHERIFF_SPEECH', createSpeechPhase('SHERIFF_VOTING', 120000, 'SHERIFF_SPEECH'));
-        stateMachine.registerPhase('SHERIFF_PK_SPEECH', createSpeechPhase('SHERIFF_PK_VOTING', 120000, 'SHERIFF_PK_SPEECH'));
-        stateMachine.registerPhase('DAY_PK_SPEECH', createSpeechPhase('DAY_PK_VOTING', 120000, 'DAY_PK_SPEECH'));
-        stateMachine.registerPhase('LAST_WORDS', createSpeechPhase('RESUME_ROUTINE', 120000, 'LAST_WORDS'));
-        stateMachine.registerPhase('DAY_SKILL_LAST_WORDS', createSpeechPhase('RESUME_ROUTINE', 60000, 'DAY_SKILL_LAST_WORDS'));
-        stateMachine.registerPhase('PRINCE_SPEECH', createSpeechPhase('DAY_VOTING', 120000, 'PRINCE_SPEECH'));
+        stateMachine.registerPhase('DAY_DISCUSSION', createSpeechPhase('DAY_VOTING', 'DAY_DISCUSSION'));
+        stateMachine.registerPhase('SHERIFF_SPEECH', createSpeechPhase('SHERIFF_VOTING', 'SHERIFF_SPEECH'));
+        stateMachine.registerPhase('SHERIFF_PK_SPEECH', createSpeechPhase('SHERIFF_PK_VOTING', 'SHERIFF_PK_SPEECH'));
+        stateMachine.registerPhase('DAY_PK_SPEECH', createSpeechPhase('DAY_PK_VOTING', 'DAY_PK_SPEECH'));
+        stateMachine.registerPhase('LAST_WORDS', createSpeechPhase('RESUME_ROUTINE', 'LAST_WORDS'));
+        stateMachine.registerPhase('DAY_SKILL_LAST_WORDS', createSpeechPhase('RESUME_ROUTINE', 'DAY_SKILL_LAST_WORDS'));
+        stateMachine.registerPhase('PRINCE_SPEECH', createSpeechPhase('DAY_VOTING', 'PRINCE_SPEECH'));
         
         stateMachine.registerPhase('POST_VOTE_SKILL', {
             onEnter: (ctx) => {
