@@ -272,8 +272,8 @@ const UI = {
                         });
                         const allRoles = [...wolves, ...gods, ...others];
                         deckHtml = `
-                            <div class="role-preview-inner" style="margin: 0 auto; line-height:1.4; display:flex; flex-wrap:wrap; justify-content:center; gap:2px 4px; width:100%;">
-                                ${allRoles.join('<span style="color:#555;">、</span>')}
+                            <div class="role-preview-inner" style="margin: 0 auto; line-height:1.6; display:block; text-align:center; width:100%;">
+                                ${allRoles.join('<span style="color:#555; margin:0 2px;">、</span>')}
                             </div>
                         `;
                     }
