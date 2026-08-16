@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 targetGroup.push(`<span style="color:${color}; font-weight:bold;">${role}</span>`);
             });
             const renderLine = (arr) => arr.length > 0 ? `<div style="white-space:nowrap; margin-bottom:1px;">${arr.join('<span style="color:#555; margin:0 2px;">、</span>')}</div>` : '';
-            previewEl.style.height = '48px';
+            previewEl.style.height = '42px';
             
             previewEl.innerHTML = `
                 <div class="role-preview-inner" style="display:flex; flex-direction:column; align-items:flex-start; width:fit-content; margin:0 auto; line-height:1.4;">
@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const gameRules = {
             witchSave: document.getElementById('rule-witch-save').value,
             winCondition: document.getElementById('rule-win-condition').value,
-            tieResolution: document.getElementById('rule-tie-resolution').value,
+            tieResolution: 'pk',
             sheriff: document.getElementById('rule-sheriff').value,
             deathReveal: document.getElementById('rule-death-reveal').value,
             sheriffExplodeRule: document.getElementById('rule-sheriff-explode').value,
