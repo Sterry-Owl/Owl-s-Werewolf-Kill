@@ -270,10 +270,12 @@ const UI = {
                             }
                             targetGroup.push(`<span style="color:${color}; font-weight:bold;">${role}</span>`);
                         });
-                        const allRoles = [...wolves, ...gods, ...others];
+                        const renderLine = (arr) => arr.length > 0 ? `<div style="white-space:nowrap; margin-bottom:1px;">${arr.join('<span style="color:#555; margin:0 2px;">、</span>')}</div>` : '';
                         deckHtml = `
-                            <div class="role-preview-inner" style="margin: 0 auto; line-height:1.6; display:block; text-align:center; width:100%;">
-                                ${allRoles.join('<span style="color:#555; margin:0 2px;">、</span>')}
+                            <div class="role-preview-inner" style="margin: 0 auto; line-height:1.4; display:flex; flex-direction:column; align-items:flex-start; width:fit-content;">
+                                ${renderLine(wolves)}
+                                ${renderLine(gods)}
+                                ${renderLine(others)}
                             </div>
                         `;
                     }
