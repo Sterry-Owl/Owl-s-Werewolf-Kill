@@ -1097,11 +1097,12 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     return {
         boardName: ctx.boardName, phase: ctx.phase, 
         useSquareCard: ctx.rules?.squareCard === 'on',
+        rules: ctx.rules || null,
         nightStepIndex: ctx.currentNightStepIndex,
         nightCount: ctx.nightCount,
         mySeat: player.seatNumber, myRole: myDisplayRole,
         message: personalMessage, players: mappedPlayers, actionPanel, 
-        specialInfos: specialInfos, // [新增] 將陣列打包進封包
+        specialInfos: specialInfos,
         latestCheckResult: player.data.latestCheckResult || null,
         voteHistory: ctx.voteHistory,
         allowSelfExplode: !player.isDead && ['SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'DAY_DISCUSSION', 'DAY_PK_SPEECH', 'PRINCE_SPEECH'].includes(ctx.phase) && RoleRegistry.plugins[player.role]?.canSelfExplode,
