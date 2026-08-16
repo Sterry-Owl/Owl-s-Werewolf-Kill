@@ -287,7 +287,6 @@ const UI = {
                             <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">首夜襲擊：<span style="color:#fff;">${rulesTextMap.firstNightKill[r.firstNightKill] || r.firstNightKill}</span></div>
                             <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">女巫自救：<span style="color:#fff;">${rulesTextMap.witchSave[r.witchSave] || r.witchSave}</span></div>
                             <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">勝利條件：<span style="color:#fff;">${rulesTextMap.winCondition[r.winCondition] || r.winCondition}</span></div>
-                            <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">放逐平票：<span style="color:#fff;">${rulesTextMap.tieResolution[r.tieResolution] || r.tieResolution}</span></div>
                             <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">警長機制：<span style="color:#fff;">${rulesTextMap.sheriff[r.sheriff] || r.sheriff}</span></div>
                             <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">吞警徽：<span style="color:#fff;">${rulesTextMap.sheriffExplodeRule[r.sheriffExplodeRule] || r.sheriffExplodeRule}</span></div>
                             <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">身分揭曉：<span style="color:#fff;">${rulesTextMap.deathReveal[r.deathReveal] || r.deathReveal}</span></div>
@@ -860,13 +859,16 @@ const UI = {
     renderHostView: function(state) {
         const setupContent = document.getElementById('host-setup-content');
         const actionContent = document.getElementById('host-action-content');
+        const setupTitle = document.getElementById('host-setup-title');
         
         if (state.layout.showSetupPanel) {
             if (setupContent) setupContent.classList.remove('hidden');
             if (actionContent) actionContent.classList.add('hidden');
+            if (setupTitle) setupTitle.style.display = 'block';
         } else {
             if (setupContent) setupContent.classList.add('hidden');
             if (actionContent) actionContent.classList.remove('hidden');
+            if (setupTitle) setupTitle.style.display = 'none';
         }
 
         const statusLog = document.getElementById('host-status-log');
