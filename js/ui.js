@@ -10,7 +10,7 @@ const UI = {
     getTopTagStyle: function(text) {
         const colorMap = {
             '平民': '#EAE0CF', '高級平民': '#EAE0CF', '燈影預言家': '#EAE0CF',
-            '暗戀者': '#FC8EAC','野孩子': '#FC8EAC','復仇者': '#FC8EAC',
+            '暗戀者': '#FC8EAC','野孩子': '#FC8EAC','復仇者': '#FC8EAC','吹笛者': '#FC8EAC','邱比特': '#FC8EAC','盜賊': '#66CDAA',
             '預言家': '#B999A7', '魔鏡少女': '#B999A7', '純白之女': '#B999A7', '熊': '#B999A7', '覺醒預言家': '#B999A7',
             '女巫': '#76ABAE', '子狐': '#76ABAE', '煉金魔女': '#73ABAE',
             '騎士': '#004030', '獵人': '#004030', '獵魔人': '#004030', '定序王子': '#004030', '河豚': '#004030',
@@ -344,10 +344,12 @@ const UI = {
         
         // [新增] 房主控制列與除錯按鈕顯示邏輯
         const btnHostSettings = document.getElementById('btn-host-settings');
+        const btnBoardDetails = document.getElementById('btn-board-details'); // 加入詳情按鈕的 DOM 索引
 
         if (state.isLocalHost) {
-            // 房主專屬設定按鈕常駐顯示
+            // 房主專屬設定按鈕常駐顯示，並隱藏詳情按鈕
             if (btnHostSettings) btnHostSettings.classList.remove('hidden');
+            if (btnBoardDetails) btnBoardDetails.classList.add('hidden');
             
             // 更新 Modal 內的控制按鈕狀態
             const btnHostAction = document.getElementById('btn-local-host-action');
@@ -384,6 +386,7 @@ const UI = {
             }
         } else {
             if (btnHostSettings) btnHostSettings.classList.add('hidden');
+            if (btnBoardDetails) btnBoardDetails.classList.remove('hidden');
         }
 
         const btnDaySkill = document.getElementById('btn-day-skill');
