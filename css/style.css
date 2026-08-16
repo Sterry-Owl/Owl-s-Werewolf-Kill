@@ -774,9 +774,9 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     display: grid; 
     grid-template-columns: repeat(4, 1fr); 
     grid-auto-rows: 28px; 
-    height: 96px;         
-    gap: 6px; 
-    margin-bottom: 5px;
+    height: 100px;         
+    gap: 8px;
+    margin-bottom: 8px;
 }
 .board-btn { 
     height: 100%; /* 填滿強制規定的列高 */
@@ -793,7 +793,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 
 .rules-grid { 
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
 }
 .rule-item { 
     display: flex; flex-direction: column; align-items: center; 
