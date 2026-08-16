@@ -156,6 +156,7 @@ const TEMPLATES_QUICK = [
     { id: "mistclaw_10", name: "10人 迷霧鴉影", category: 'quick', playerCount: 10, deck: ["預言家", "煉金魔女", "攝夢人", "狼鴉之爪", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "grabsun_10", name: "10人 獵日逐光", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "流光伯爵", "蝕日侍女", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "flute_10", name: "10人 吹笛不死鳥", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "不死鳥", "狼鴉之爪", "狼人", "狼人", "平民", "平民", "平民", "吹笛者"] },
+    { id: "timekeeper_10", name: "10人 時波之亂", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "白晝學者", "寂夜導師", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "standard_11", name: "11人 標準局", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "wk_grd_11", name: "11人 狼王守衛", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "守衛", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "wk_mag_11", name: "11人 狼王魔術師", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "魔術師", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },    
@@ -173,6 +174,7 @@ const TEMPLATES_QUICK = [
     { id: "mistclaw_11", name: "11人 迷霧鴉影", category: 'quick', playerCount: 11, deck: ["預言家", "煉金魔女", "攝夢人", "白痴", "狼鴉之爪", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "grabsun_11", name: "11人 獵日逐光", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "攝夢人", "流光伯爵", "蝕日侍女", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "flute_11", name: "11人 吹笛不死鳥", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "不死鳥", "狼鴉之爪", "狼人", "狼人", "狼人", "平民", "平民", "吹笛者"] },
+    { id: "timekeeper_11", name: "11人 時波之亂", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "守衛", "白晝學者", "寂夜導師", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
 ];
 
 const TEMPLATES_STANDARD = [
@@ -197,7 +199,8 @@ const TEMPLATES_STANDARD = [
     { id: "pure_12", name: "12人 純白夜影", category: 'standard', playerCount: 12, deck: ["純白之女", "女巫", "守衛", "獵人", "狼巫", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "grabsun_12", name: "12人 獵日逐光", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "攝夢人", "流光伯爵", "蝕日侍女", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "mistclaw_12", name: "12人 迷霧鴉影", category: 'standard', playerCount: 12, deck: ["預言家", "煉金魔女", "攝夢人", "白痴", "狼鴉之爪", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
-    { id: "change_12", name: "12人 三重底限", category: 'quick', playerCount: 12, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "暗戀者", "野孩子", "復仇者"] },
+    { id: "change_12", name: "12人 三重底限", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "暗戀者", "野孩子", "復仇者"] },
+    { id: "timekeeper_12", name: "12人 時波之亂", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "白晝學者", "寂夜導師", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "thiefandlove_12", name: "12人 盜賊邱比特", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民", "平民", "邱比特", "盜賊"] },
 ];
 
