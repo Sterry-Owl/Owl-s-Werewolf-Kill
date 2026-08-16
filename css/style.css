@@ -410,11 +410,14 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     user-select: none;
 }
 .toggle-option.active {
-    /* 讀取 HTML 中設定的 inline 變數，實現不同規則不同顏色 */
     background-color: var(--active-bg, var(--accent-blue));
     color: var(--active-color, #fff);
     font-weight: bold;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+#template-category-tabs .toggle-option {
+    padding: 6px 5px;
 }
 .side-tag.tag-pink { 
     background: #ffb6c1; 
