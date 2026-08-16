@@ -158,7 +158,21 @@
                             <!-- [修改] 標題置中 -->
                             <div style="color:var(--accent-blue); font-size:12px; font-weight:bold; margin-top:15px; margin-bottom:8px; border-bottom:1px solid #444; padding-bottom:4px; text-align:center;">遊戲規則</div>
                             <div class="rules-grid">
-                                <!-- [修改] 全部套用低飽和色彩 (#6b8496 灰藍, #9e646a 淡灰紅) -->
+                                <div class="rule-item">
+                                    <label>首夜襲擊</label>
+                                    <div class="toggle-group" data-target="rule-first-night-kill">
+                                        <div class="toggle-option active" data-value="enabled" style="--active-bg: #6b8496; --active-color: #fff;">預設</div>
+                                        <div class="toggle-option" data-value="disabled" style="--active-bg: #9e646a; --active-color: #fff;">無刀</div>
+                                    </div><input type="hidden" id="rule-first-night-kill" value="enabled">
+                                </div>
+                                <div class="rule-item" style="grid-column: span 2;">
+                                    <label>發言時長 (遺言減半 / 警長+30s)</label>
+                                    <div class="toggle-group" data-target="rule-speech-time">
+                                        <div class="toggle-option" data-value="90" style="--active-bg: #6b8496; --active-color: #fff;">90s</div>
+                                        <div class="toggle-option active" data-value="120" style="--active-bg: #6b8496; --active-color: #fff;">120s</div>
+                                        <div class="toggle-option" data-value="150" style="--active-bg: #9e646a; --active-color: #fff;">150s</div>
+                                    </div><input type="hidden" id="rule-speech-time" value="120">
+                                </div>
                                 <div class="rule-item">
                                     <label>女巫自救</label>
                                     <div class="toggle-group" data-target="rule-witch-save">
