@@ -808,7 +808,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .rule-item .toggle-option { 
     font-size: 10px; padding: 6px 0; border-radius: 4px; 
 }
-#btn-host-settings {
+#btn-host-settings, #btn-board-details {
     background: transparent;
     border: 1px solid var(--accent-red);
     color: var(--accent-red);
@@ -818,6 +818,11 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     margin-top: 2px;
     cursor: pointer;
     pointer-events: auto;
+}
+
+#btn-board-details {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
 }
 
 /* =========================================
