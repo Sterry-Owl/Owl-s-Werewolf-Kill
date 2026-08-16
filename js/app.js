@@ -44,13 +44,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 targetGroup.push(`<span style="color:${color}; font-weight:bold;">${role}</span>`);
             });
-            const allRoles = [...wolves, ...gods, ...others];
-            previewEl.style.height = 'auto'; 
-            previewEl.style.minHeight = '18px';
+            const renderLine = (arr) => arr.length > 0 ? `<div style="white-space:nowrap; margin-bottom:1px;">${arr.join('<span style="color:#555; margin:0 2px;">、</span>')}</div>` : '';
+            previewEl.style.height = '48px';
             
             previewEl.innerHTML = `
-                <div class="role-preview-inner" style="display:block; text-align:center; width:100%; line-height:1.6;">
-                    ${allRoles.join('<span style="color:#555; margin:0 2px;">、</span>')}
+                <div class="role-preview-inner" style="display:flex; flex-direction:column; align-items:flex-start; width:fit-content; margin:0 auto; line-height:1.4;">
+                    ${renderLine(wolves)}
+                    ${renderLine(gods)}
+                    ${renderLine(others)}
                 </div>
             `;
         };
