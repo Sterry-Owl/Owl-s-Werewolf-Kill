@@ -138,6 +138,9 @@ const TEMPLATES_FUN = [
     { id: "eveningnew_8", name: "8人 諸神清晨", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "白晝學者", "女巫", "獵人", "狼王", "隱狼", "寂夜導師"] },
     { id: "evening_10", name: "10人 諸神黃昏", category: 'fun', playerCount: 10, deck: ["預言家", "女巫", "獵人", "流光伯爵", "攝夢人", "定序王子", "血月使徒", "狼王", "蝕時狼妃", "蝕日侍女"] },
     { id: "evening_11", name: "11人 諸神黃昏", category: 'fun', playerCount: 11, deck: ["預言家", "女巫", "獵人", "守衛", "白痴", "白狼王", "狼美人", "血月使徒", "平民", "平民", "平民"] },
+    { id: "windlich_10", name: "10人 風聲諜影", category: 'fun', playerCount: 10, deck: ["預言家", "魔鏡少女", "熊", "白貓", "河豚", "攝夢人", "女巫", "巫妖", "機械狼", "暗戀者"] },
+    { id: "windlich_12", name: "12人 風聲諜影", category: 'fun', playerCount: 12, deck: ["預言家", "魔鏡少女", "熊", "獵人", "白貓", "河豚", "攝夢人", "女巫", "巫妖", "巫妖", "機械狼", "暗戀者"] },
+    { id: "vanlentre_12", name: "12人 邱比特奇緣", category: 'fun', playerCount: 12, deck: ["覺醒預言家", "女巫", "獵人", "守衛", "平民", "平民", "平民", "平民", "狼人", "狼巫", "狼王", "邱比特", "暗戀者", "盜賊"] },
 ];
 
 const TEMPLATES_QUICK = [
