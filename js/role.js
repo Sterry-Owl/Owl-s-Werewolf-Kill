@@ -3378,3 +3378,90 @@ RoleRegistry.register("夜之貴族", {
         }
     }
 });
+RoleRegistry.register("覺醒愚者", {
+    canSelfExplode: false,
+    nightPhase: "second_half",
+    actionType: "single_select",
+    
+    onNightStart: (ctx, player) => {
+        // 首夜初始化技能狀態
+        if (ctx.nightCount === 1) {
+            player.data.hasSecretBody = true;
+            player.data.hasFlippedAsFool = false;
+        }
+    },
+    
+    hasAction: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        // 僅在擁有秘密之身時允許發動夜間技能
+        return !!p.data.hasSecretBody;
+    },
+    
+    getPrompt: () => "選擇以「秘密之身」守護的目標\n(若目標未受傷害，守護將自動轉移至自己)",
+    
+    getSelectableSeats: (ctx) => {
+        // 可守護包含自己在內的任何存活玩家
+        return ctx.getAlivePlayers().map(p => p.seatNumber);
+    },
+    
+    getButtons: () => [
+        { id: 'guard', text: '守護', requiresTarget: true },
+        { id: 'pass', text: '跳過', requiresTarget: false }
+    ],
+    
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || act.actionId === 'pass') {
+            ctx.foolGuardedSeat = null;
+            return "【跳過行動】";
+        }
+        
+        const target = act.targets[0];
+        // 寫入當晚守護目標
+        ctx.foolGuardedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+        return `【守護: ${target}號】`;
+    },
+    
+    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        if (!ctx.foolGuardedSeat || !player.data.hasSecretBody || player.isDead) return;
+        
+        const targetSeat = ctx.foolGuardedSeat;
+        const foolSeat = player.seatNumber;
+        const blockableCauses = ['killed', 'poisoned', 'doubledreamed', 'bloodlusted'];
+        let blocked = false;
+        if (blockableCauses.includes(deathMap[targetSeat])) {
+            delete deathMap[targetSeat];
+            blocked = true;
+            if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】覺醒愚者的秘密之身生效，為 ${targetSeat} 號擋下了致命傷害`);
+            }
+        } else {
+            if (blockableCauses.includes(deathMap[foolSeat])) {
+                delete deathMap[foolSeat];
+                blocked = true;
+                if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                    Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】覺醒愚者的秘密之身轉移並生效，為自己擋下了致命傷害`);
+                }
+            }
+        }
+        if (blocked) {
+            player.data.hasSecretBody = false;
+        }
+        ctx.foolGuardedSeat = null;
+    },
+    
+    onVotedOut: (ctx, player) => {
+        if (!player.data.hasFlippedAsFool) {
+            player.isRevealed = true;
+            player.data.hasFlippedAsFool = true;
+            player.data.hasSecretBody = false; 
+            
+            return {
+                prevented: true,
+                transferSheriff: false,
+                logMessage: `投票結果出爐，${player.seatNumber} 號玩家為覺醒愚者\n免除此次放逐出局`
+            };
+        }
+        return { prevented: false };
+    }
+});
