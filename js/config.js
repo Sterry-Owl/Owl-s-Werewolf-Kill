@@ -215,7 +215,7 @@ const TEMPLATES_STANDARD = [
     { id: "thiefandlove_12", name: "12人 盜賊邱比特", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民", "平民", "邱比特", "盜賊"] },
     { id: "secretnight_12", name: "12人 秘密之夜", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "覺醒愚者", "夜之貴族", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "starindark_12", name: "12人 暗夜星辰", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "覺醒獵人", "守衛", "覺醒狼美人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
-    { id: "awakendlich_12", name: "12人 覺醒石像鬼", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "攝夢人", "覺醒石像鬼", "狼王", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "awakendlich_12", name: "12人 覺醒石像鬼", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "攝夢人", "巫妖", "狼王", "狼人", "平民", "平民", "平民", "平民"] },
 ];
 
 const BOARD_TEMPLATES = [
