@@ -3451,15 +3451,15 @@ RoleRegistry.register("覺醒愚者", {
     },
     
     onVotedOut: (ctx, player) => {
-        if (!player.data.hasFlippedAsFool) {
+        if (player.data.hasSecretBody) {
             player.isRevealed = true;
             player.data.hasFlippedAsFool = true;
             player.data.hasSecretBody = false; 
             
             return {
                 prevented: true,
-                transferSheriff: false,
-                logMessage: `投票結果出爐，${player.seatNumber} 號玩家為覺醒愚者\n免除此次放逐出局`
+                transferSheriff: false, // 因為並未出局，不轉交警徽
+                logMessage: `投票結果出爐，${player.seatNumber} 號玩家為覺醒愚者！\n翻牌自證免除放逐並失去秘密之身，但仍保留發言與投票權。`
             };
         }
         return { prevented: false };
