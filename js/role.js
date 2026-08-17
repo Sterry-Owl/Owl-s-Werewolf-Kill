@@ -34,11 +34,14 @@ window.RoleRegistry = {
             };
 
             ctx.getDynamicFaction = function(p) {
+                if (p.data.isConverted) return 'wolf';
                 const plugin = RoleRegistry.plugins[p.role];
                 return (plugin && typeof plugin.getFaction === 'function') ? plugin.getFaction(this, p) : (ROLE_DICTIONARY[p.role]?.faction || 'good');
             };
 
             ctx.getDynamicType = function(p) {
+                // [新增] 轉化者全域視為狼人神職/平民類型
+                if (p.data.isConverted) return 'wolf';
                 const plugin = RoleRegistry.plugins[p.role];
                 return (plugin && typeof plugin.getType === 'function') ? plugin.getType(this, p) : (ROLE_DICTIONARY[p.role]?.type || 'villager');
             };
@@ -48,6 +51,10 @@ window.RoleRegistry = {
                 const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
                 const isWolf = typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
                 let alignment = isWolf ? "狼人" : "好人";
+
+                if (tPlayer.data.isConverted && this.nightCount >= 2) {
+                    alignment = "狼人";
+                }
                 
                 const pluginDef = RoleRegistry.plugins[tPlayer.role];
                 if (pluginDef) {
@@ -217,7 +224,9 @@ window.RoleRegistry = {
                 if (player.role === '復仇者' && player.data.avengerTarget) {
                     infos.push({ text: `你的仇恨對象是 ${player.data.avengerTarget} 號`, subtext: "你的勝利條件將與他相反" });
                 }
-
+                if (player.data.isConverted && player.role !== '狼人') {
+                    infos.push({ text: `你已被轉化`, subtext: "所有其餘狼人出局後你將接掌狼刀" });
+                }
                 if (context.lovers && context.lovers.includes(player.seatNumber)) {
                     const partner = context.lovers.find(s => s !== player.seatNumber);
                     infos.push({ 
@@ -310,6 +319,16 @@ window.RoleRegistry = {
                 if (!skipTick) {
                     context.wolvesDiedThisTick = context.wolvesDiedThisTick || [];
                     context.wolvesDiedThisTick.push(player.role);
+                }
+            }
+            const aliveWolves = context.getAlivePlayers().filter(p => context.getDynamicFaction(p) === 'wolf');
+            if (aliveWolves.length === 1 && aliveWolves[0].data.isConverted && aliveWolves[0].role !== '狼人') {
+                const survivor = aliveWolves[0];
+                survivor.data.camouflageRole = survivor.role;
+                survivor.role = '狼人';
+                survivor.data.virtualRoles = []; 
+                if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                    Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】其餘狼人皆已出局，轉化者 ${survivor.seatNumber} 號正式加入狼隊並失去原有技能`);
                 }
             }
         });
@@ -3608,6 +3627,102 @@ RoleRegistry.register("覺醒狼美人", {
             if (observer.data.customSideTags && observer.data.customSideTags[deadPlayer.seatNumber] === "輓歌") {
                 delete observer.data.customSideTags[deadPlayer.seatNumber];
             }
+        }
+    }
+});
+RoleRegistry.register("巫妖", {
+    canSelfExplode: false,
+    canSeeWolves: true,
+    seenAsWolf: true,
+    isAttacker: true,
+    hasWolfChatAccess: true,
+    nightPhase: ["first_half", "midnight"],
+    actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
+
+    hasAction: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'first_half') return ctx.nightCount === 1 && !ctx.getPlayer(mySeat).data.hasConverted;
+        if (step === 'midnight') return true;
+        return false;
+    },
+
+    getPrompt: (ctx) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'first_half') return "第一晚必須選擇一名相鄰於狼人的玩家成為轉化者";
+        return "選擇今晚的襲擊目標";
+    },
+
+    getSelectableSeats: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
+
+        let validTargets = new Set();
+        // 抓出所有具備刀人權限的狼人
+        const attackers = ctx.getAlivePlayers().filter(p => {
+            const plugin = RoleRegistry.plugins[p.role];
+            return ctx.getDynamicFaction(p) === 'wolf' && (typeof plugin?.isAttacker === 'function' ? plugin.isAttacker(ctx, p.seatNumber) : plugin?.isAttacker);
+        });
+
+        // 進行物理座位 +1 與 -1 的模數擴展
+        attackers.forEach(attacker => {
+            const left = ctx.getNextAliveSeat(attacker.seatNumber, -1);
+            const right = ctx.getNextAliveSeat(attacker.seatNumber, 1);
+            if (left) validTargets.add(left);
+            if (right) validTargets.add(right);
+        });
+
+        // 過濾掉已經是狼人陣營的目標
+        return Array.from(validTargets).filter(seat => {
+            const p = ctx.getPlayer(seat);
+            return p && ctx.getDynamicFaction(p) !== 'wolf';
+        });
+    },
+
+    getButtons: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return RoleRegistry.plugins["狼人"].getButtons(ctx, mySeat);
+        return [{ id: 'convert', text: '轉化', requiresTarget: true }];
+    },
+
+    resolveNightAction: (ctx, actions) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
+
+        if (step === 'first_half') {
+            let logs = [];
+            const allLiches = ctx.getAlivePlayers().filter(p => p.role === '巫妖' && !p.data.hasConverted);
+            
+            allLiches.forEach(lich => {
+                let act = actions.find(a => a.player.seatNumber === lich.seatNumber);
+                let targetSeat;
+                
+                // 若超時或無效點擊，系統介入進行強制隨機選擇 (防呆)
+                if (!act || act.actionId === 'pass' || !act.targets || act.targets.length === 0) {
+                    const plugin = RoleRegistry.plugins["巫妖"];
+                    const selectables = plugin.getSelectableSeats(ctx, lich.seatNumber);
+                    // 二次過濾，避免多巫妖隨機選到同一人
+                    const validSelectables = selectables.filter(s => {
+                        const actTgt = ctx.getActualTarget ? ctx.getActualTarget(s) : s;
+                        return !ctx.getPlayer(actTgt).data.isConverted;
+                    });
+                    if (validSelectables.length > 0) {
+                        targetSeat = validSelectables[Math.floor(Math.random() * validSelectables.length)];
+                    }
+                } else {
+                    targetSeat = parseInt(act.targets[0]);
+                }
+                
+                if (targetSeat) {
+                    lich.data.hasConverted = true;
+                    const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(targetSeat) : targetSeat;
+                    const tPlayer = ctx.getPlayer(actualTarget);
+                    tPlayer.data.isConverted = true;
+                    logs.push(`【${lich.seatNumber}號 轉化: ${targetSeat}號】`);
+                } else {
+                    logs.push(`【${lich.seatNumber}號 無效行動 (無合法目標)】`);
+                }
+            });
+            return logs.join('\n');
         }
     }
 });
