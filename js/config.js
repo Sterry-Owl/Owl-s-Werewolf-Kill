@@ -131,6 +131,7 @@ const TEMPLATES_FUN = [
     { id: "whip_8", name: "8人 連連看", category: 'fun', playerCount: 8, deck: ["獵魔人", "獵魔人", "獵魔人", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影"] },
     { id: "whip_10", name: "10人 連連看", category: 'fun', playerCount: 10, deck: ["獵魔人", "獵魔人", "獵魔人", "獵魔人", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影"] },
     { id: "survivorstd_7", name: "7人 生還者", category: 'fun', playerCount: 7, deck: ["預言家", "守衛", "女巫", "獵人", "白狼王", "狼人", "平民"] },
+    { id: "survivorstd_9", name: "9人 生還者", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "守衛", "覺醒愚者", "流光伯爵", "騎士", "狼美人", "狼鴉之爪", "平民"] },
     { id: "lastday_8", name: "8人 末日狂徒", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "騎士", "狼人", "狼人", "狼人", "平民", "平民"] },
     { id: "evening_8", name: "8人 諸神黃昏", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "獵人", "女巫", "白痴", "惡靈騎士", "狼王", "白狼王"] },
     { id: "eveningnew_8", name: "8人 諸神清晨", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "白晝學者", "女巫", "獵人", "狼王", "隱狼", "寂夜導師"] },
