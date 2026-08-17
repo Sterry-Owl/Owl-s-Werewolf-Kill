@@ -3493,3 +3493,141 @@ RoleRegistry.register("覺醒獵人", {
         }
     }
 });
+RoleRegistry.register("覺醒狼美人", {
+    canSelfExplode: false, 
+    canSeeWolves: true,
+    seenAsWolf: true,
+    immuneToWolfBite: true,
+    hasWolfChatAccess: true,
+    nightPhase: ["midnight", "second_half"], 
+    actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
+    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
+    
+    onNightStart: (ctx, player) => {
+        if (player.data.dirgedThisNight) {
+            player.data.hasDirgedLastNight = true;
+            player.data.dirgedThisNight = false;
+        } else {
+            player.data.hasDirgedLastNight = false;
+        }
+    },
+    
+    hasAction: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        const p = ctx.getPlayer(mySeat);
+        if (step === 'midnight') return true;
+        if (step === 'second_half') return !p.data.hasDirgedLastNight;
+        return false;
+    },
+    
+    getPrompt: (ctx, mySeat) => {
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') return "選擇今晚的襲擊目標";
+        return "選擇今晚的輓歌目標 (不能連續兩晚發動)";
+    },
+    
+    getSelectableSeats: (ctx, mySeat) => {
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
+            return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
+        }
+        return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber); 
+    },
+    
+    getButtons: (ctx, mySeat) => {
+        if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
+            return [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
+        }
+        return [{ id: 'dirge', text: '輓歌', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
+    },
+    
+    resolveNightAction: (ctx, actions) => {
+        const phaseId = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
+        if (phaseId === 'midnight') {
+            return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
+        }
+        
+        const act = actions[0];
+        if (!act || act.actionId === 'pass') return "【跳過行動】";
+        
+        const target = act.targets[0];
+        ctx.dirgedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+        
+        act.player.data.dirgedThisNight = true;
+        act.player.data.customSideTags = act.player.data.customSideTags || {};
+        act.player.data.customSideTags[ctx.dirgedSeat] = "輓歌";
+        
+        return `【輓歌: ${target}號】`;
+    },
+    
+    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        if (deathMap[player.seatNumber] && deathMap[player.seatNumber] !== 'silenthunted') {
+            if (ctx.dirgedSeat) {
+                const target = ctx.getPlayer(ctx.dirgedSeat);
+                if (target && !target.isDead) {
+                    delete deathMap[player.seatNumber];
+                    deathMap[target.seatNumber] = 'charmed';
+                    
+                    if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                        Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】覺醒狼美人的輓歌生效，${target.seatNumber} 號代替出局`);
+                    }
+                }
+            }
+        }
+    },
+    
+    onVotedOut: (ctx, player) => {
+        if (ctx.dirgedSeat) {
+            const target = ctx.getPlayer(ctx.dirgedSeat);
+            if (target && !target.isDead) {
+                player.isRevealed = true;
+                target.kill('charmed', ctx);
+                ctx.lastWordsTargets = [target.seatNumber];
+                
+                return {
+                    prevented: true,
+                    transferSheriff: false,
+                    logMessage: `投票結果出爐，${player.seatNumber} 號玩家為覺醒狼美人！\n翻牌自證免除放逐，輓歌發動，${target.seatNumber} 號玩家代替出局。`
+                };
+            }
+        }
+        return { prevented: false };
+    },
+    
+    onPlayerDied: (ctx, player, reason) => {
+        if (reason === 'voted' || reason === 'silenthunted') return false; 
+        
+        if (ctx.dirgedSeat) {
+            const target = ctx.getPlayer(ctx.dirgedSeat);
+            if (target && !target.isDead) {
+                player.isDead = false;
+                player.deathReason = null;
+                
+                const dayReasons = ['shot', 'dueled'];
+                if (dayReasons.includes(reason)) {
+                    player.isRevealed = true;
+                }
+                
+                target.kill('charmed', ctx);
+                setTimeout(() => {
+                    if (ctx.daySkillLastWordsQueue && ctx.daySkillLastWordsQueue.includes(player.seatNumber)) {
+                        ctx.daySkillLastWordsQueue = [target.seatNumber];
+                    }
+                }, 0);
+                
+                if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                    Engine.EventBus.emit('BROADCAST_MESSAGE', `【突發事件】覺醒狼美人受到致命傷，翻牌並發動輓歌，${target.seatNumber} 號玩家代替出局。`);
+                }
+                return true;
+            }
+        }
+        return false;
+    },
+    
+    onOtherPlayerDied: (ctx, observer, deadPlayer, reason) => {
+        if (ctx.dirgedSeat === deadPlayer.seatNumber) {
+            ctx.dirgedSeat = null;
+            if (observer.data.customSideTags && observer.data.customSideTags[deadPlayer.seatNumber] === "輓歌") {
+                delete observer.data.customSideTags[deadPlayer.seatNumber];
+            }
+        }
+    }
+});
