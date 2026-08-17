@@ -3287,6 +3287,16 @@ RoleRegistry.register("夜之貴族", {
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
     isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
     
+    onNightStart: (ctx, player) => {
+        if (ctx.nightServantExpireNight && ctx.nightCount > ctx.nightServantExpireNight) {
+            if (player.data.customSideTags && player.data.customSideTags[ctx.nightServantSeat] === "夜僕") {
+                delete player.data.customSideTags[ctx.nightServantSeat];
+            }
+            ctx.nightServantSeat = null;
+            ctx.nightServantExpireNight = null;
+        }
+    },
+    
     hasAction: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         if (step === 'midnight') return true;
@@ -3326,6 +3336,7 @@ RoleRegistry.register("夜之貴族", {
         const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
         ctx.nightServantSeat = actualTarget;
         ctx.nightServantExpireNight = ctx.nightCount + 1;
+        
         act.player.data.customSideTags = act.player.data.customSideTags || {};
         act.player.data.customSideTags[actualTarget] = "夜僕";
         
@@ -3336,14 +3347,19 @@ RoleRegistry.register("夜之貴族", {
         if (ctx.nightServantSeat && ctx.nightCount === ctx.nightServantExpireNight) {
             const servant = ctx.getPlayer(ctx.nightServantSeat);
             if (servant && !servant.isDead) {
-                deathMap[servant.seatNumber] = 'bloodlusted';
-
-                if (!ctx.nightTags) ctx.nightTags = {};
-                if (!ctx.nightTags.servantLogWritten) {
+                if (ctx.nightTags?.huntedNightServant === servant.seatNumber) {
                     if (typeof Engine !== 'undefined' && Engine.EventBus) {
-                        Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】夜僕 ${servant.seatNumber} 號死亡倒數結束，因嗜血出局`);
+                        Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】夜僕 ${servant.seatNumber} 號被獵魔人狩獵，抵銷了嗜血效果`);
                     }
-                    ctx.nightTags.servantLogWritten = true;
+                } else {
+                    deathMap[servant.seatNumber] = 'bloodlusted';
+                    if (!ctx.nightTags) ctx.nightTags = {};
+                    if (!ctx.nightTags.servantLogWritten) {
+                        if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                            Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】夜僕 ${servant.seatNumber} 號死亡倒數結束，因嗜血出局`);
+                        }
+                        ctx.nightTags.servantLogWritten = true;
+                    }
                 }
             }
         }
@@ -3353,6 +3369,7 @@ RoleRegistry.register("夜之貴族", {
         if (ctx.nightServantSeat === deadPlayer.seatNumber) {
             ctx.nightServantSeat = null;
             ctx.nightServantExpireNight = null;
+            
             if (observer.data.customSideTags && observer.data.customSideTags[deadPlayer.seatNumber] === "夜僕") {
                 delete observer.data.customSideTags[deadPlayer.seatNumber];
             }
