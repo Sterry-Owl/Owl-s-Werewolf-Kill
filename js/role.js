@@ -1678,7 +1678,15 @@ RoleRegistry.register("獵魔人", {
             const target = act.targets[0];
             const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'hunt', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : target);
             if (ctx.nightServantSeat === actualTarget) {
-                logs.push(`【${act.player.seatNumber}號 狩獵: ${target}號 (夜僕，免疫狩獵且不反噬)】`);
+                logs.push(`【${act.player.seatNumber}號 狩獵: ${target}號 (夜僕，免疫狩獵且解除夜僕狀態)】`);
+
+                ctx.nightServantSeat = null;
+                ctx.nightServantExpireNight = null;
+                ctx.players.forEach(p => {
+                    if (p.data.customSideTags && p.data.customSideTags[actualTarget] === "夜僕") {
+                        delete p.data.customSideTags[actualTarget];
+                    }
+                });
                 return;
             }
 
@@ -3283,7 +3291,7 @@ RoleRegistry.register("夜之貴族", {
     seenAsWolf: true,
     immuneToWolfBite: true, 
     hasWolfChatAccess: true,
-    nightPhase: ["midnight", "second_half"],
+    nightPhase: ["first_half", "midnight"],
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
     isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
     
@@ -3300,7 +3308,7 @@ RoleRegistry.register("夜之貴族", {
     hasAction: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         if (step === 'midnight') return true;
-        if (step === 'second_half') return ctx.nightCount >= 2 && !ctx.nightServantSeat;
+        if (step === 'first_half') return ctx.nightCount >= 2 && !ctx.nightServantSeat;
         return false;
     },
     
@@ -3347,19 +3355,13 @@ RoleRegistry.register("夜之貴族", {
         if (ctx.nightServantSeat && ctx.nightCount === ctx.nightServantExpireNight) {
             const servant = ctx.getPlayer(ctx.nightServantSeat);
             if (servant && !servant.isDead) {
-                if (ctx.nightTags?.huntedNightServant === servant.seatNumber) {
+                deathMap[servant.seatNumber] = 'bloodlusted';
+                if (!ctx.nightTags) ctx.nightTags = {};
+                if (!ctx.nightTags.servantLogWritten) {
                     if (typeof Engine !== 'undefined' && Engine.EventBus) {
-                        Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】夜僕 ${servant.seatNumber} 號被獵魔人狩獵，抵銷了嗜血效果`);
+                        Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】夜僕 ${servant.seatNumber} 號死亡倒數結束，因嗜血出局`);
                     }
-                } else {
-                    deathMap[servant.seatNumber] = 'bloodlusted';
-                    if (!ctx.nightTags) ctx.nightTags = {};
-                    if (!ctx.nightTags.servantLogWritten) {
-                        if (typeof Engine !== 'undefined' && Engine.EventBus) {
-                            Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】夜僕 ${servant.seatNumber} 號死亡倒數結束，因嗜血出局`);
-                        }
-                        ctx.nightTags.servantLogWritten = true;
-                    }
+                    ctx.nightTags.servantLogWritten = true;
                 }
             }
         }
