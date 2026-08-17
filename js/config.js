@@ -118,6 +118,7 @@ const TEMPLATES_TEST = [
     { id: "test-27_6", name: "盜賊邱比特(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "邱比特", "平民", "平民", "盜賊"] },
     { id: "test-28_6", name: "秘密之夜(測試)", category: 'test', playerCount: 6, deck: ["獵魔人", "覺醒愚者", "夜之貴族", "狼人", "平民", "平民"] },
     { id: "test-29_6", name: "暗夜星辰(測試)", category: 'test', playerCount: 6, deck: ["覺醒獵人", "守衛", "覺醒狼美人", "狼人", "平民", "平民"] },
+    { id: "test-30_6", name: "巫妖轉化(測試)", category: 'test', playerCount: 6, deck: ["預言家", "熊", "純白之女", "巫妖", "狼人", "平民"] },
 ];
 
 const TEMPLATES_FUN = [
@@ -274,4 +275,5 @@ const ROLE_DICTIONARY = {
     "覺醒愚者": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚守護的目標\n(點擊左右列頭貼以發動技能)", description:"神職；擁有「秘密之身」。每晚可守護一名玩家免於夜間傷害。若該玩家未受傷害，守護效果轉移至自己。成功擋下一次傷害後失去秘密之身。被放逐時翻牌免除出局並失去秘密之身，但仍保留發言與投票權。" },
     "覺醒獵人": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "", description:"神職；出局後可選擇順向或逆向發動巡獵，使離自己最近的狼人出局。若在夜間死亡，被巡獵出局的狼人將無法發動技能。" },
     "覺醒狼美人": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "dynamic", prompt: "覺醒狼美人請行動", description:"狼人陣營；不可自爆、不可自刀。每晚可以輓歌一名玩家，但不能連續兩晚發動技能。當自身以任何方式出局時，免疫出局並使輓歌目標代替死亡。若於白天出局將翻牌發動技能。被夜間死亡的覺醒獵人巡獵時，輓歌無效。" },
+    "巫妖": { faction: "wolf", type: "wolf", nightPhase: ["first_half", "midnight"], actionType: "dynamic", prompt: "巫妖請行動", description:"狼人陣營；參與襲擊，不可自爆。第一晚必須選擇一名相鄰於「任意參與襲擊的狼人」的玩家成為轉化者。轉化者下一晚起被判定為狼人，勝利條件亦視為狼人。其餘所有狼人皆出局且場上僅剩唯一一名轉化者時，該轉化者失去原有技能並加入狼隊參與襲擊。" },
 };
