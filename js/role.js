@@ -208,6 +208,15 @@ window.RoleRegistry = {
                         infos.push({ text: `已被誘引的名單者有${charmedList}號`, subtext: "誘引全場存活玩家即可獲勝" });
                     }
                 }
+                if (player.role === '暗戀者' && context.crushTarget && context.admirerSeat === player.seatNumber) {
+                    infos.push({ text: `你的暗戀對象是 ${context.crushTarget} 號`, subtext: "你隨暗戀對象同榮共敗" });
+                }
+                if (player.role === '野孩子' && player.data.wildModelTarget) {
+                    infos.push({ text: `你的榜樣是 ${player.data.wildModelTarget} 號`, subtext: "榜樣死亡後你將狂暴成為狼人" });
+                }
+                if (player.role === '復仇者' && player.data.avengerTarget) {
+                    infos.push({ text: `你的仇恨對象是 ${player.data.avengerTarget} 號`, subtext: "你的勝利條件將與他相反" });
+                }
 
                 if (context.lovers && context.lovers.includes(player.seatNumber)) {
                     const partner = context.lovers.find(s => s !== player.seatNumber);
@@ -1108,11 +1117,6 @@ RoleRegistry.register("暗戀者", {
         if (target) {
             ctx.crushTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
             ctx.admirerSeat = mySeat; 
-            const actPlayer = ctx.getPlayer(mySeat);
-            if (actPlayer) {
-                actPlayer.data.customSideTags = actPlayer.data.customSideTags || {};
-                actPlayer.data.customSideTags[ctx.crushTarget] = "暗戀";
-            }
             return `【暗戀: ${target}號】`;
         }
         
@@ -3062,14 +3066,10 @@ RoleRegistry.register("野孩子", {
                 const selectable = ctx.getAlivePlayers().filter(p => p.seatNumber !== act.player.seatNumber).map(p => p.seatNumber);
                 const target = selectable[Math.floor(Math.random() * selectable.length)];
                 act.player.data.wildModelTarget = target;
-                act.player.data.customSideTags = act.player.data.customSideTags || {};
-                act.player.data.customSideTags[target] = "榜樣";
                 return `【強制選擇榜樣: ${target}號】`;
             }
             const target = parseInt(act.targets[0]);
             act.player.data.wildModelTarget = target;
-            act.player.data.customSideTags = act.player.data.customSideTags || {};
-            act.player.data.customSideTags[target] = "榜樣";
             return `【選擇榜樣: ${target}號】`;
         }
     },
@@ -3113,14 +3113,10 @@ RoleRegistry.register("復仇者", {
             const selectable = ctx.getAlivePlayers().filter(p => p.seatNumber !== act.player.seatNumber).map(p => p.seatNumber);
             const target = selectable[Math.floor(Math.random() * selectable.length)];
             act.player.data.avengerTarget = target;
-            act.player.data.customSideTags = act.player.data.customSideTags || {};
-            act.player.data.customSideTags[target] = "仇恨";
             return `【強制選擇仇恨: ${target}號】`;
         }
         const target = parseInt(act.targets[0]);
         act.player.data.avengerTarget = target;
-        act.player.data.customSideTags = act.player.data.customSideTags || {};
-        act.player.data.customSideTags[target] = "仇恨";
         return `【選擇仇恨: ${target}號】`;
     }
 });
@@ -3146,22 +3142,6 @@ RoleRegistry.register("邱比特", {
         
         ctx.lovers = [t1, t2];
         act.player.data.hasShotArrow = true;
-
-        act.player.data.customSideTags = act.player.data.customSideTags || {};
-        act.player.data.customSideTags[t1] = "情侶";
-        act.player.data.customSideTags[t2] = "情侶";
-
-        const p1 = ctx.getPlayer(t1);
-        if (p1) {
-            p1.data.customSideTags = p1.data.customSideTags || {};
-            p1.data.customSideTags[t2] = "伴侶";
-        }
-        const p2 = ctx.getPlayer(t2);
-        if (p2) {
-            p2.data.customSideTags = p2.data.customSideTags || {};
-            p2.data.customSideTags[t1] = "伴侶";
-        }
-        
         return `【指定情侶: ${t1}號 與 ${t2}號】`;
     },
 
