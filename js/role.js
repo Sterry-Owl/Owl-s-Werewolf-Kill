@@ -224,9 +224,12 @@ window.RoleRegistry = {
                 if (player.role === '復仇者' && player.data.avengerTarget) {
                     infos.push({ text: `你的仇恨對象是 ${player.data.avengerTarget} 號`, subtext: "你的勝利條件將與他相反" });
                 }
-                if (player.data.isConverted && player.role !== '狼人') {
-                    infos.push({ text: `你已被轉化`, subtext: "所有其餘狼人出局後你將接掌狼刀" });
+                
+                const isNight1 = context.nightCount === 1 && currentPhase === 'NIGHT_ACTION';
+                if (player.data.isConverted && player.role !== '狼人' && !isNight1) {
+                    infos.push({ text: `你已被巫妖轉化為狼人陣營`, subtext: "所有其餘狼人出局後你將接掌狼刀" });
                 }
+
                 if (context.lovers && context.lovers.includes(player.seatNumber)) {
                     const partner = context.lovers.find(s => s !== player.seatNumber);
                     infos.push({ 
@@ -3717,6 +3720,14 @@ RoleRegistry.register("巫妖", {
                     const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(targetSeat) : targetSeat;
                     const tPlayer = ctx.getPlayer(actualTarget);
                     tPlayer.data.isConverted = true;
+                    ctx.getAlivePlayers().forEach(p => {
+                        const plugin = RoleRegistry.plugins[p.role];
+                        const isAttackingWolf = ctx.getDynamicFaction(p) === 'wolf' && (typeof plugin?.isAttacker === 'function' ? plugin.isAttacker(ctx, p.seatNumber) : plugin?.isAttacker);
+                        if (isAttackingWolf) {
+                            p.data.customTopTags = p.data.customTopTags || {};
+                            p.data.customTopTags[actualTarget] = '轉化者';
+                        }
+                    });
                     logs.push(`【${lich.seatNumber}號 轉化: ${targetSeat}號】`);
                 } else {
                     logs.push(`【${lich.seatNumber}號 無效行動 (無合法目標)】`);
