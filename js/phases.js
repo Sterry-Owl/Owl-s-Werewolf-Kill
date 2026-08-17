@@ -405,7 +405,7 @@ window.PhaseRegistry = {
             }
         });
 
-    stateMachine.registerPhase('HUNTER_ACTION', {
+        stateMachine.registerPhase('HUNTER_ACTION', {
             allowDeadAction: true, 
             onEnter: (ctx) => { 
                 ctx.systemLog = "等待獵人開槍 (15秒)..."; 
@@ -443,7 +443,71 @@ window.PhaseRegistry = {
                 }
             }
         });
-        
+        stateMachine.registerPhase('AWAKENED_HUNTER_ACTION', {
+            allowDeadAction: true, 
+            onEnter: (ctx) => { 
+                ctx.systemLog = "等待覺醒獵人發動巡獵 (15秒)..."; 
+                self.sm.setTimer(15000);
+            },
+            onAction: (ctx, player, actionId, targets) => {
+                if (player.seatNumber !== ctx.activeShooter) return; 
+                
+                if (actionId === 'hunt_forward' || actionId === 'hunt_backward') {
+                    // 設定方向 (1 為順向, -1 為逆向)
+                    const direction = actionId === 'hunt_forward' ? 1 : -1;
+                    let targetSeat = null;
+                    let curr = player.seatNumber;
+                    
+                    // 利用系統自帶的 getNextAliveSeat 進行方向遞迴，尋找存活狼人
+                    for (let i = 0; i < ctx.players.length; i++) {
+                        curr = ctx.getNextAliveSeat(curr, direction);
+                        const p = ctx.getPlayer(curr);
+                        const isWolf = (ctx.getDynamicFaction ? ctx.getDynamicFaction(p) : ROLE_DICTIONARY[p.role]?.faction) === 'wolf';
+                        if (isWolf) { 
+                            targetSeat = curr; 
+                            break; 
+                        }
+                    }
+
+                    if (targetSeat) {
+                        const tPlayer = ctx.getPlayer(targetSeat);
+                        // 判定是否套用封印死因 (silenthunted)
+                        const isNightDeath = ctx.pendingAwakenedHunterNightDeath;
+                        if (tPlayer) tPlayer.kill(isNightDeath ? 'silenthunted' : 'shot', ctx); 
+                        
+                        const dirStr = actionId === 'hunt_forward' ? '順向' : '逆向';
+                        const msg = `${player.seatNumber}號玩家發動${dirStr}巡獵，擊殺了${targetSeat}號玩家`;
+                        ctx.systemLog = msg;
+                        Engine.EventBus.emit('BROADCAST_MESSAGE', msg);
+                        
+                        if (ctx.lastWordsTargets && ctx.lastWordsTargets.includes(player.seatNumber)) {
+                            ctx.daySkillLastWordsQueue = [targetSeat];
+                        }
+                    } else {
+                        ctx.systemLog = `${player.seatNumber}號玩家發動巡獵，但場上已無存活的狼人。`;
+                        Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
+                    }
+                } else {
+                    ctx.systemLog = `覺醒獵人選擇不發動巡獵。`;
+                }
+                
+                ctx.activeShooter = null; 
+                ctx.pendingAwakenedHunterNightDeath = false;
+                Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+                if (ctx.phase !== 'GAME_OVER') {
+                    Engine.EventBus.emit('RESUME_ROUTINE');
+                }
+            },
+            onTimeout: (ctx) => {
+                ctx.systemLog = `覺醒獵人超時未動作，視為放棄巡獵。`;
+                ctx.activeShooter = null;
+                ctx.pendingAwakenedHunterNightDeath = false;
+                Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+                if (ctx.phase !== 'GAME_OVER') {
+                    Engine.EventBus.emit('RESUME_ROUTINE');
+                }
+            }
+        });
         stateMachine.registerPhase('WOLFKING_ACTION', {
             allowDeadAction: true, 
             onEnter: (ctx) => { 
