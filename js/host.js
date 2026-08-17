@@ -597,6 +597,10 @@ function resumeRoutinePhase() {
         engineContext.activeShooter = engineContext.pendingHunter; 
         engineContext.pendingHunter = null;
         stateMachine.transitionTo('HUNTER_ACTION');
+    } else if (engineContext.pendingAwakenedHunter) {
+        engineContext.activeShooter = engineContext.pendingAwakenedHunter; 
+        engineContext.pendingAwakenedHunter = null;
+        stateMachine.transitionTo('AWAKENED_HUNTER_ACTION');
     } else if (engineContext.pendingWolfKing) {
         engineContext.activeShooter = engineContext.pendingWolfKing; 
         engineContext.pendingWolfKing = null;
@@ -651,14 +655,14 @@ function resumeRoutinePhase() {
 
 function syncStateToAll() {
     const ctx = engineContext;
-    const isDayPhase = ['BEAR_ROAR_ANNOUNCE', 'DAWN_DEATH_ANNOUNCE', 'DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'SHERIFF_ORDER_SELECTION', 'DAY_DISCUSSION', 'DAY_VOTING', 'DAY_PK_SPEECH', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'POST_VOTE_SKILL', 'PRINCE_SPEECH', 'LAST_WORDS', 'DAY_SKILL_LAST_WORDS', 'GAME_OVER', 'WOLFKING_ACTION', 'BLOODMOON_ACTION', 'DAY_INTERRUPT_SKILL', 'DELAYED_DEATH_ANNOUNCE'].includes(ctx.phase);
+    const isDayPhase = ['BEAR_ROAR_ANNOUNCE', 'DAWN_DEATH_ANNOUNCE', 'DAWN_SETTLEMENT', 'SHERIFF_CANDIDACY', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'SHERIFF_ORDER_SELECTION', 'DAY_DISCUSSION', 'DAY_VOTING', 'DAY_PK_SPEECH', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'POST_VOTE_SKILL', 'PRINCE_SPEECH', 'LAST_WORDS', 'DAY_SKILL_LAST_WORDS', 'GAME_OVER', 'HUNTER_ACTION', 'AWAKENED_HUNTER_ACTION', 'WOLFKING_ACTION', 'BLOODMOON_ACTION', 'DAY_INTERRUPT_SKILL', 'DELAYED_DEATH_ANNOUNCE'].includes(ctx.phase);
     
     // [重構] 簡化主控台渲染，僅負責 Setup 面板與歷史紀錄視窗
     const hostState = {
         masterLog: ctx.masterLog || [],
         layout: { showSetupPanel: ctx.phase === 'LOBBY' },
         dayBtnText: getDayBtnText(ctx.phase),
-        dayBtnDisabled: ['SHERIFF_CANDIDACY', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_ORDER_SELECTION', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'DAY_VOTING', 'DAY_PK_VOTING', 'HUNTER_ACTION', 'WOLFKING_ACTION', 'BLOODMOON_ACTION', 'GAME_OVER'].includes(ctx.phase),
+        dayBtnDisabled: ['SHERIFF_CANDIDACY', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_ORDER_SELECTION', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING', 'SHERIFF_TRANSFER', 'DAY_VOTING', 'DAY_PK_VOTING', 'HUNTER_ACTION', 'AWAKENED_HUNTER_ACTION', 'WOLFKING_ACTION', 'BLOODMOON_ACTION', 'GAME_OVER'].includes(ctx.phase),
         dayBtnCommand: getDayBtnCommand(ctx.phase),
         allowForceNext: ctx.phase === 'NIGHT_ACTION'
     };
@@ -970,12 +974,22 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             actionPanel.buttons = [];
         }
     }
-    else if (ctx.phase === 'HUNTER_ACTION' || ctx.phase === 'WOLFKING_ACTION' || ctx.phase === 'BLOODMOON_ACTION') {
+    else if (ctx.phase === 'HUNTER_ACTION' || ctx.phase === 'WOLFKING_ACTION' || ctx.phase === 'BLOODMOON_ACTION' || ctx.phase === 'AWAKENED_HUNTER_ACTION') {
         actionPanel.show = true;
         if (player.seatNumber === ctx.activeShooter) {
-            actionPanel.type = 'single_select'; actionPanel.selectableSeats = ctx.getAlivePlayers().map(p=>p.seatNumber);
-            actionPanel.prompt = ctx.phase === 'BLOODMOON_ACTION' ? `你已出局，選擇最後追擊目標：` : `你已死亡，選擇開槍目標：`;
-            actionPanel.buttons = [{ id: 'shoot', text: ctx.phase === 'BLOODMOON_ACTION' ? '追擊' : '開槍', requiresTarget: true }, { id: 'pass', text: '不開槍', requiresTarget: false }];
+            if (ctx.phase === 'AWAKENED_HUNTER_ACTION') {
+                actionPanel.type = 'none';
+                actionPanel.prompt = `你已出局，請選擇發動巡獵的方向：`;
+                actionPanel.buttons = [
+                    { id: 'hunt_forward', text: '順向巡獵', requiresTarget: false }, 
+                    { id: 'hunt_backward', text: '逆向巡獵', requiresTarget: false }, 
+                    { id: 'pass', text: '不發動', requiresTarget: false }
+                ];
+            } else {
+                actionPanel.type = 'single_select'; actionPanel.selectableSeats = ctx.getAlivePlayers().map(p=>p.seatNumber);
+                actionPanel.prompt = ctx.phase === 'BLOODMOON_ACTION' ? `你已出局，選擇最後追擊目標：` : `你已死亡，選擇開槍目標：`;
+                actionPanel.buttons = [{ id: 'shoot', text: ctx.phase === 'BLOODMOON_ACTION' ? '追擊' : '開槍', requiresTarget: true }, { id: 'pass', text: '不開槍', requiresTarget: false }];
+            }
         } else {
             actionPanel.prompt = "系統結算中，請等待...";
         }
@@ -1134,13 +1148,14 @@ function getPhaseMessageForPlayer(phase, ctx) {
         'SHERIFF_TRANSFER': "移交警徽中...", 'DAY_DISCUSSION': ctx ? (ctx.dayDiscussionPrompt || "白天發言階段。") : "白天發言階段。",
         'DAY_VOTING': "放逐投票...", 'DAY_PK_SPEECH': "放逐 PK 發言...", 'DAY_PK_VOTING': "放逐 PK 投票...", 
         'VOTE_RESULT_DISPLAY': "展示投票結果...", 'POST_VOTE_SKILL': "等待投票後技能發動...", 'PRINCE_SPEECH': ctx ? (ctx.dayDiscussionPrompt || "定序王子發言中...") : "定序王子發言中...", 'LAST_WORDS': "遺言發表。", 'DAY_SKILL_LAST_WORDS': "遺言發表。", 'HUNTER_ACTION': "系統結算中...", 
-        'WOLFKING_ACTION': "系統結算中...", 'GAME_OVER': engineContext ? engineContext.systemLog : "遊戲結束。"
+        'HUNTER_ACTION': "系統結算中...", 'AWAKENED_HUNTER_ACTION': "系統結算中...", 'WOLFKING_ACTION': "系統結算中...",
+        'GAME_OVER': engineContext ? engineContext.systemLog : "遊戲結束。"
     };
     return dict[phase] || "等待中...";
 }
 
 function getDayBtnText(phase) {
-    const dict = { 'BEAR_ROAR_ANNOUNCE': "結束展示，進入下一階段", 'DAWN_DEATH_ANNOUNCE': "結束展示，進入下一階段", 'SHERIFF_CANDIDACY': "強制結束上警登記", 'SHERIFF_VOTING': "強制結算投票", 'SHERIFF_PK_VOTING': "強制結算投票", 'SHERIFF_SPEECH': "發起警長投票", 'SHERIFF_PK_SPEECH': "發起警長 PK 投票", 'DAY_DISCUSSION': "發起放逐投票", 'DAY_PK_SPEECH': "發起放逐 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入下一階段", 'POST_VOTE_SKILL': "結束技能等待", 'PRINCE_SPEECH': "發起放逐投票", 'LAST_WORDS': "結束遺言，進入下一階段", 'DAY_SKILL_LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍...", 'WOLFKING_ACTION': "等待狼王開槍...", 'BLOODMOON_ACTION': "等待血月使徒發動技能...", 'DAY_INTERRUPT_SKILL': "強制結束技能發動", 'DELAYED_DEATH_ANNOUNCE': "結束展示，進入放逐" };
+    const dict = { 'BEAR_ROAR_ANNOUNCE': "結束展示，進入下一階段", 'DAWN_DEATH_ANNOUNCE': "結束展示，進入下一階段", 'SHERIFF_CANDIDACY': "強制結束上警登記", 'SHERIFF_VOTING': "強制結算投票", 'SHERIFF_PK_VOTING': "強制結算投票", 'SHERIFF_SPEECH': "發起警長投票", 'SHERIFF_PK_SPEECH': "發起警長 PK 投票", 'DAY_DISCUSSION': "發起放逐投票", 'DAY_PK_SPEECH': "發起放逐 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入下一階段", 'POST_VOTE_SKILL': "結束技能等待", 'PRINCE_SPEECH': "發起放逐投票", 'LAST_WORDS': "結束遺言，進入下一階段", 'DAY_SKILL_LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍...", 'AWAKENED_HUNTER_ACTION': "等待覺醒獵人巡獵...", 'WOLFKING_ACTION': "等待狼王開槍...", 'BLOODMOON_ACTION': "等待血月使徒發動技能...", 'DAY_INTERRUPT_SKILL': "強制結束技能發動", 'DELAYED_DEATH_ANNOUNCE': "結束展示，進入放逐" };
     return dict[phase] || "投票/行動進行中...";
 }
 
