@@ -79,6 +79,16 @@ window.RoleRegistry = {
                 calc.guarded = sanitize(calc.guarded);
                 calc.lastDreamed = sanitize(calc.lastDreamed);
                 ctx.players.forEach(p => {
+                    if (p.role === '機械狼') {
+                        if (p.data.mwDreamedSeat && !calc.dreamed.includes(p.data.mwDreamedSeat)) {
+                            calc.dreamed.push(p.data.mwDreamedSeat);
+                        }
+                        if (p.data.mwLastDreamedSeat && !calc.lastDreamed.includes(p.data.mwLastDreamedSeat)) {
+                            calc.lastDreamed.push(p.data.mwLastDreamedSeat);
+                        }
+                    }
+                });
+                ctx.players.forEach(p => {
                     if (p.data.luckyGuardedSeat) {
                         calc.guarded.push(parseInt(p.data.luckyGuardedSeat));
                         p.data.luckyGuardedSeat = null; 
@@ -292,7 +302,26 @@ window.RoleRegistry = {
                     }
                 });
             }
-            
+            if (payload.phase === 'BEAR_ROAR_ANNOUNCE') {
+                const checkBearRoar = (bearSeat) => {
+                    const leftSeat = ctx.getNextAliveSeat(bearSeat, -1);
+                    const rightSeat = ctx.getNextAliveSeat(bearSeat, 1);
+                    const lP = ctx.getPlayer(leftSeat);
+                    const rP = ctx.getPlayer(rightSeat);
+                    // 轉化者在第一晚結算時仍視為好人，因此排除
+                    const isWolf = (p) => p && ctx.getDynamicFaction(p) === 'wolf' && !(p.data.isConverted && ctx.nightCount === 1);
+                    return isWolf(lP) || isWolf(rP);
+                };
+
+                const aliveBears = ctx.players.filter(p => !p.isDead && (p.role === '熊' || (p.role === '機械狼' && p.data.machineState === 1 && p.data.learnedRole === '熊')));
+                
+                if (aliveBears.length > 0) {
+                    const hasRoar = aliveBears.some(b => checkBearRoar(b.seatNumber));
+                    const roarStr = hasRoar ? "【熊有咆哮】" : "【熊沒有咆哮】";
+                    ctx.bearRoarResult = roarStr;
+                    ctx.systemLog = roarStr;
+                }
+            }           
             ctx.players.forEach(p => {
                 const plugin = RoleRegistry.plugins[p.role];
                 if (plugin && typeof plugin.onPhaseChanged === 'function') plugin.onPhaseChanged(ctx, p, payload.phase);
@@ -1233,11 +1262,28 @@ RoleRegistry.register("機械狼", {
     canSeeWolves: false, 
     seenAsWolf: false,
     nightPhase: ["first_half", "midnight", "second_half"],
+    hasPostVoteSkill: true, 
+    onPhaseChanged: (ctx, player, phase) => {
+        // [新增] 機械白貓續命大限結算
+        if (phase === 'VOTE_RESULT_DISPLAY' && player.data.isUntargetable && !player.isDead) {
+            if (ctx.nightCount >= player.data.expireNight) {
+                player.data.isUntargetable = false;
+                player.kill('skill_expired', ctx);
+                ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：機械狼 ${player.seatNumber} 號大限已至，倒牌出局)`;
+                if (typeof Engine !== 'undefined' && Engine.EventBus) Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+            }
+        }
+    },
     onNightStart: (ctx, player) => {
         player.data.learnedThisNight = false;
         player.data.mwGuardedSeat = null;
+        if (player.data.mwDreamedSeat) {
+            player.data.mwLastDreamedSeat = player.data.mwDreamedSeat;
+            player.data.mwDreamedSeat = null;
+        }
     },
     onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        // 機械守衛結算
         if (player.data.mwGuardedSeat) {
             const gSeat = ctx.getActualTarget ? ctx.getActualTarget(player.data.mwGuardedSeat) : player.data.mwGuardedSeat;
             if (calc.killed.includes(gSeat)) {
@@ -1250,8 +1296,26 @@ RoleRegistry.register("機械狼", {
             if (calc.poisoned.includes(gSeat)) {
                 if (deathMap[gSeat] === 'poisoned') delete deathMap[gSeat];
             }
-            
             player.data.mwGuardedSeat = null;
+        }
+        // [新增] 機械河豚結算
+        if (player.data.machineState === 1 && player.data.learnedRole === '河豚') {
+            if (deathMap[player.seatNumber] === 'killed' && ctx.nightTags?.clawKilled !== player.seatNumber) {
+                player.isRevealed = true;
+                ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：機械狼遭到狼人擊殺，發動河豚技能翻牌自證)`;
+            }
+        }
+        // [新增] 機械攝夢人：夢遊者免疫與殉情
+        if (player.data.machineState === 1 && player.data.learnedRole === '攝夢人') {
+            if (player.data.mwDreamedSeat) {
+                const mdSeat = player.data.mwDreamedSeat;
+                if (['killed', 'poisoned', 'skill_backfire', 'bloodlusted'].includes(deathMap[mdSeat])) {
+                    delete deathMap[mdSeat];
+                }
+            }
+            if (deathMap[player.seatNumber] && player.data.mwDreamedSeat) {
+                deathMap[player.data.mwDreamedSeat] = 'doubledreamed';
+            }
         }
     },
     isAttacker: false,
@@ -1262,15 +1326,15 @@ RoleRegistry.register("機械狼", {
 
         if (step === 'first_half') return state === 0; 
         if (step === 'midnight') {
-            const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
+            const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
             return otherWolves.length === 0;
         }
         if (step === 'second_half') {
             if (state === 1 && !p.data.learnedThisNight) {
                 const role = p.data.learnedRole;
-                if (['魔鏡少女', '預言家', '燈影預言家', '女巫', '守衛'].includes(role)) return true;
+                if (['魔鏡少女', '預言家', '燈影預言家', '女巫', '守衛', '攝夢人'].includes(role)) return true;
                 if (role === '狼人') {
-                    const otherWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
+                    const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
                     return otherWolves.length === 0; 
                 }
             }
@@ -1287,6 +1351,7 @@ RoleRegistry.register("機械狼", {
         if (['魔鏡少女', '預言家', '燈影預言家'].includes(role)) return `【技能: ${role}】選擇查驗目標`;
         if (role === '女巫') return "【技能: 毒藥】選擇毒殺目標";
         if (role === '守衛') return "【技能: 守護】選擇強化守護目標";
+        if (role === '攝夢人') return "【技能: 攝夢人】選擇攝夢目標 (連續夢遊將致死)";
         if (role === '狼人') return "【技能: 雙刀】選擇額外襲擊目標";
         return "等待中...";
     },
@@ -1303,6 +1368,7 @@ RoleRegistry.register("機械狼", {
         if (['魔鏡少女', '預言家', '燈影預言家'].includes(role)) return [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
         if (role === '女巫') return [{ id: 'poison', text: '毒殺', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
         if (role === '守衛') return [{ id: 'guard', text: '強化守護', requiresTarget: true }, { id: 'pass', text: '空守', requiresTarget: false }];
+        if (role === '攝夢人') return [{ id: 'dream', text: '攝夢', requiresTarget: true }]; 
         if (role === '狼人') return [{ id: 'kill', text: '額外襲擊', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
         return [];
     },
@@ -1371,6 +1437,11 @@ RoleRegistry.register("機械狼", {
                 p.data.mwGuardedSeat = parseInt(target); 
                 return `【守護: ${target}號】`;
             }
+
+            if (role === '攝夢人' && act.actionId === 'dream') {
+                p.data.mwDreamedSeat = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'dream', p.seatNumber) : parseInt(target);
+                return `【攝夢: ${target}號】`;
+            }
             
             if (act.actionId === 'kill') {
                 if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
@@ -1386,7 +1457,56 @@ RoleRegistry.register("機械狼", {
             ctx.pendingWolfKing = player.seatNumber;
             player.data.machineState = 2;
         }
+
+        // [新增] 機械白貓結算
+        if (player.data.machineState === 1 && player.data.learnedRole === '白貓' && !player.data.hasTriggeredSurvive && reason !== 'skill_expired') {
+            player.isDead = false;
+            player.isRevealed = true;
+            player.data.hasTriggeredSurvive = true;
+            player.data.isUntargetable = true;
+            const isAfterVote = ['DAY_VOTING', 'DAY_PK_VOTING', 'VOTE_RESULT_DISPLAY', 'LAST_WORDS', 'HUNTER_ACTION', 'WOLFKING_ACTION', 'BLOODMOON_ACTION'].includes(ctx.phase);
+            player.data.expireNight = ctx.nightCount + (isAfterVote ? 1 : 0);
+            ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：機械狼 ${player.seatNumber} 號受到致命傷，發動白貓技能翻牌並續命至下一次放逐投票後)`;
+            player.data.machineState = 2; 
+            return true;
+        }
     },
+    daySkill: {
+        id: 'mw_pufferfish_blow', 
+        buttonText: '翻牌發動反傷', 
+        requiresTarget: false,
+        allowDead: true,
+        allowedPhases: ['POST_VOTE_SKILL'],
+        getSelectableSeats: () => [],
+        resolve: (ctx, player) => {
+            if (player.data.machineState !== 1 || player.data.learnedRole !== '河豚') return;
+            
+            player.isRevealed = true;
+            player.data.machineState = 2; 
+            const targets = ctx.dailyVotes ? (ctx.dailyVotes[player.seatNumber] || []) : [];
+            
+            if (targets.length === 0) {
+                ctx.systemLog = `${player.seatNumber} 號玩家是機械狼，翻牌發動河豚爆炸。\n但當天沒有任何人投票給他，無事發生。`;
+                if (typeof Engine !== 'undefined' && Engine.EventBus) Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
+                return;
+            }
+            
+            let killedSeats = [];
+            targets.forEach(seat => {
+                const t = ctx.getPlayer(seat);
+                if (t && !t.isDead) {
+                    t.kill('shot', ctx); 
+                    killedSeats.push(seat);
+                }
+            });
+            
+            ctx.systemLog = `${player.seatNumber} 號玩家是機械狼，翻牌發動河豚爆炸\n炸死了曾投票給他的：${killedSeats.join('、')} 號玩家。`;
+            if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
+                Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+            }
+        }
+    }
 });
 
 RoleRegistry.register("奇蹟商人", {
