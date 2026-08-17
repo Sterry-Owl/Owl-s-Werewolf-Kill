@@ -1014,7 +1014,7 @@ RoleRegistry.register("狼美人", {
         }
     },
     onPlayerDied: (ctx, player, reason) => {
-        if (reason !== 'dueled' && ctx.charmedSeat) {
+        if (reason !== 'dueled' && reason !== 'silenthunted' && ctx.charmedSeat) {
             const target = ctx.getPlayer(ctx.charmedSeat);
             if (target && !target.isDead) target.kill('charmed', ctx);
         }
@@ -3458,10 +3458,30 @@ RoleRegistry.register("覺醒愚者", {
             
             return {
                 prevented: true,
-                transferSheriff: false, // 因為並未出局，不轉交警徽
+                transferSheriff: false,
                 logMessage: `投票結果出爐，${player.seatNumber} 號玩家為覺醒愚者！\n翻牌自證免除放逐並失去秘密之身，但仍保留發言與投票權。`
             };
         }
         return { prevented: false };
+    }
+});
+RoleRegistry.register("覺醒獵人", {
+    canSelfExplode: false,
+    onPlayerDied: (ctx, player, reason) => {
+        if (reason !== 'martyr') {
+            if (reason !== 'voted') {
+                const isFeared = ctx.fearedSeat === player.seatNumber;
+                const isDevoured = ctx.devouredSeat === player.seatNumber;
+                const isDebuffed = ctx.nightTags?.scholarDebuffTarget === player.seatNumber;
+                if (isFeared || isDevoured || isDebuffed) {
+                    if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                        Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】覺醒獵人 ${player.seatNumber} 號死亡，因恐懼/吞噬/削弱無法發動巡獵。`);
+                    }
+                    return; 
+                }
+            }
+            ctx.pendingAwakenedHunter = player.seatNumber;
+            ctx.pendingAwakenedHunterNightDeath = ['DAWN_DEATH_ANNOUNCE', 'DELAYED_DEATH_ANNOUNCE'].includes(ctx.phase);
+        }
     }
 });
