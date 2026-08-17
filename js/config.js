@@ -7,7 +7,6 @@ const GAME_PREFIX = "TWG_WOLF_V4_";
 const PEER_CONFIG = { 
     config: { 
         'iceServers': [
-            // 1. STUN 伺服器群組：擴充高可用性公共節點
             { 
                 urls: [
                     'stun:stun.l.google.com:19302',
@@ -43,7 +42,7 @@ const PEER_CONFIG = {
         ] 
     } 
 };
-// 狀態機列舉 (State Machine Enums)
+
 const GAME_PHASE = {
     LOBBY: 'LOBBY',
     NIGHT_TRANSITION: 'NIGHT_TRANSITION',
@@ -118,7 +117,7 @@ const TEMPLATES_TEST = [
     { id: "test-26_6", name: "野孩子復仇者(測試)", category: 'test', playerCount: 7, deck: ["預言家", "女巫", "狼人", "狼人", "暗戀者", "復仇者", "野孩子"] },
     { id: "test-27_6", name: "盜賊邱比特(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "邱比特", "平民", "平民", "盜賊"] },
     { id: "test-28_6", name: "秘密之夜(測試)", category: 'test', playerCount: 6, deck: ["獵魔人", "覺醒愚者", "夜之貴族", "狼人", "平民", "平民"] },
-    { id: "test-29_6", name: "暗夜星辰(測試)", category: 'test', playerCount: 6, deck: ["覺醒獵人", "守衛", "狼美人", "狼人", "平民", "平民"] },
+    { id: "test-29_6", name: "暗夜星辰(測試)", category: 'test', playerCount: 6, deck: ["覺醒獵人", "守衛", "覺醒狼美人", "狼人", "平民", "平民"] },
 ];
 
 const TEMPLATES_FUN = [
@@ -162,6 +161,7 @@ const TEMPLATES_QUICK = [
     { id: "flute_10", name: "10人 吹笛不死鳥", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "不死鳥", "狼鴉之爪", "狼人", "狼人", "平民", "平民", "平民", "吹笛者"] },
     { id: "timekeeper_10", name: "10人 時波之亂", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "白晝學者", "寂夜導師", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "secretnight_10", name: "10人 秘密之夜", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "覺醒愚者", "夜之貴族", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "starindark_10", name: "10人 暗夜星辰", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "覺醒獵人", "覺醒狼美人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "standard_11", name: "11人 標準局", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "wk_grd_11", name: "11人 狼王守衛", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "守衛", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "wk_mag_11", name: "11人 狼王魔術師", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "魔術師", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },    
@@ -181,6 +181,7 @@ const TEMPLATES_QUICK = [
     { id: "flute_11", name: "11人 吹笛不死鳥", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "不死鳥", "狼鴉之爪", "狼人", "狼人", "狼人", "平民", "平民", "吹笛者"] },
     { id: "timekeeper_11", name: "11人 時波之亂", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "守衛", "白晝學者", "寂夜導師", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "secretnight_11", name: "11人 秘密之夜", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵魔人", "覺醒愚者", "夜之貴族", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
+    { id: "starindark_11", name: "11人 暗夜星辰", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "覺醒獵人", "守衛", "覺醒狼美人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
 ];
 
 const TEMPLATES_STANDARD = [
@@ -209,6 +210,7 @@ const TEMPLATES_STANDARD = [
     { id: "timekeeper_12", name: "12人 時波之亂", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "白晝學者", "寂夜導師", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "thiefandlove_12", name: "12人 盜賊邱比特", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民", "平民", "邱比特", "盜賊"] },
     { id: "secretnight_12", name: "12人 秘密之夜", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "覺醒愚者", "夜之貴族", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "starindark_12", name: "12人 暗夜星辰", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "覺醒獵人", "守衛", "覺醒狼美人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
 ];
 
 const BOARD_TEMPLATES = [
