@@ -3481,7 +3481,15 @@ RoleRegistry.register("覺醒獵人", {
                 }
             }
             ctx.pendingAwakenedHunter = player.seatNumber;
-            ctx.pendingAwakenedHunterNightDeath = ['DAWN_DEATH_ANNOUNCE', 'DELAYED_DEATH_ANNOUNCE'].includes(ctx.phase);
+            const dayReasons = ['voted', 'shot', 'dueled', 'explode', 'skill_expired'];
+            let isNightDeath = !dayReasons.includes(reason);
+            if (reason === 'charmed') {
+                const dayActionPhases = ['DAY_VOTING', 'DAY_PK_VOTING', 'DAY_DISCUSSION', 'DAY_PK_SPEECH', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'PRINCE_SPEECH', 'POST_VOTE_SKILL', 'HUNTER_ACTION', 'WOLFKING_ACTION', 'BLOODMOON_ACTION'];
+                if (dayActionPhases.includes(ctx.phase)) {
+                    isNightDeath = false;
+                }
+            }
+            ctx.pendingAwakenedHunterNightDeath = isNightDeath;
         }
     }
 });
