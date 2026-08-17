@@ -264,4 +264,3 @@ const ROLE_DICTIONARY = {
     "盜賊": { faction: "third_party", type: "special", nightPhase: "thief_action", actionType: "dynamic_buttons", prompt: "請選擇你要替換的身分\n(若底牌有狼人則必須選狼)", description:"獨立陣營；首夜最先行動，可以從多出來的兩張身分牌中挑選一張替換。若底牌包含狼人陣營，則盜賊必須選擇狼人陣營。" },
     "夜之貴族": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "dynamic", prompt: "夜之貴族請行動", description:"狼人陣營；不可自爆、不可自刀。從第二晚起，每晚後半夜可以指定一名玩家成為夜僕。成為夜僕的玩家會在下個夜晚結束後死亡。場上存在夜僕時不可指定新夜僕。夜僕被獵魔人狩獵時不會死亡，獵魔人也不會死亡。" },
 };
-};
