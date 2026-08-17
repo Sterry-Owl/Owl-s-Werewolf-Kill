@@ -3481,7 +3481,7 @@ RoleRegistry.register("覺醒獵人", {
                 }
             }
             ctx.pendingAwakenedHunter = player.seatNumber;
-            const dayReasons = ['voted', 'shot', 'dueled', 'explode', 'skill_expired'];
+            const dayReasons = ['voted', 'shot', 'dueled', 'skill_expired'];
             let isNightDeath = !dayReasons.includes(reason);
             if (reason === 'charmed') {
                 const dayActionPhases = ['DAY_VOTING', 'DAY_PK_VOTING', 'DAY_DISCUSSION', 'DAY_PK_SPEECH', 'SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'PRINCE_SPEECH', 'POST_VOTE_SKILL', 'HUNTER_ACTION', 'WOLFKING_ACTION', 'BLOODMOON_ACTION'];
