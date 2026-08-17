@@ -127,7 +127,7 @@ window.RoleRegistry = {
                     }
                 });
                 if (ctx.blessedSeat) {
-                    if (['killed', 'poisoned', 'doubledreamed'].includes(deathMap[ctx.blessedSeat])) {
+                    if (['killed', 'poisoned', 'doubledreamed', 'bloodlusted', 'skill_backfire'].includes(deathMap[ctx.blessedSeat])) {
                         delete deathMap[ctx.blessedSeat];
                         if (typeof Engine !== 'undefined' && Engine.EventBus) Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】流光伯爵保佑生效，免除了 ${ctx.blessedSeat} 號的死亡`);
                     }
@@ -1032,7 +1032,7 @@ RoleRegistry.register("攝夢人", {
         if (player.isDead) return;
         if (ctx.dreamedSeat) {
             const dSeat = ctx.dreamedSeat;
-            if (['killed', 'poisoned', 'skill_backfire'].includes(deathMap[dSeat])) {
+            if (['killed', 'poisoned', 'skill_backfire', 'bloodlusted'].includes(deathMap[dSeat])) {
                 delete deathMap[dSeat];   
             }
         }
@@ -1677,6 +1677,11 @@ RoleRegistry.register("獵魔人", {
 
             const target = act.targets[0];
             const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'hunt', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : target);
+            if (ctx.nightServantSeat === actualTarget) {
+                logs.push(`【${act.player.seatNumber}號 狩獵: ${target}號 (夜僕，免疫狩獵且不反噬)】`);
+                return;
+            }
+
             const tPlayer = ctx.getPlayer(actualTarget);
             const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
             const isWolf = ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
@@ -3270,5 +3275,87 @@ RoleRegistry.register("盜賊", {
         }
 
         return `【替換身分: ${newRole}】`;
+    }
+});
+RoleRegistry.register("夜之貴族", {
+    canSelfExplode: false, 
+    canSeeWolves: true,
+    seenAsWolf: true,
+    immuneToWolfBite: true, 
+    hasWolfChatAccess: true,
+    nightPhase: ["midnight", "second_half"],
+    actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
+    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
+    
+    hasAction: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return true;
+        if (step === 'second_half') return ctx.nightCount >= 2 && !ctx.nightServantSeat;
+        return false;
+    },
+    
+    getPrompt: (ctx) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') {
+            if (ctx.nightCount === 1 && ctx.rules.firstNightKill === 'disabled') return "【規則：首夜無刀】\n今晚無法發起襲擊，可使用語音或右下角通訊頻道交流。";
+            return "選擇今晚的襲擊目標";
+        }
+        return "選擇一名玩家成為夜僕\n(該玩家將在下個夜晚結束後死亡)";
+    },
+    
+    getSelectableSeats: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
+        return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
+    },
+    
+    getButtons: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return RoleRegistry.plugins["狼人"].getButtons(ctx, mySeat);
+        return [{ id: 'bloodlust', text: '指定夜僕', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
+    },
+    
+    resolveNightAction: (ctx, actions) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
+        
+        const act = actions[0];
+        if (!act || act.actionId === 'pass') return "【跳過行動】";
+        
+        const target = act.targets[0];
+        const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+        ctx.nightServantSeat = actualTarget;
+        ctx.nightServantExpireNight = ctx.nightCount + 1;
+        act.player.data.customSideTags = act.player.data.customSideTags || {};
+        act.player.data.customSideTags[actualTarget] = "夜僕";
+        
+        return `【指定夜僕: ${target}號】`;
+    },
+    
+    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        if (ctx.nightServantSeat && ctx.nightCount === ctx.nightServantExpireNight) {
+            const servant = ctx.getPlayer(ctx.nightServantSeat);
+            if (servant && !servant.isDead) {
+                deathMap[servant.seatNumber] = 'bloodlusted';
+
+                if (!ctx.nightTags) ctx.nightTags = {};
+                if (!ctx.nightTags.servantLogWritten) {
+                    if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                        Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】夜僕 ${servant.seatNumber} 號死亡倒數結束，因嗜血出局`);
+                    }
+                    ctx.nightTags.servantLogWritten = true;
+                }
+            }
+        }
+    },
+    
+    onOtherPlayerDied: (ctx, observer, deadPlayer, reason) => {
+        if (ctx.nightServantSeat === deadPlayer.seatNumber) {
+            ctx.nightServantSeat = null;
+            ctx.nightServantExpireNight = null;
+            if (observer.data.customSideTags && observer.data.customSideTags[deadPlayer.seatNumber] === "夜僕") {
+                delete observer.data.customSideTags[deadPlayer.seatNumber];
+            }
+        }
     }
 });
