@@ -1865,7 +1865,25 @@ RoleRegistry.register("河豚", {
     onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
         if (deathMap[player.seatNumber] === 'killed' && ctx.nightTags?.clawKilled !== player.seatNumber) {
             player.isRevealed = true;
-            ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：河豚遭到狼人擊殺，翻牌自證)`;
+            let logMsg = `\n(系統紀錄：河豚遭到狼人擊殺，翻牌自證`;
+            let hasNullified = false;
+
+            if (ctx.charmedSeat) {
+                ctx.charmedSeat = null;
+                hasNullified = true;
+            }
+            if (ctx.dirgedSeat) {
+                ctx.players.forEach(p => {
+                    if (p.data.customSideTags && p.data.customSideTags[ctx.dirgedSeat] === "輓歌") {
+                        delete p.data.customSideTags[ctx.dirgedSeat];
+                    }
+                });
+                ctx.dirgedSeat = null;
+                hasNullified = true;
+            }
+            
+            logMsg += hasNullified ? `，並使狼隊的魅惑與輓歌失效)` : `)`;
+            ctx.systemLog = (ctx.systemLog || '') + logMsg;
         }
     },
     daySkill: {
@@ -1881,7 +1899,7 @@ RoleRegistry.register("河豚", {
             
             if (targets.length === 0) {
                 ctx.systemLog = `${player.seatNumber} 號玩家是河豚，翻牌發動河豚爆炸。\n但當天沒有任何人投票給他，無事發生。`;
-                Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
+                if (typeof Engine !== 'undefined' && Engine.EventBus) Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
                 return;
             }
             
@@ -1895,8 +1913,10 @@ RoleRegistry.register("河豚", {
             });
             
             ctx.systemLog = `${player.seatNumber} 號玩家是河豚，翻牌發動河豚爆炸\n炸死了曾投票給他的：${killedSeats.join('、')} 號玩家。`;
-            Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
-            Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+            if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
+                Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
+            }
         }
     }
 });
