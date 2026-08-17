@@ -1168,10 +1168,36 @@ RoleRegistry.register("暗戀者", {
         if (target) {
             ctx.crushTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
             ctx.admirerSeat = mySeat; 
+            
+            const admirerPlayer = ctx.getPlayer(mySeat);
+            if (admirerPlayer) {
+                admirerPlayer.data.absoluteVictoryTarget = ctx.crushTarget;
+            }
+            
             return `【暗戀: ${target}號】`;
         }
         
         return "【行動失敗】";
+    },
+
+    getAbsoluteVictoryFaction: (ctx, player) => {
+        if (player.data.absoluteVictoryTarget) {
+            const crushPlayer = ctx.getPlayer(player.data.absoluteVictoryTarget);
+            if (crushPlayer) {
+                if (crushPlayer.role === '邱比特' && ctx.lovers && ctx.lovers.length === 2) {
+                    const l1 = ctx.getPlayer(ctx.lovers[0]);
+                    const l2 = ctx.getPlayer(ctx.lovers[1]);
+                    if (l1 && l2) {
+                        const f1 = ctx.getDynamicFaction(l1);
+                        const f2 = ctx.getDynamicFaction(l2);
+                        if (f1 === f2) return f1;
+                        return 'third_party';
+                    }
+                }
+                return ctx.getDynamicFaction(crushPlayer);
+            }
+        }
+        return 'good';
     }
 });
 
