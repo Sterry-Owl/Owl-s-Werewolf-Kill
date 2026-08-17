@@ -61,6 +61,7 @@ const GAME_PHASE = {
     VOTE_RESULT_DISPLAY: 'VOTE_RESULT_DISPLAY', 
     LAST_WORDS: 'LAST_WORDS',                   
     HUNTER_ACTION: 'HUNTER_ACTION',
+    AWAKENED_HUNTER_ACTION: 'AWAKENED_HUNTER_ACTION',
     WOLFKING_ACTION: 'WOLFKING_ACTION',
     BLOODMOON_ACTION: 'BLOODMOON_ACTION',
     GAME_OVER: 'GAME_OVER'
@@ -267,4 +268,5 @@ const ROLE_DICTIONARY = {
     "盜賊": { faction: "third_party", type: "special", nightPhase: "thief_action", actionType: "dynamic_buttons", prompt: "請選擇你要替換的身分\n(若底牌有狼人則必須選狼)", description:"獨立陣營；首夜最先行動，可以從多出來的兩張身分牌中挑選一張替換。若底牌包含狼人陣營，則盜賊必須選擇狼人陣營。" },
     "夜之貴族": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "first_half"], actionType: "dynamic", prompt: "夜之貴族請行動", description:"狼人陣營；不可自爆、不可自刀。從第二晚起，每晚後半夜可以指定一名玩家成為夜僕。成為夜僕的玩家會在下個夜晚結束後死亡。場上存在夜僕時不可指定新夜僕。夜僕被獵魔人狩獵時不會死亡，獵魔人也不會死亡。" },
     "覺醒愚者": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚守護的目標\n(點擊左右列頭貼以發動技能)", description:"神職；擁有「秘密之身」。每晚可守護一名玩家免於夜間傷害。若該玩家未受傷害，守護效果轉移至自己。成功擋下一次傷害後失去秘密之身。被放逐時翻牌免除出局並失去秘密之身，但仍保留發言與投票權。" },
+    "覺醒獵人": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "", description:"神職；出局後可選擇順向或逆向發動巡獵，使離自己最近的狼人出局。若在夜間死亡，被巡獵出局的狼人將無法發動技能。" },
 };
