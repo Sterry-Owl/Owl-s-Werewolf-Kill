@@ -4,7 +4,7 @@
 
 const GAME_PREFIX = "TWG_WOLF_V4_";
 
-const PEER_CONFIG = { 
+const PEER_CONFIG = {
     config: { 
         'iceServers': [
             { 
