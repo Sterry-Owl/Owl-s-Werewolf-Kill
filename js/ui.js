@@ -942,3 +942,49 @@ UI.openWolfChatModal = function(state) {
     
     setTimeout(() => logsContainer.scrollTop = logsContainer.scrollHeight, 10);
 };
+UI.initRulePagination = function() {
+    const btnPrev = document.getElementById('btn-prev-rules-page');
+    const btnNext = document.getElementById('btn-next-rules-page');
+    const page1 = document.getElementById('rules-page-1');
+    const page2 = document.getElementById('rules-page-2');
+    const indicator = document.getElementById('rules-page-indicator');
+    const title = document.getElementById('rule-section-title');
+
+    if (!btnPrev || !btnNext || !page1 || !page2) return;
+
+    let currentPage = 1;
+    const totalPages = 2;
+
+    const updateView = () => {
+        if (currentPage === 1) {
+            page1.style.display = ''; // 恢復 CSS Grid 預設顯示
+            page2.style.display = 'none';
+            title.textContent = '遊戲規則設定';
+            btnPrev.style.visibility = 'hidden';
+            btnNext.style.visibility = 'visible';
+        } else {
+            page1.style.display = 'none';
+            page2.style.display = '';
+            title.textContent = '擴充規則設定';
+            btnPrev.style.visibility = 'visible';
+            btnNext.style.visibility = 'hidden';
+        }
+        indicator.textContent = `${currentPage} / ${totalPages}`;
+    };
+
+    btnPrev.addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            updateView();
+        }
+    });
+
+    btnNext.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+            currentPage++;
+            updateView();
+        }
+    });
+};
+
+document.addEventListener('DOMContentLoaded', UI.initRulePagination);
