@@ -209,7 +209,7 @@
                             </div>
 
                             <div id="rules-page-2" class="rules-grid" style="display: none;">
-                                <div class="rule-item" style="grid-column: span 2;">
+                                <div class="rule-item">
                                     <label>卡面樣式</label>
                                     <div class="toggle-group" data-target="rule-square-card">
                                         <div class="toggle-option active" data-value="off" style="--active-bg: #6b8496; --active-color: #fff;">經典</div>
@@ -217,9 +217,8 @@
                                     </div><input type="hidden" id="rule-square-card" value="off">
                                 </div>
                             </div>
-
                             <div id="rules-pagination-controls" style="display:flex; height:18px; justify-content:center; gap:12px; margin-top:12px; margin-bottom:12px; align-items:center;">
-                                <button id="btn-prev-rules-page" class="btn-secondary" style="padding:0 12px; font-size:12px; line-height:16px; visibility:hidden;">◂</button>
+                                <button id="btn-prev-rules-page" class="btn-secondary" style="padding:0 12px; font-size:12px; line-height:16px;" disabled>◂</button>
                                 <span id="rules-page-indicator" style="font-size:10px; color:#aaa; font-weight:bold;">1 / 2</span>
                                 <button id="btn-next-rules-page" class="btn-secondary" style="padding:0 12px; font-size:12px; line-height:16px;">▸</button>
                             </div>
