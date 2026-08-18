@@ -798,6 +798,8 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .rules-grid { 
     display: grid; grid-template-columns: repeat(3, 1fr); 
     gap: 10px 6px; 
+    min-height: 188px; /* 鎖定網格高度，防止分頁切換時畫面跳動 */
+    align-content: start; /* 確保內容不足時向上對齊 */
 }
 .rule-item { 
     display: flex; flex-direction: column; align-items: center; 
@@ -902,6 +904,6 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     width: fit-content;      /* 依據最長的那一行自動撐開寬度 */
 }
 .rules-grid .toggle-option {
-    padding-top: 8px;
-    padding-bottom: 8px;
+    padding-top: 7px;
+    padding-bottom: 7px;
 }
