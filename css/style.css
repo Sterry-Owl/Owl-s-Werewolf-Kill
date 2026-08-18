@@ -901,3 +901,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     align-items: flex-start; /* 文字內容絕對靠左對齊 */
     width: fit-content;      /* 依據最長的那一行自動撐開寬度 */
 }
+.rules-grid .toggle-option {
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
