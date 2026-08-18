@@ -960,14 +960,14 @@ UI.initRulePagination = function() {
             page1.style.display = ''; // 恢復 CSS Grid 預設顯示
             page2.style.display = 'none';
             title.textContent = '遊戲規則設定';
-            btnPrev.style.visibility = 'hidden';
-            btnNext.style.visibility = 'visible';
+            btnPrev.disabled = true;
+            btnNext.disabled = false;
         } else {
             page1.style.display = 'none';
             page2.style.display = '';
             title.textContent = '擴充規則設定';
-            btnPrev.style.visibility = 'visible';
-            btnNext.style.visibility = 'hidden';
+            btnPrev.disabled = false;
+            btnNext.disabled = true;
         }
         indicator.textContent = `${currentPage} / ${totalPages}`;
     };
