@@ -798,7 +798,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .rules-grid { 
     display: grid; grid-template-columns: repeat(3, 1fr); 
     gap: 10px 6px; 
-    min-height: 200px; /* 鎖定網格高度，防止分頁切換時畫面跳動 */
+    min-height: 212px; /* 鎖定網格高度，防止分頁切換時畫面跳動 */
     align-content: start; /* 確保內容不足時向上對齊 */
 }
 .rule-item { 
