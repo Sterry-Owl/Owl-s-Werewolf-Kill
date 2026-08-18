@@ -27,18 +27,6 @@ const PEER_CONFIG = {
                 username: 'a89975f53fd97193003482df',
                 credential: 'ShgDnEoNfkoSF2fh'
             },
-            // 3. TURN 備用伺服器 (擴充模版：當首選節點異常時自動接管)
-            // 註：若無備用商用節點，可保持註解狀態。底層將依序嘗試連線。
-            /*
-            {
-                urls: [
-                    'turn:your-backup-turn-server.com:3478',
-                    'turns:your-backup-turn-server.com:5349?transport=tcp'
-                ],
-                username: 'your_backup_username',
-                credential: 'your_backup_credential'
-            }
-            */
         ] 
     } 
 };
