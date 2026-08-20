@@ -203,7 +203,8 @@ document.addEventListener('DOMContentLoaded', () => {
             sheriffExplodeRule: document.getElementById('rule-sheriff-explode').value,
             squareCard: document.getElementById('rule-square-card').value,
             firstNightKill: document.getElementById('rule-first-night-kill').value,
-            speechTime: parseInt(document.getElementById('rule-speech-time').value, 10)
+            speechTime: parseInt(document.getElementById('rule-speech-time').value, 10),
+            hiddenWolfType: document.getElementById('rule-hidden-wolf-type')?.value || 'strong' // [擴充] 寫入隱狼類型
         };
         
         // 發牌後自動隱藏控制視窗，讓房主專心看卡牌動畫
