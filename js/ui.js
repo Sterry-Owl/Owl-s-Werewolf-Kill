@@ -261,14 +261,16 @@ const UI = {
                         deck.forEach(role => {
                             let color = '#ccc';
                             let targetGroup = others;
+                            let description = '';
                             const def = typeof ROLE_DICTIONARY !== 'undefined' ? ROLE_DICTIONARY[role] : null;
                             if (def) {
+                                description = def.description || '';
                                 if (def.faction === 'wolf') { color = '#9e646a'; targetGroup = wolves; }
                                 else if (def.type === 'god') { color = '#c4a75c'; targetGroup = gods; }
                                 else if (def.type === 'villager') { color = '#6a8c6e'; targetGroup = others; }
                                 else if (def.faction === 'third_party') { color = '#8a7096'; targetGroup = others; }
                             }
-                            targetGroup.push(`<span style="color:${color}; font-weight:bold;">${role}</span>`);
+                            targetGroup.push(`<span class="role-tooltip-trigger" data-role-name="${role}" data-role-desc="${description}" style="color:${color}; font-weight:bold;">${role}</span>`);
                         });
                         const renderLine = (arr) => arr.length > 0 ? `<div style="white-space:nowrap; margin-bottom:1px;">${arr.join('<span style="color:#555; margin:0 2px;">、</span>')}</div>` : '';
                         deckHtml = `
@@ -988,3 +990,58 @@ UI.initRulePagination = function() {
 };
 
 document.addEventListener('DOMContentLoaded', UI.initRulePagination);
+UI.initRoleTooltip = function() {
+    const tooltip = document.getElementById('global-role-tooltip');
+    if (!tooltip) return;
+
+    const showTooltip = (target) => {
+        const name = target.getAttribute('data-role-name');
+        const desc = target.getAttribute('data-role-desc');
+        if (!name || !desc) return;
+
+        tooltip.innerHTML = `<div style="color:var(--wolf-yellow); font-weight:bold; margin-bottom:4px; border-bottom:1px solid #444; padding-bottom:2px;">${name}</div><div>${desc}</div>`;
+        tooltip.style.display = 'block';
+
+        // 絕對定位與邊界防溢出運算
+        const rect = target.getBoundingClientRect();
+        let top = rect.bottom + 8;
+        let left = rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2);
+
+        if (left < 10) left = 10;
+        if (left + tooltip.offsetWidth > window.innerWidth - 10) {
+            left = window.innerWidth - tooltip.offsetWidth - 10;
+        }
+        if (top + tooltip.offsetHeight > window.innerHeight - 10) {
+            top = rect.top - tooltip.offsetHeight - 8; // 空間不足時向上顯示
+        }
+
+        tooltip.style.top = `${top}px`;
+        tooltip.style.left = `${left}px`;
+    };
+
+    const hideTooltip = () => {
+        tooltip.style.display = 'none';
+    };
+
+    // 電腦端：滑鼠移入移出
+    document.addEventListener('mouseover', (e) => {
+        const target = e.target.closest('.role-tooltip-trigger');
+        if (target) showTooltip(target);
+    });
+    document.addEventListener('mouseout', (e) => {
+        const target = e.target.closest('.role-tooltip-trigger');
+        if (target) hideTooltip();
+    });
+
+    // 行動裝置：觸控點擊與全域關閉
+    document.addEventListener('touchstart', (e) => {
+        const target = e.target.closest('.role-tooltip-trigger');
+        if (target) {
+            showTooltip(target);
+        } else {
+            hideTooltip();
+        }
+    }, { passive: true });
+};
+
+document.addEventListener('DOMContentLoaded', UI.initRoleTooltip);
