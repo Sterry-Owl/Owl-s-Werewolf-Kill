@@ -907,3 +907,23 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     padding-top: 7px;
     padding-bottom: 7px;
 }
+.global-role-tooltip {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid #00FFFF;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    max-width: 220px;
+    z-index: 100000;
+    pointer-events: none; /* 使滑鼠點擊穿透，防止干擾底層互動 */
+    box-shadow: 0 4px 15px rgba(0, 255, 255, 0.2);
+    text-align: justify;
+}
+
+.role-tooltip-trigger {
+    cursor: help;
+    border-bottom: 1px dotted rgba(255, 255, 255, 0.25);
+}
