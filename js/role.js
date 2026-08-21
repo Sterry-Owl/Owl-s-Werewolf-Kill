@@ -20,8 +20,15 @@ window.RoleRegistry = {
             ctx.getSkillTarget = function(targetSeat, skillType, actorSeat) {
                 let actual = ctx.getActualTarget ? ctx.getActualTarget(targetSeat) : parseInt(targetSeat);
                 
+                // [新增] 狼人陣營發動的所有技能免疫反彈 (包含侍女偷竊的技能)
+                const actor = this.getPlayer(actorSeat);
+                if (actor && this.getDynamicFaction(actor) === 'wolf') {
+                    return actual;
+                }
+
                 if (this.nightTags && this.nightTags.sealedSeat === actual) {
-                    if (['check', 'poison', 'guard', 'dream', 'bless', 'curse', 'hunt', 'sanction'].includes(skillType)) {
+                    // [新增] 擴充 'gift' (奇蹟商人的贈禮) 納入反彈清單
+                    if (['check', 'poison', 'guard', 'dream', 'bless', 'curse', 'hunt', 'sanction', 'gift'].includes(skillType)) {
                         const sealer = this.getPlayer(this.nightTags.sealerSeat);
                         if (sealer) sealer.data.sealPermanentlyLost = true;
                         if (typeof Engine !== 'undefined' && Engine.EventBus) {
@@ -1588,10 +1595,9 @@ RoleRegistry.register("奇蹟商人", {
     resolveNightAction: (ctx, actions) => {
         const act = actions[0];
         if (!act || act.actionId === 'pass') return "【保留交易權利】";
-
         const p = act.player;
         const target = act.targets[0];
-        const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
+        const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'gift', p.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : target);
         const tPlayer = ctx.getPlayer(actualTarget);
         
         p.data.hasTraded = true;
@@ -2654,6 +2660,7 @@ RoleRegistry.register("蝕日侍女", {
         if (step === 'second_half') {
             const p = ctx.players.find(x => x.role === '蝕日侍女' && !x.isDead);
             if (p && p.data.devouredRole === '女巫') return 'dynamic_buttons'; 
+            if (p && p.data.devouredRole === '覺醒預言家') return 'double_select'; // [新增]
         }
         return 'single_select';
     },
@@ -2673,8 +2680,12 @@ RoleRegistry.register("蝕日侍女", {
         }
         if (step === 'second_half') {
             if (p.data.devouredThisNight && p.data.devouredRole) {
-                // [修復] 補回守衛的支援清單
-                return ['預言家', '女巫', '攝夢人', '流光伯爵', '守衛'].includes(p.data.devouredRole);
+                if (p.data.devouredRole === '奇蹟商人') {
+                    const merchant = ctx.players.find(x => x.role === '奇蹟商人');
+                    return merchant && !merchant.data.hasTraded && !p.data.maidMerchantTraded;
+                }
+                if (p.data.devouredRole === '咒狐') return false; // 被動無主動面板
+                return ['預言家', '女巫', '攝夢人', '流光伯爵', '守衛', '獵魔人', '覺醒預言家'].includes(p.data.devouredRole);
             }
         }
         return false;
@@ -2693,7 +2704,10 @@ RoleRegistry.register("蝕日侍女", {
         }
         if (role === '攝夢人') return "【吞噬技能: 攝夢人】選擇攝夢目標 (不可選擇自己，不可跳過)";
         if (role === '流光伯爵') return "【吞噬技能: 流光伯爵】選擇保佑目標 (不可保佑自己，不可連續兩晚保佑同一人)";
-        if (role === '守衛') return "【吞噬技能: 守衛】選擇今晚守護的目標 (不可連續兩晚守護同一人)"; // [修復] 補回守衛提示
+        if (role === '守衛') return "【吞噬技能: 守衛】選擇今晚守護的目標 (不可連續兩晚守護同一人)";
+        if (role === '獵魔人') return "【吞噬技能: 獵魔人】選擇狩獵目標 (狩獵好人自身死亡，狩獵狼人目標死亡)";
+        if (role === '奇蹟商人') return "【吞噬技能: 奇蹟商人】選擇交易對象\n交易到狼人將遭受反噬";
+        if (role === '覺醒預言家') return "【吞噬技能: 覺醒預言家】選擇兩名查驗目標";
         return "等待中...";
     },
     
@@ -2710,22 +2724,17 @@ RoleRegistry.register("蝕日侍女", {
                 return true;
             }).map(target => target.seatNumber);
         }
-        if (step === 'midnight') {
-            return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
-        }
+        if (step === 'midnight') return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
+        
         if (step === 'second_half') {
             const role = p.data.devouredRole;
             if (role === '女巫') {
                 if (p.data.maidWitchState?.antidoteUsed && p.data.maidWitchState?.poisonUsed) return [];
                 return ctx.getAlivePlayers().map(x => x.seatNumber);
             }
-            if (role === '流光伯爵') {
-                return ctx.getAlivePlayers().filter(x => x.seatNumber !== mySeat && x.seatNumber !== p.data.maidLastBlessedSeat).map(x => x.seatNumber);
-            }
-            // [修復] 補回守衛不可連續兩晚守護同一人的判斷
-            if (role === '守衛') {
-                return ctx.getAlivePlayers().filter(x => x.seatNumber !== p.data.maidLastGuardedSeat).map(x => x.seatNumber);
-            }
+            if (role === '流光伯爵') return ctx.getAlivePlayers().filter(x => x.seatNumber !== mySeat && x.seatNumber !== p.data.maidLastBlessedSeat).map(x => x.seatNumber);
+            if (role === '守衛') return ctx.getAlivePlayers().filter(x => x.seatNumber !== p.data.maidLastGuardedSeat).map(x => x.seatNumber);
+            if (role === '覺醒預言家') return ctx.getAlivePlayers().map(x => x.seatNumber);
             return ctx.getAlivePlayers().filter(x => x.seatNumber !== mySeat).map(x => x.seatNumber);
         }
         return [];
@@ -2742,7 +2751,15 @@ RoleRegistry.register("蝕日侍女", {
         if (role === '預言家') return [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
         if (role === '攝夢人') return [{ id: 'dream', text: '攝夢', requiresTarget: true }];
         if (role === '流光伯爵') return [{ id: 'bless', text: '保佑', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
-        if (role === '守衛') return [{ id: 'guard', text: '守護', requiresTarget: true }, { id: 'pass', text: '空守', requiresTarget: false }]; // [修復] 補回守衛按鈕
+        if (role === '守衛') return [{ id: 'guard', text: '守護', requiresTarget: true }, { id: 'pass', text: '空守', requiresTarget: false }];
+        if (role === '獵魔人') return [{ id: 'hunt', text: '狩獵', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
+        if (role === '覺醒預言家') return [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }];
+        if (role === '奇蹟商人') return [
+            { id: 'give_check', text: '贈與查驗', requiresTarget: true },
+            { id: 'give_poison', text: '贈與毒藥', requiresTarget: true },
+            { id: 'give_guard', text: '贈與守護', requiresTarget: true },
+            { id: 'pass', text: '不交易', requiresTarget: false }
+        ];
         if (role === '女巫') {
             let btns = [];
             const victim = ctx.nightTags?.killed?.length > 0 ? ctx.nightTags.killed[0] : null;
@@ -2794,9 +2811,7 @@ RoleRegistry.register("蝕日侍女", {
             return `【吞噬: ${target}號 (${p.data.devouredRole})】`;
         }
         
-        if (step === 'midnight') {
-            return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
-        }
+        if (step === 'midnight') return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
 
         if (step === 'second_half') {
             if (act.actionId === 'pass') return "【跳過行動】";
@@ -2809,9 +2824,82 @@ RoleRegistry.register("蝕日侍女", {
 
                 p.data.seerRecords = p.data.seerRecords || {};
                 p.data.seerRecords[target] = alignment;
-                p.data.latestCheckResult = { seat: target, alignment: alignment, isSeerAction: true, purifiesFox: true };
+                p.data.latestCheckResult = { seat: target, alignment: alignment, isSeerAction: true, purifiesFox: true }; 
                 p.data.tempPrivateMessage = `${target}號玩家是【${alignment}】。`;
                 return `【查驗: ${target}號】`;
+            }
+
+            if (role === '覺醒預言家' && act.actionId === 'check') {
+                const t1 = parseInt(target);
+                const t2 = act.targets.length > 1 ? parseInt(act.targets[1]) : t1;
+                const checkAlignment = (tgt) => {
+                    const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(tgt, 'check', p.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(tgt) : parseInt(tgt));
+                    return ctx.getSeerAlignment(actualTarget);
+                };
+                const align1 = checkAlignment(t1);
+                const align2 = checkAlignment(t2);
+                let finalResult = "好人";
+                if (align1 === "狼人" || align2 === "狼人") finalResult = "疑似狼人";
+                
+                p.data.seerRecords = p.data.seerRecords || {};
+                p.data.seerRecords[t1] = finalResult;
+                p.data.seerRecords[t2] = finalResult;
+                p.data.latestCheckResult = { seat: t1, seat2: t2, alignment: finalResult, isSeerAction: true, purifiesFox: true };
+                if (t1 === t2) p.data.tempPrivateMessage = `${t1}號 的查驗結果為：【${align1}】。`;
+                else p.data.tempPrivateMessage = `${t1}號與${t2}號 的查驗結果為：【${finalResult}】。`;
+                return `【查驗: ${t1}號, ${t2}號】`;
+            }
+
+            if (role === '獵魔人' && act.actionId === 'hunt') {
+                const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'hunt', p.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
+                const tPlayer = ctx.getPlayer(actualTarget);
+                const isWolf = ctx.getDynamicFaction(tPlayer) === 'wolf';
+                if (isWolf) {
+                    ctx.nightTags = ctx.nightTags || {};
+                    ctx.nightTags.demonHunterKills = ctx.nightTags.demonHunterKills || [];
+                    ctx.nightTags.demonHunterKills.push(actualTarget);
+                    return `【狩獵: ${target}號 (狼人)】`;
+                } else {
+                    ctx.nightTags = ctx.nightTags || {};
+                    ctx.nightTags.demonHunterBackfires = ctx.nightTags.demonHunterBackfires || [];
+                    ctx.nightTags.demonHunterBackfires.push(p.seatNumber);
+                    return `【狩獵: ${target}號 (好人，遭受反噬)】`;
+                }
+            }
+
+            if (role === '奇蹟商人' && act.actionId.startsWith('give_')) {
+                const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'gift', p.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
+                const tPlayer = ctx.getPlayer(actualTarget);
+                const merchant = ctx.players.find(x => x.role === '奇蹟商人');
+                if (merchant) merchant.data.hasTraded = true;
+                p.data.maidMerchantTraded = true;
+
+                const isWolf = ctx.getDynamicFaction(tPlayer) === 'wolf';
+                if (isWolf) {
+                    ctx.nightTags = ctx.nightTags || {};
+                    ctx.nightTags.merchantBackfire = p.seatNumber; 
+                    return `【交易失敗：目標為狼人，即將反噬】`;
+                }
+
+                const skillMap = { 'give_check': '查驗', 'give_poison': '毒藥', 'give_guard': '守護' };
+                tPlayer.data.grantedSkill = skillMap[act.actionId];
+                tPlayer.data.grantedSkillUsed = false;
+                tPlayer.data.virtualRoles = tPlayer.data.virtualRoles || [];
+                if (!tPlayer.data.virtualRoles.includes('幸運兒')) tPlayer.data.virtualRoles.push('幸運兒');
+                
+                let luckyPhase = ctx.nightSequence.find(seq => seq.phaseId === 'lucky_action');
+                if (luckyPhase) {
+                    let luckyRole = luckyPhase.roles.find(r => r.roleName === '幸運兒');
+                    if (luckyRole && !luckyRole.activePlayers.some(ap => ap.seatNumber === tPlayer.seatNumber)) {
+                        luckyRole.activePlayers.push(tPlayer);
+                    }
+                } else {
+                    ctx.nightSequence.push({
+                        phaseId: 'lucky_action', phaseName: '幸運兒行動',
+                        roles: [{ roleName: '幸運兒', roleDef: RoleRegistry.plugins['幸運兒'], activePlayers: [tPlayer], resultLog: "" }]
+                    });
+                }
+                return `【交易成功：贈與 ${tPlayer.data.grantedSkill} 給 ${target}號】`;
             }
             
             if (role === '攝夢人' && act.actionId === 'dream') {
@@ -2825,6 +2913,7 @@ RoleRegistry.register("蝕日侍女", {
                 p.data.maidLastBlessedSeat = parseInt(target);
                 return `【保佑: ${target}號】`;
             }
+            
             if (role === '守衛') {
                 if (act.actionId === 'pass') {
                     ctx.guardedSeat = null;
@@ -2861,6 +2950,36 @@ RoleRegistry.register("蝕日侍女", {
             }
         }
         return "【無效行動】";
+    },
+
+    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        if (player.data.devouredRole === '咒狐') {
+            const immuneCauses = ['killed', 'poisoned', 'doubledreamed', 'bloodlusted', 'skill_backfire', 'claw_killed', 'reflected'];
+            if (immuneCauses.includes(deathMap[player.seatNumber])) {
+                delete deathMap[player.seatNumber];
+                if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                    Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】蝕日侍女(吞噬咒狐) ${player.seatNumber} 號免疫了夜間的致命傷害`);
+                }
+            }
+        }
+    },
+    onPlayerDied: (ctx, player, reason) => {
+        if (player.data.devouredRole === '咒狐') {
+            const nightDeathReasons = ['silenthunted'];
+            let isNightDeath = nightDeathReasons.includes(reason);
+            if (reason === 'shot' && ctx.phase === 'AWAKENED_HUNTER_ACTION' && ctx.pendingAwakenedHunterNightDeath) {
+                isNightDeath = true;
+            }
+            if (isNightDeath) {
+                player.isDead = false;
+                player.deathReason = null;
+                if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                    Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】蝕日侍女(吞噬咒狐) ${player.seatNumber} 號免疫了夜間的直接致命傷害 (${reason})`);
+                }
+                return true; 
+            }
+        }
+        return false;
     }
 });
 RoleRegistry.register("流光伯爵", {
@@ -3935,7 +4054,7 @@ RoleRegistry.register("咒狐", {
 
     onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
         if (player.isDead) return;
-        
+        if (ctx.devouredSeat === player.seatNumber) return;
         let isPurified = false;
         ctx.players.forEach(p => {
             if (!p.isDead && p.data.latestCheckResult && p.data.latestCheckResult.purifiesFox) {
@@ -3967,6 +4086,7 @@ RoleRegistry.register("咒狐", {
     },
     
     onPlayerDied: (ctx, player, reason) => {
+        if (ctx.devouredSeat === player.seatNumber) return false;
         const nightDeathReasons = ['silenthunted'];
         let isNightDeath = nightDeathReasons.includes(reason);
         
