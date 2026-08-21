@@ -580,8 +580,22 @@ function setupEngineFlowControllers() {
         else if (wolfCount === 0) { winner = "好人"; reason = "狼人全數出局"; }
 
         if (winner) {
+            let finalWinner = winner;
+            let finalReason = reason;
+
+            alive.forEach(p => {
+                const plugin = RoleRegistry.plugins[p.role];
+                if (plugin && typeof plugin.hijackNormalWin === 'function') {
+                    const hijack = plugin.hijackNormalWin(ctx, p, winner);
+                    if (hijack) {
+                        finalWinner = hijack.winner;
+                        finalReason = hijack.reason;
+                    }
+                }
+            });
+
             stateMachine.clearTimer();
-            ctx.systemLog = `遊戲結束，${winner}陣營勝利！\n(${reason})`;
+            ctx.systemLog = `遊戲結束，${finalWinner}陣營勝利！\n(${finalReason})`;
             Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
             stateMachine.transitionTo('GAME_OVER');
         }
