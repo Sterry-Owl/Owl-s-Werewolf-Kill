@@ -1160,6 +1160,7 @@ RoleRegistry.register("暗戀者", {
     type: "villager",      
     nightPhase: "first_half", 
     actionType: "single_select",
+    nightPriority: 4,
     hasAction: (ctx) => ctx.nightCount === 1 && !ctx.crushTarget,
     getPrompt: (ctx) => "選擇你的暗戀對象",
     getSelectableSeats: (ctx, mySeat) => {
@@ -2121,7 +2122,7 @@ RoleRegistry.register("覺醒預言家", {
 RoleRegistry.register("子狐", {
     canSelfExplode: false,
     nightPhase: "first_half",
-    nightPriority: 2,
+    nightPriority: 99,
     actionType: "single_select",
     hasAction: (ctx, mySeat) => {
         return !ctx.getPlayer(mySeat).data.hasConfused;
@@ -2190,7 +2191,7 @@ RoleRegistry.register("蝕時狼妃", {
     canSelfExplode: true,
     canSeeWolves: true,
     seenAsWolf: true,
-    nightPriority: 3,
+    nightPriority: 2,
     isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
     hasWolfChatAccess: true,
     nightPhase: ["first_half", "midnight"],
@@ -3348,7 +3349,7 @@ RoleRegistry.register("野孩子", {
     },
 
     nightPhase: ["first_half", "midnight"],
-    nightPriority: 0, 
+    nightPriority: 4, 
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half' ? 'single_select' : 'consensus',
     
     hasAction: (ctx, mySeat) => {
@@ -3421,7 +3422,7 @@ RoleRegistry.register("野孩子", {
 RoleRegistry.register("復仇者", {
     nightPhase: "first_half", 
     actionType: "single_select",
-    nightPriority: 0,
+    nightPriority: 4,
     hasAction: (ctx, mySeat) => {
         const p = ctx.getPlayer(mySeat);
         return ctx.nightCount === 1 && !p.data.avengerTarget;
@@ -3445,7 +3446,7 @@ RoleRegistry.register("復仇者", {
 RoleRegistry.register("邱比特", {
     nightPhase: "first_half",
     actionType: "double_select",
-    nightPriority: 0,
+    nightPriority: 4,
     hasAction: (ctx, mySeat) => {
         const p = ctx.getPlayer(mySeat);
         return ctx.nightCount === 1 && !p.data.hasShotArrow;
