@@ -1,0 +1,21 @@
+{
+  "name": "血月年代記",
+  "short_name": "血月",
+  "description": "血月年代記桌遊系統",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#1c2633",
+  "icons": [
+    {
+      "src": "./img/icon-192.webp",
+      "sizes": "192x192",
+      "type": "image/webp"
+    },
+    {
+      "src": "./img/icon-512.webp",
+      "sizes": "512x512",
+      "type": "image/webp"
+    }
+  ]
+}
