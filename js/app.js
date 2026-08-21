@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 targetGroup.push(`<span class="role-tooltip-trigger" data-role-name="${role}" data-role-desc="${description}" style="color:${color}; font-weight:bold;">${role}</span>`);
             });
             const renderLine = (arr) => arr.length > 0 ? `<div style="white-space:nowrap; margin-bottom:1px;">${arr.join('<span style="color:#555; margin:0 2px;">、</span>')}</div>` : '';
+            previewEl.style.height = '48px';
             
             previewEl.innerHTML = `
                 <div class="role-preview-inner" style="display:flex; flex-direction:column; align-items:flex-start; width:fit-content; margin:0 auto; line-height:1.4;">
