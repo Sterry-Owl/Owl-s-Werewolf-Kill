@@ -886,13 +886,13 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     padding-bottom: 6px;
 }
 #board-role-preview {
-    height: 48px; /* 嚴格鎖定固定高度，剛好容納 3 行文字，徹底消除畫面上下跳動 */
+    height: 56px; /* 若字體加大，請同步調大高度 (例如 56px) */
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: center; /* 讓內部區塊整體置中 */
+    align-items: center; 
     margin-bottom: 6px;
-    font-size: 10px;
+    font-size: 12px; /* 修改此處的文字大小 */
     line-height: 1.4;
 }
 
