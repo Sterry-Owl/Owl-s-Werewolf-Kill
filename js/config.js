@@ -128,7 +128,7 @@ const TEMPLATES_FUN = [
     { id: "evening_11", name: "11人 諸神黃昏", category: 'fun', playerCount: 11, deck: ["預言家", "女巫", "獵人", "守衛", "白痴", "白狼王", "狼美人", "血月使徒", "平民", "平民", "平民"] },
     { id: "windlich_10", name: "10人 風聲諜影", category: 'fun', playerCount: 10, deck: ["預言家", "魔鏡少女", "熊", "白貓", "河豚", "攝夢人", "女巫", "巫妖", "機械狼", "暗戀者"] },
     { id: "windlich_12", name: "12人 風聲諜影", category: 'fun', playerCount: 12, deck: ["預言家", "魔鏡少女", "熊", "獵人", "白貓", "河豚", "攝夢人", "女巫", "巫妖", "巫妖", "機械狼", "暗戀者"] },
-    { id: "vanlentre_12", name: "12人 邱比特奇緣", category: 'fun', playerCount: 12, deck: ["覺醒預言家", "女巫", "獵人", "守衛", "平民", "平民", "平民", "平民", "狼人", "狼巫", "狼王", "邱比特", "暗戀者", "盜賊"] },
+    { id: "allgirl_12", name: "12人 沙龍之夜", category: 'fun', playerCount: 12, deck: ["覺醒預言家", "女巫", "魔鏡少女", "獵魔人", "獵魔人", "奇蹟商人", "攝夢人", "狼人", "蝕時狼妃", "蝕日侍女", "覺醒狼美人", "咒狐"] },
 ];
 
 const TEMPLATES_QUICK = [
@@ -137,7 +137,7 @@ const TEMPLATES_QUICK = [
     { id: "standard_10", name: "10人 標準局", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_grd_10", name: "10人 狼王守衛", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "守衛", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_mag_10", name: "10人 狼王魔術師", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "魔術師", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
-    { id: "inw_cl_10", name: "10人 隱狼烏鴉", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "烏鴉", "隱狼", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "inw_cl_10", name: "10人 咒狐隱鴉", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "烏鴉", "隱狼", "狼人", "狼人", "平民", "平民", "平民", "咒狐"] },
     { id: "wwk_kn_10", name: "10人 白狼王騎士", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "騎士", "白狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wbt_kn_10", name: "10人 狼美人騎士", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "騎士", "狼美人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
     { id: "gh_gra_10", name: "10人 守墓石像", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "守墓人", "石像鬼", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
@@ -158,7 +158,7 @@ const TEMPLATES_QUICK = [
     { id: "standard_11", name: "11人 標準局", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "wk_grd_11", name: "11人 狼王守衛", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "守衛", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "wk_mag_11", name: "11人 狼王魔術師", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "魔術師", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },    
-    { id: "inw_cl_11", name: "11人 隱狼烏鴉", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "烏鴉", "隱狼", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
+    { id: "inw_cl_11", name: "11人 咒狐隱鴉", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "烏鴉", "守衛", "狼王", "隱狼", "狼人", "平民", "平民", "平民", "咒狐"] },
     { id: "wwk_kn_11", name: "11人 白狼王騎士", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "騎士", "守衛", "白狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
     { id: "wbt_kn_11", name: "11人 狼美人騎士", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "騎士", "守衛", "狼美人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },    
     { id: "gh_gra_11", name: "11人 守墓石像", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "守墓人", "石像鬼", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
@@ -184,7 +184,7 @@ const TEMPLATES_STANDARD = [
     { id: "wk_mag_12", name: "12人 狼王魔術師", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "魔術師", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "gh_gra_12", name: "12人 守墓石像", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守墓人", "石像鬼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
     { id: "wwk_kn_12", name: "12人 白狼王騎士", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "騎士", "守衛", "白狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
-    { id: "inw_cl_12", name: "12人 隱狼烏鴉", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "烏鴉", "隱狼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "inw_cl_12", name: "12人 咒狐隱鴉", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "烏鴉", "隱狼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "咒狐"] },
     { id: "nim_dgr_12", name: "12人 夢魘攝夢人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "攝夢人", "噩夢之影", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wbt_kn_12", name: "12人 狼美人騎士", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "騎士", "守衛", "狼美人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "evkn_12", name: "12人 惡靈騎士", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "惡靈騎士", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
@@ -270,4 +270,5 @@ const ROLE_DICTIONARY = {
     "覺醒獵人": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "", description:"神職；出局後可選擇順向或逆向發動巡獵，使離自己最近的狼人出局。若在夜間死亡，被巡獵出局的狼人將無法發動技能。" },
     "覺醒狼美人": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "dynamic", prompt: "覺醒狼美人請行動", description:"狼人陣營；不可自爆、不可自刀。每晚可以輓歌一名玩家，但不能連續兩晚發動技能。當自身以任何方式出局時，免疫出局並使輓歌目標代替死亡。若於白天出局將翻牌發動技能。被夜間死亡的覺醒獵人巡獵時，輓歌無效。" },
     "巫妖": { faction: "wolf", type: "wolf", nightPhase: ["first_half", "midnight"], actionType: "dynamic", prompt: "巫妖請行動", description:"狼人陣營；參與襲擊，不可自爆。第一晚必須選擇一名相鄰於「任意參與襲擊的狼人」的玩家成為轉化者。轉化者下一晚起被判定為狼人，勝利條件亦視為狼人。其餘所有狼人皆出局且場上僅剩唯一一名轉化者時，該轉化者失去原有技能並加入狼隊參與襲擊。" },
+    "咒狐": { faction: "third_party", type: "special", nightPhase: "none", actionType: "none", prompt: "請努力存活至竊取勝利的一刻", description:"獨立陣營；夜間不死，但被預言家查驗就會死亡。存活至場上狼人或好人勝利時即可竊取他們的勝利，獨自獲勝。" },
 };
