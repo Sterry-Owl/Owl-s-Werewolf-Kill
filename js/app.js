@@ -240,3 +240,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('my-card-flipper')?.classList.toggle('flipped');
     });
 });
+// === PWA Service Worker 註冊 ===
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => {
+            console.error('Service Worker 註冊失敗:', err);
+        });
+    });
+}
