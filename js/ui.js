@@ -299,7 +299,7 @@ const UI = {
                     detailsPanel.innerHTML = `
                         <div style="padding:20px;">
                             <div style="color:var(--accent-blue); font-size:14px; font-weight:bold; margin-bottom:12px; text-align:center; border-bottom:1px solid #444; padding-bottom:6px;">${state.boardName}</div>
-                            <div style="display:flex; justify-content:center; align-items:center; flex-direction:column; font-size:10px;">${deckHtml}</div>
+                            <div style="display:flex; justify-content:center; align-items:center; flex-direction:column; font-size:12px;">${deckHtml}</div>
                             <div style="color:var(--accent-blue); font-size:14px; font-weight:bold; margin-bottom:12px; margin-top:20px; text-align:center; border-bottom:1px solid #444; padding-bottom:6px;">遊戲規則</div>
                             ${rulesHtml}
                         </div>
