@@ -250,7 +250,8 @@ const UI = {
                         sheriffExplodeRule: { 'double': '雙爆', 'single': '單爆' },
                         deathReveal: { 'dark': '暗牌', 'light': '明牌' },
                         squareCard: { 'off': '經典', 'on': '舊日' },
-                        firstNightKill: { 'enabled': '預設', 'disabled': '首夜無刀' }
+                        firstNightKill: { 'enabled': '預設', 'disabled': '首夜無刀' },
+                        hiddenWolfType: { 'strong': '強', 'weak': '弱' }
                     };
 
                     let deckHtml = '';
@@ -285,14 +286,16 @@ const UI = {
                     const r = state.rules;
                     const rulesHtml = `
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size:12px; color:#bbb; text-align:center;">
-                            <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333; grid-column: span 2;">發言時長：<span style="color:#fff;">${r.speechTime}s</span></div>
+                            <!-- [修正] 移除所有 grid-column: span 2，達成寬度絕對統一，並新增隱狼類型 -->
+                            <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">發言時長：<span style="color:#fff;">${r.speechTime}s</span></div>
                             <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">首夜襲擊：<span style="color:#fff;">${rulesTextMap.firstNightKill[r.firstNightKill] || r.firstNightKill}</span></div>
                             <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">女巫自救：<span style="color:#fff;">${rulesTextMap.witchSave[r.witchSave] || r.witchSave}</span></div>
                             <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">勝利條件：<span style="color:#fff;">${rulesTextMap.winCondition[r.winCondition] || r.winCondition}</span></div>
                             <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">警長機制：<span style="color:#fff;">${rulesTextMap.sheriff[r.sheriff] || r.sheriff}</span></div>
                             <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">吞警徽：<span style="color:#fff;">${rulesTextMap.sheriffExplodeRule[r.sheriffExplodeRule] || r.sheriffExplodeRule}</span></div>
                             <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">身分揭曉：<span style="color:#fff;">${rulesTextMap.deathReveal[r.deathReveal] || r.deathReveal}</span></div>
-                            <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333; grid-column: span 2;">卡面樣式：<span style="color:#fff;">${rulesTextMap.squareCard[r.squareCard] || r.squareCard}</span></div>
+                            <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">卡面樣式：<span style="color:#fff;">${rulesTextMap.squareCard[r.squareCard] || r.squareCard}</span></div>
+                            <div style="background:#1a1a1a; padding:6px; border-radius:4px; border:1px solid #333;">隱狼類型：<span style="color:#fff;">${rulesTextMap.hiddenWolfType[r.hiddenWolfType] || r.hiddenWolfType}</span></div>
                         </div>
                     `;
 
