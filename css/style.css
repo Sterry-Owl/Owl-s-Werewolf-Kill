@@ -925,5 +925,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 
 .role-tooltip-trigger {
     cursor: help;
-    border-bottom: 1px dotted rgba(255, 255, 255, 0.25);
+    /* 改用原生文字裝飾線：直線虛線 (dashed) 以及更透明的顏色 (0.15) */
+    text-decoration: underline dashed rgba(255, 255, 255, 0.1);
+    text-underline-offset: 2.5px;
 }
