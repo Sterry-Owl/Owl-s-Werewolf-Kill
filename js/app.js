@@ -24,9 +24,11 @@ document.addEventListener('DOMContentLoaded', () => {
             deck.forEach(role => {
                 let color = '#ccc';
                 let targetGroup = others;
+                let description = '';
 
                 if (typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[role]) {
                     const def = ROLE_DICTIONARY[role];
+                    description = def.description || '';
                     if (def.faction === 'wolf') {
                         color = '#9e646a'; // 低飽和紅
                         targetGroup = wolves;
@@ -42,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 
-                targetGroup.push(`<span style="color:${color}; font-weight:bold;">${role}</span>`);
+                targetGroup.push(`<span class="role-tooltip-trigger" data-role-name="${role}" data-role-desc="${description}" style="color:${color}; font-weight:bold;">${role}</span>`);
             });
             const renderLine = (arr) => arr.length > 0 ? `<div style="white-space:nowrap; margin-bottom:1px;">${arr.join('<span style="color:#555; margin:0 2px;">、</span>')}</div>` : '';
             previewEl.style.height = '42px';
