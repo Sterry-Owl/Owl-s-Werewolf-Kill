@@ -106,7 +106,8 @@ const TEMPLATES_TEST = [
     { id: "test-27_6", name: "盜賊邱比特(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "邱比特", "平民", "平民", "盜賊"] },
     { id: "test-28_6", name: "秘密之夜(測試)", category: 'test', playerCount: 6, deck: ["獵魔人", "覺醒愚者", "夜之貴族", "狼人", "平民", "平民"] },
     { id: "test-29_6", name: "暗夜星辰(測試)", category: 'test', playerCount: 6, deck: ["覺醒獵人", "守衛", "覺醒狼美人", "狼人", "平民", "平民"] },
-    { id: "test-30_6", name: "巫妖轉化(測試)", category: 'test', playerCount: 6, deck: ["預言家", "熊", "純白之女", "巫妖", "狼人", "平民"] },
+    { id: "test-30_6", name: "巫妖測試(測試)", category: 'test', playerCount: 6, deck: ["預言家", "熊", "狼人", "巫妖", "隱狼", "平民"] },
+    { id: "test-31_6", name: "侍女狼妃咒狐(測試)", category: 'test', playerCount: 6, deck: ["奇蹟商人", "獵魔人", "蝕日侍女", "蝕時狼妃", "平民", "咒狐"] },
 ];
 
 const TEMPLATES_FUN = [
