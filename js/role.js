@@ -543,7 +543,7 @@ RoleRegistry.register("預言家", {
             const alignment = ctx.getSeerAlignment(actualTarget);
             act.player.data.seerRecords = act.player.data.seerRecords || {};
             act.player.data.seerRecords[target] = alignment; // (燈影為 fakeAlignment)
-            act.player.data.latestCheckResult = { seat: parseInt(target), alignment: alignment, isSeerAction: true }; // (燈影為 fakeAlignment)
+            act.player.data.latestCheckResult = { seat: parseInt(target), alignment: alignment, isSeerAction: true, purifiesFox: true };
             act.player.data.tempPrivateMessage = `${target}號玩家是【${alignment}】。`; // (燈影為 fakeAlignment)
             return `查驗: ${target}號`;
         }
@@ -570,7 +570,7 @@ RoleRegistry.register("燈影預言家", {
             let fakeAlignment = (alignment === "狼人") ? "好人" : "狼人";
             act.player.data.seerRecords = act.player.data.seerRecords || {};
             act.player.data.seerRecords[target] = fakeAlignment;
-            act.player.data.latestCheckResult = { seat: parseInt(target), alignment: fakeAlignment, isSeerAction: true };
+            act.player.data.latestCheckResult = { seat: parseInt(target), alignment: fakeAlignment, isSeerAction: true, purifiesFox: true };
             act.player.data.tempPrivateMessage = `${target}號玩家是【${fakeAlignment}】。`;
             return `查驗: ${target}號`;
         }
@@ -1461,7 +1461,7 @@ RoleRegistry.register("機械狼", {
 
                 p.data.seerRecords = p.data.seerRecords || {};
                 p.data.seerRecords[target] = alignment;
-                p.data.latestCheckResult = { seat: target, alignment: alignment, isSeerAction: true }; 
+                p.data.latestCheckResult = { seat: target, alignment: alignment, isSeerAction: true, purifiesFox: true };
                 p.data.tempPrivateMessage = `${target}號玩家是【${alignment}】。`;
                 p.data.machineState = 2; 
                 return `【查驗: ${target}號】`;
@@ -1665,7 +1665,7 @@ RoleRegistry.register("幸運兒", {
 
             p.data.seerRecords = p.data.seerRecords || {};
             p.data.seerRecords[target] = alignment;
-            p.data.latestCheckResult = { seat: target, alignment: alignment, isSeerAction: true }; 
+            p.data.latestCheckResult = { seat: target, alignment: alignment, isSeerAction: true, purifiesFox: true };
             p.data.tempPrivateMessage = `${target}號玩家是【${alignment}】。`;
             
             return `【查驗: ${target}號】`;
@@ -2102,7 +2102,7 @@ RoleRegistry.register("覺醒預言家", {
         act.player.data.seerRecords[t1] = finalResult;
         act.player.data.seerRecords[t2] = finalResult;
         
-        act.player.data.latestCheckResult = { seat: t1, seat2: t2, alignment: finalResult, isSeerAction: true };
+        act.player.data.latestCheckResult = { seat: t1, seat2: t2, alignment: finalResult, isSeerAction: true, purifiesFox: true };
         if (t1 === t2) {
             act.player.data.tempPrivateMessage = `${t1}號 的查驗結果為：【${align1}】。`;
         } else {
@@ -2809,7 +2809,7 @@ RoleRegistry.register("蝕日侍女", {
 
                 p.data.seerRecords = p.data.seerRecords || {};
                 p.data.seerRecords[target] = alignment;
-                p.data.latestCheckResult = { seat: target, alignment: alignment, isSeerAction: true }; 
+                p.data.latestCheckResult = { seat: target, alignment: alignment, isSeerAction: true, purifiesFox: true };
                 p.data.tempPrivateMessage = `${target}號玩家是【${alignment}】。`;
                 return `【查驗: ${target}號】`;
             }
@@ -3192,7 +3192,7 @@ RoleRegistry.register("受增幅者", {
             
             p.data.seerRecords = p.data.seerRecords || {};
             p.data.seerRecords[target] = alignment;
-            p.data.latestCheckResult = { seat: target, alignment: alignment, isSeerAction: true };
+            p.data.latestCheckResult = { seat: target, alignment: alignment, isSeerAction: true, purifiesFox: true };
             p.data.tempPrivateMessage = (p.data.tempPrivateMessage ? p.data.tempPrivateMessage + "\n" : "") + `【增幅查驗】${target}號玩家是【${alignment}】。`;
             return `【額外查驗: ${target}號】`;
         }
@@ -3916,5 +3916,72 @@ RoleRegistry.register("巫妖", {
             });
             return logs.join('\n');
         }
+    }
+});
+RoleRegistry.register("咒狐", {
+    faction: "third_party",
+    type: "third_party",
+    canSelfExplode: false,
+    seenBySeerAsGood: true, 
+    nightPhase: "none",
+    actionType: "none",
+    hijackNormalWin: (ctx, player, originalWinner) => {
+        if (player.isDead) return null;
+        return {
+            winner: "第三方陣營 (咒狐)",
+            reason: `咒狐存活至常規遊戲結束，取代${originalWinner}陣營獲得勝利`
+        };
+    },
+
+    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        if (player.isDead) return;
+        
+        let isPurified = false;
+        ctx.players.forEach(p => {
+            if (!p.isDead && p.data.latestCheckResult && p.data.latestCheckResult.purifiesFox) {
+                const checkResult = p.data.latestCheckResult;
+                let targets = [];
+                if (checkResult.seat) targets.push(ctx.getSkillTarget ? ctx.getSkillTarget(checkResult.seat, 'check', p.seatNumber) : parseInt(checkResult.seat));
+                if (checkResult.seat2) targets.push(ctx.getSkillTarget ? ctx.getSkillTarget(checkResult.seat2, 'check', p.seatNumber) : parseInt(checkResult.seat2));
+                
+                if (targets.includes(player.seatNumber)) {
+                    isPurified = true;
+                }
+            }
+        });
+        
+        const immuneCauses = ['killed', 'poisoned', 'doubledreamed', 'bloodlusted', 'skill_backfire', 'claw_killed', 'reflected'];
+        if (immuneCauses.includes(deathMap[player.seatNumber])) {
+            delete deathMap[player.seatNumber];
+            if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】咒狐 ${player.seatNumber} 號免疫了夜間的致命傷害`);
+            }
+        }
+
+        if (isPurified) {
+            deathMap[player.seatNumber] = 'purified';
+            if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】咒狐 ${player.seatNumber} 號遭到查驗，引發淨化出局`);
+            }
+        }
+    },
+    
+    onPlayerDied: (ctx, player, reason) => {
+        const nightDeathReasons = ['silenthunted'];
+        let isNightDeath = nightDeathReasons.includes(reason);
+        
+        if (reason === 'shot' && ctx.phase === 'AWAKENED_HUNTER_ACTION' && ctx.pendingAwakenedHunterNightDeath) {
+            isNightDeath = true;
+        }
+        
+        if (isNightDeath) {
+            player.isDead = false;
+            player.deathReason = null;
+            if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】咒狐 ${player.seatNumber} 號免疫了夜間的直接致命傷害 (${reason})`);
+            }
+            return true;
+        }
+        return false;
     }
 });
