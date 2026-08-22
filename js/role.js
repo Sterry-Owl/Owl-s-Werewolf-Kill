@@ -4113,3 +4113,130 @@ RoleRegistry.register("咒狐", {
         return false;
     }
 });
+RoleRegistry.register("魅魔", {
+    faction: "third_party",
+    type: "third_party",
+    canSelfExplode: false,
+    canSeeWolves: true,
+    seenAsWolf: true,
+    seenBySeerAsWolf: true,
+    hasWolfChatAccess: true,
+    nightPhase: ["first_half", "midnight"],
+    nightPriority: 4,
+    
+    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
+    actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half' ? 'single_select' : 'consensus',
+
+    onNightStart: (ctx, player) => {
+        if (ctx.nightCount === 1) {
+            ctx.players.forEach(p => {
+                if (p.seatNumber !== player.seatNumber && ctx.getDynamicFaction(p) === 'wolf') {
+                    p.data.customTopTags = p.data.customTopTags || {};
+                    p.data.customTopTags[player.seatNumber] = '狼人';
+                }
+            });
+        }
+    },
+
+    hasAction: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        const p = ctx.getPlayer(mySeat);
+        if (step === 'midnight') return true;
+        if (step === 'first_half') return ctx.nightCount === 1 && !ctx.succubusLovers;
+        return false;
+    },
+
+    getPrompt: (ctx) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return "選擇今晚的襲擊目標";
+        return "選擇一名非狼人玩家與自己連結為情侶\n(雙方將同生共死，勝利條件變為屠城)";
+    },
+
+    getSelectableSeats: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
+        return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat && ctx.getDynamicFaction(p) !== 'wolf').map(p => p.seatNumber);
+    },
+
+    getButtons: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return RoleRegistry.plugins["狼人"].getButtons(ctx, mySeat);
+        return [{ id: 'charm_lover', text: '魅惑連結', requiresTarget: true }];
+    },
+
+    resolveNightAction: (ctx, actions) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
+
+        const act = actions[0];
+        if (!act || !act.targets || act.targets.length === 0) {
+            const selectable = ctx.getAlivePlayers().filter(p => p.seatNumber !== act.player.seatNumber && ctx.getDynamicFaction(p) !== 'wolf').map(p => p.seatNumber);
+            const target = selectable[Math.floor(Math.random() * selectable.length)];
+            const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+            ctx.succubusLovers = [act.player.seatNumber, actualTarget];
+            return `【強制連結: ${target}號】`;
+        }
+        
+        const target = act.targets[0];
+        const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+        ctx.succubusLovers = [act.player.seatNumber, actualTarget];
+        return `【魅惑連結: ${target}號】`;
+    },
+
+    onPhaseChanged: (ctx, player, phase) => {
+        if (phase === 'VOTE_RESULT_DISPLAY' && ctx.succubusLovers) {
+            const s1 = ctx.getPlayer(ctx.succubusLovers[0]);
+            const s2 = ctx.getPlayer(ctx.succubusLovers[1]);
+            
+            if (s1 && s2 && !s1.isDead && !s2.isDead) {
+                const vote1 = ctx.votes[s1.seatNumber];
+                const vote2 = ctx.votes[s2.seatNumber];
+                if (vote1 !== undefined && vote2 !== undefined && vote1 === vote2 && vote1 !== 'pass') {
+                    if (vote1 !== ctx.votedOutToday) {
+                        ctx.nightTags = ctx.nightTags || {};
+                        ctx.nightTags.succubusCurseTarget = vote1;
+                        if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                            Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】魅魔與伴侶同步票投 ${vote1} 號，觸發延遲詛咒`);
+                        }
+                    }
+                }
+            }
+        }
+    },
+
+    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        if (ctx.nightTags?.succubusCurseTarget === player.seatNumber) {
+            deathMap[player.seatNumber] = 'cursed';
+            if (!ctx.nightTags.succubusLogWritten) {
+                ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：${player.seatNumber} 號玩家因魅魔詛咒出局)`;
+                ctx.nightTags.succubusLogWritten = true;
+            }
+        }
+    },
+
+    onOtherPlayerDied: (ctx, observer, deadPlayer, reason) => {
+        if (ctx.succubusLovers && ctx.succubusLovers.includes(deadPlayer.seatNumber)) {
+            const otherLoverSeat = ctx.succubusLovers.find(s => s !== deadPlayer.seatNumber);
+            const otherLover = ctx.getPlayer(otherLoverSeat);
+            if (otherLover && !otherLover.isDead) {
+                ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：魅魔伴侶 ${deadPlayer.seatNumber} 號出局，${otherLoverSeat} 號隨之殉情)`;
+                otherLover.kill('martyr', ctx);
+            }
+        }
+    },
+
+    checkWinCondition: (ctx, player) => {
+        if (!ctx.succubusLovers || ctx.succubusLovers.length < 2) return null;
+        const l1 = ctx.getPlayer(ctx.succubusLovers[0]);
+        const l2 = ctx.getPlayer(ctx.succubusLovers[1]);
+        if (!l1 || !l2 || l1.isDead || l2.isDead) return null;
+
+        const alive = ctx.getAlivePlayers();
+        const otherAlive = alive.filter(p => p.seatNumber !== l1.seatNumber && p.seatNumber !== l2.seatNumber);
+        if (otherAlive.length === 0) {
+            return { winner: "第三方陣營 (魅魔)", reason: "魅魔與伴侶成功淘汰全場其他玩家" };
+        } else {
+            return { preventNormalWin: true };
+        }
+    }
+});
