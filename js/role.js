@@ -2649,6 +2649,7 @@ RoleRegistry.register("蝕日侍女", {
     seenAsWolf: false,
     hasWolfChatAccess: false,
     nightPhase: ["first_half", "midnight", "second_half"],
+    nightPriority: 3,
     isAttacker: (ctx, mySeat) => {
         const step = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
         if (step !== 'midnight') return false;
@@ -3388,11 +3389,13 @@ RoleRegistry.register("野孩子", {
             if (act.actionId === 'pass' || !act.targets || act.targets.length === 0) {
                 const selectable = ctx.getAlivePlayers().filter(p => p.seatNumber !== act.player.seatNumber).map(p => p.seatNumber);
                 const target = selectable[Math.floor(Math.random() * selectable.length)];
-                act.player.data.wildModelTarget = target;
+                const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target); // [新增]
+                act.player.data.wildModelTarget = actualTarget;
                 return `【強制選擇榜樣: ${target}號】`;
             }
-            const target = parseInt(act.targets[0]);
-            act.player.data.wildModelTarget = target;
+            const target = act.targets[0];
+            const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target); // [新增]
+            act.player.data.wildModelTarget = actualTarget;
             return `【選擇榜樣: ${target}號】`;
         }
     },
@@ -3435,11 +3438,13 @@ RoleRegistry.register("復仇者", {
         if (!act || !act.targets || act.targets.length === 0) {
             const selectable = ctx.getAlivePlayers().filter(p => p.seatNumber !== act.player.seatNumber).map(p => p.seatNumber);
             const target = selectable[Math.floor(Math.random() * selectable.length)];
-            act.player.data.avengerTarget = target;
+            const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target); // [新增]
+            act.player.data.avengerTarget = actualTarget;
             return `【強制選擇仇恨: ${target}號】`;
         }
-        const target = parseInt(act.targets[0]);
-        act.player.data.avengerTarget = target;
+        const target = act.targets[0];
+        const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target); // [新增]
+        act.player.data.avengerTarget = actualTarget;
         return `【選擇仇恨: ${target}號】`;
     }
 });
@@ -3460,10 +3465,12 @@ RoleRegistry.register("邱比特", {
             const selectable = ctx.getAlivePlayers().filter(p => p.seatNumber !== act.player.seatNumber).map(p => p.seatNumber);
             act.targets = [selectable[0], selectable[1]];
         }
-        const t1 = parseInt(act.targets[0]);
-        const t2 = parseInt(act.targets[1]);
+        const t1 = act.targets[0];
+        const t2 = act.targets[1];
+        const actualT1 = ctx.getActualTarget ? ctx.getActualTarget(t1) : parseInt(t1); // [新增]
+        const actualT2 = ctx.getActualTarget ? ctx.getActualTarget(t2) : parseInt(t2); // [新增]
         
-        ctx.lovers = [t1, t2];
+        ctx.lovers = [actualT1, actualT2];
         act.player.data.hasShotArrow = true;
         return `【指定情侶: ${t1}號 與 ${t2}號】`;
     },
