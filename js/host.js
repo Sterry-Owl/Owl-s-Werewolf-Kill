@@ -805,25 +805,49 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                         if (isAttacker) {
                             actionText = "等待隊友決定。";
                         } else if (myAct.actionId === 'save') {
-                            actionText = "已選擇使用解藥。";
+                            actionText = "你使用了解藥。";
                         } else if (myAct.actionId === 'pass' || submittedTargets.length === 0) {
-                            actionText = "已選擇跳過行動。";
+                            actionText = "你跳過了行動。";
                         } else if (myAct.actionId === 'swap' && submittedTargets.length === 2) {
-                            actionText = `已選擇交換 ${submittedTargets[0]} 號與 ${submittedTargets[1]} 號。`;
+                            actionText = `你交換了 ${submittedTargets[0]} 號與 ${submittedTargets[1]} 號。`;
                         } else {
-                            const map = {
-                                'poison': '毒殺', 'guard': '守護', 'charm': '魅惑', 'fear': '恐懼',
-                                'dream': '攝夢', 'curse': '詛咒', 'hunt': '狩獵', 'crush': '暗戀',
-                                'learn': '學習', 'check': '查驗', 'give_check': '贈與查驗', 
-                                'give_poison': '贈與毒藥', 'give_guard': '贈與守護', 'claw_kill': '發動利爪',
-                                'resurrect': '復活'
+                            const customFormatMap = {
+                                'bloodlust': t => `${t[0]} 號玩家被選為夜僕。`,
+                                'convert': t => `${t[0]} 號玩家被轉化。`,
+                                'dirge': t => `已對 ${t[0]} 號玩家頌唱輓歌。`,
+                                'link': t => `已連繫 ${t.join(' 號與 ')} 號玩家。`,
+                                'sanction': t => `${t[0]} 號玩家被制裁。`,
+                                'mist': t => `未明之霧籠罩了 ${t.join('、')} 號玩家。`,
+                                'buff': t => `你增幅了 ${t[0]} 號玩家。`,
+                                'debuff': t => `你削弱了 ${t[0]} 號玩家。`,
+                                'choose_model': t => `${t[0]} 號玩家為你的榜樣。`,
+                                'choose_hate': t => `${t[0]} 號玩家為你的仇恨目標。`,
+                                'shoot_arrow': t => `你的情侶是 ${t.join(' 號與 ')} 號。`
                             };
-                            let actName = map[myAct.actionId];
-                            if (!actName && myAct.actionId === 'confirm' && ['預言家', '燈影預言家', '魔鏡少女'].includes(player.role)) {
-                                actName = '查驗';
+
+                            if (customFormatMap[myAct.actionId]) {
+                                actionText = customFormatMap[myAct.actionId](submittedTargets);
+                            } else {
+                                const map = {
+                                    'poison': '毒殺', 'guard': '守護', 'charm': '魅惑', 'fear': '恐懼',
+                                    'dream': '攝夢', 'curse': '詛咒', 'hunt': '狩獵', 'crush': '暗戀',
+                                    'learn': '學習', 'check': '查驗', 'give_check': '贈與查驗', 
+                                    'give_poison': '贈與毒藥', 'give_guard': '贈與守護', 'claw_kill': '發動利爪',
+                                    'resurrect': '復活',
+                                    'devour': '吞噬', 'seal': '封鎖', 'bless': '保護', 'confuse': '迷惑'
+                                };
+                                let actName = map[myAct.actionId];
+                                
+                                if (!actName && myAct.actionId === 'confirm' && ['預言家', '燈影預言家', '魔鏡少女'].includes(player.role)) {
+                                    actName = '查驗';
+                                }
+                                if (myAct.actionId === 'charm' && player.role === '吹笛者') {
+                                    actName = '誘引';
+                                }
+                                
+                                actName = actName || '指定';
+                                actionText = `你選擇了${actName} ${submittedTargets.join('、')} 號玩家。`;
                             }
-                            actName = actName || '指定';
-                            actionText = `已選擇${actName} ${submittedTargets.join('、')} 號玩家。`;
                         }
                     }
 
