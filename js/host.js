@@ -733,10 +733,10 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         const isSeenW = typeof pPlugin?.seenAsWolf === 'function' ? pPlugin.seenAsWolf(ctx, p.seatNumber) : !!pPlugin?.seenAsWolf;
 
         if (ctx.phase === 'GAME_OVER' || p.isRevealed || (p.isDead && ctx.rules.deathReveal === 'light')) topTag = pDisplayRole;
-        else if (canSeeW && isSeenW) topTag = pDisplayRole;
         else if (player.data.customTopTags && player.data.customTopTags[p.seatNumber]) topTag = player.data.customTopTags[p.seatNumber];
+        else if (canSeeW && isSeenW) topTag = pDisplayRole;
         
-        if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber]; 
+        if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber];
         else if (player.data.customSideTags && player.data.customSideTags[p.seatNumber]) sideTag = player.data.customSideTags[p.seatNumber];
 
         const isMyAttacker = typeof myPlugin?.isAttacker === 'function' ? myPlugin.isAttacker(ctx, player.seatNumber) : myPlugin?.isAttacker;
