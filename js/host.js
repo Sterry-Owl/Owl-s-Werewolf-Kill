@@ -822,8 +822,8 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                                 'debuff': t => `你削弱了 ${t[0]} 號玩家。`,
                                 'choose_model': t => `${t[0]} 號玩家為你的榜樣。`,
                                 'choose_hate': t => `${t[0]} 號玩家為你的仇恨目標。`,
-                                'shoot_arrow': t => `你的情侶是 ${t.join(' 號與 ')} 號。`
-                                'charm_lover': t => `已與 ${t[0]} 號玩家連結為情侶。`
+                                'shoot_arrow': t => `你的情侶是 ${t.join(' 號與 ')} 號。`,
+                                'charm_lover': t => `已與 ${t[0]} 號玩家連結為情侶。`,
                             };
 
                             if (customFormatMap[myAct.actionId]) {
