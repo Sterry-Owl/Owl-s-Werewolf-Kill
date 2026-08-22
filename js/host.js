@@ -830,10 +830,10 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                             } else {
                                 const map = {
                                     'poison': '毒殺', 'guard': '守護', 'charm': '魅惑', 'fear': '恐懼',
-                                    'dream': '攝夢', 'curse': '詛咒', 'hunt': '狩獵', 'crush': '暗戀',
+                                    'dream': '攝夢', 'curse': '咒詛', 'hunt': '狩獵', 'crush': '暗戀',
                                     'learn': '學習', 'check': '查驗', 'give_check': '贈與查驗', 
                                     'give_poison': '贈與毒藥', 'give_guard': '贈與守護', 'claw_kill': '發動利爪',
-                                    'resurrect': '復活',
+                                    'resurrect': '復活', 'delude': '誘引',
                                     'devour': '吞噬', 'seal': '封鎖', 'bless': '保護', 'confuse': '迷惑'
                                 };
                                 let actName = map[myAct.actionId];
@@ -841,12 +841,9 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                                 if (!actName && myAct.actionId === 'confirm' && ['預言家', '燈影預言家', '魔鏡少女'].includes(player.role)) {
                                     actName = '查驗';
                                 }
-                                if (myAct.actionId === 'charm' && player.role === '吹笛者') {
-                                    actName = '誘引';
-                                }
                                 
                                 actName = actName || '指定';
-                                actionText = `你選擇了${actName} ${submittedTargets.join('、')} 號玩家。`;
+                                actionText = `已選擇${actName} ${submittedTargets.join('、')} 號玩家。`;
                             }
                         }
                     }
