@@ -2516,7 +2516,7 @@ RoleRegistry.register("吹笛者", {
             .map(p => p.seatNumber);
     },
     getButtons: () => [
-        { id: 'charm', text: '確認誘引', requiresTarget: true },
+        { id: 'delude', text: '確認誘引', requiresTarget: true },
         { id: 'pass', text: '跳過', requiresTarget: false }
     ],
     resolveNightAction: (ctx, actions) => {
