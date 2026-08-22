@@ -272,4 +272,5 @@ const ROLE_DICTIONARY = {
     "覺醒狼美人": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "dynamic", prompt: "覺醒狼美人請行動", description:"狼人陣營；不可自爆、不可自刀。每晚可以輓歌一名玩家，但不能連續兩晚發動技能。當自身以任何方式出局時，免疫出局並使輓歌目標代替死亡。若於白天出局將翻牌發動技能。被夜間死亡的覺醒獵人巡獵時，輓歌無效。" },
     "巫妖": { faction: "wolf", type: "wolf", nightPhase: ["first_half", "midnight"], actionType: "dynamic", prompt: "巫妖請行動", description:"狼人陣營；參與襲擊，不可自爆。第一晚必須選擇一名相鄰於「任意參與襲擊的狼人」的玩家成為轉化者。轉化者下一晚起被判定為狼人，勝利條件亦視為狼人。其餘所有狼人皆出局且場上僅剩唯一一名轉化者時，該轉化者失去原有技能並加入狼隊參與襲擊。" },
     "咒狐": { faction: "third_party", type: "special", nightPhase: "none", actionType: "none", prompt: "請努力存活至竊取勝利的一刻", description:"獨立陣營；夜間不死，但被預言家查驗就會死亡。存活至場上狼人或好人勝利時即可竊取他們的勝利，獨自獲勝。" },
+    "魅魔": { faction: "third_party", type: "special", nightPhase: "none", actionType: "none", prompt: "請選擇你要結為情侶的目標", description:"獨立陣營；偽裝成狼人加入狼隊。首夜選擇一名好人玩家與自己連結為情侶。情侶一方死亡另一方殉情。情侶的勝利條件為屠城。當伴侶與魅魔在白天的放逐公投均投給同一個目標且該目標沒有出局時，隔天該玩家出局。 " },
 };
