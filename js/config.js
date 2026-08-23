@@ -119,6 +119,7 @@ const TEMPLATES_FUN = [
     { id: "gungun_8", name: "8人 獵殺潛狼", category: 'fun', playerCount: 6, deck: ["獵人", "獵人", "獵人", "獵人", "獵人", "騎士", "狼王", "狼人"] },
     { id: "gungun_10", name: "10人 獵殺潛狼", category: 'fun', playerCount: 10, deck: ["獵人", "獵人", "獵人", "獵人", "獵人", "獵人", "獵人", "狼人", "狼人", "狼人"] },
     { id: "gungun_12", name: "12人 獵殺潛狼", category: 'fun', playerCount: 12, deck: ["獵人", "獵人", "獵人", "獵人", "獵人", "獵人", "獵人", "獵人", "狼人", "狼人", "狼人", "狼人"] },
+    { id: "whip_6", name: "6人 連連看", category: 'fun', playerCount: 6, deck: ["獵魔人", "獵魔人", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影"] },
     { id: "whip_8", name: "8人 連連看", category: 'fun', playerCount: 8, deck: ["獵魔人", "獵魔人", "獵魔人", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影"] },
     { id: "whip_10", name: "10人 連連看", category: 'fun', playerCount: 10, deck: ["獵魔人", "獵魔人", "獵魔人", "獵魔人", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影"] },
     { id: "survivorstd_7", name: "7人 生還者", category: 'fun', playerCount: 7, deck: ["預言家", "守衛", "女巫", "獵人", "白狼王", "狼人", "平民"] },
