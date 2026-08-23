@@ -262,6 +262,23 @@ window.RoleRegistry = {
                         subtext: "邱比特要竭盡所能幫助情侶"
                     });
                 }
+                
+                // [新增] 魅魔與其伴侶的專屬資訊面板
+                if (context.succubusLovers && context.succubusLovers.includes(player.seatNumber)) {
+                    const partner = context.succubusLovers.find(s => s !== player.seatNumber);
+                    if (player.role === '魅魔') {
+                        infos.push({
+                            text: `你的伴侶是 ${partner} 號`,
+                            subtext: "你們同生共死，淘汰全場其他玩家即可獲勝"
+                        });
+                    } else {
+                        infos.push({
+                            text: `你與魅魔 (${partner} 號) 連結為情侶`,
+                            subtext: "你們同生共死，淘汰全場其他玩家即可獲勝"
+                        });
+                    }
+                }
+                
                 return infos;
             });
         }
