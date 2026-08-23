@@ -941,3 +941,22 @@ button[onclick*="startGame"], #btn-start-game {
     margin-top: 5px;
     font-size: 15px;
 }
+@media (max-height: 750px) {
+    .entry-overlay, #host-control-modal {
+        transform: scale(0.92);
+    }
+}
+
+/* 當螢幕高度小於 680px (如較小的筆電或開啟書籤列) 時，整體縮小至 85% */
+@media (max-height: 680px) {
+    .entry-overlay, #host-control-modal {
+        transform: scale(0.85);
+    }
+}
+
+/* 當螢幕高度極端狹窄 (如小於 600px) 時，整體縮小至 75% */
+@media (max-height: 600px) {
+    .entry-overlay, #host-control-modal {
+        transform: scale(0.75);
+    }
+}
