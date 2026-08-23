@@ -936,11 +936,11 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 
 #rules-page-indicator {
-    padding-bottom: 5px !important;
+    padding-bottom: 3.5px !important;
 }
 
 button[onclick*="startGame"], #btn-start-game {
-    padding: 12px 20px !important;  /* 原本 padding 可能較大，調降為 12px 縮減整體高度 */
+    padding: 9px 20px !important;  /* 原本 padding 可能較大，調降為 12px 縮減整體高度 */
     margin-top: 8px !important;     /* 拉近與分頁箭頭的距離 */
     font-size: 15px !important;     /* 維持良好的字體比例 */
 }
