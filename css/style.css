@@ -826,8 +826,8 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     color: var(--accent-red);
     border-radius: 4px;
     font-size: 10px;
-    padding: 3.5px 9px;
-    margin-top: 2px;
+    padding: 3px 9px;
+    margin-top: 1.5px;
     cursor: pointer;
     pointer-events: auto;
 }
