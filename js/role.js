@@ -763,8 +763,7 @@ RoleRegistry.register("騎士", {
                 ctx.speakingQueue.unshift(ctx.currentSpeaker);
             }
             
-            const isWolf = ROLE_DICTIONARY[targetPlayer.role]?.faction === 'wolf';
-
+            const isWolf = ctx.getDynamicFaction(targetPlayer) === 'wolf';
             if (ctx.pendingDawnDeaths) {
                 const deathMap = ctx.pendingDawnDeaths;
                 ctx.players.forEach(p => {
@@ -1619,10 +1618,7 @@ RoleRegistry.register("奇蹟商人", {
         const tPlayer = ctx.getPlayer(actualTarget);
         
         p.data.hasTraded = true;
-
-        const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
-        const isWolf = ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
-
+        const isWolf = ctx.getDynamicFaction(tPlayer) === 'wolf';
         if (isWolf) {
             ctx.nightTags = ctx.nightTags || {};
             ctx.nightTags.merchantBackfire = p.seatNumber;
@@ -1902,8 +1898,7 @@ RoleRegistry.register("獵魔人", {
             }
 
             const tPlayer = ctx.getPlayer(actualTarget);
-            const checkRole = tPlayer.data.camouflageRole || tPlayer.role;
-            const isWolf = ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
+            const isWolf = ctx.getDynamicFaction(tPlayer) === 'wolf';
 
             if (isWolf) {
                 ctx.nightTags = ctx.nightTags || {};
@@ -2264,20 +2259,7 @@ RoleRegistry.register("定序王子", {
     nightPhase: "second_half",
     actionType: "single_select",
     onNightStart: (ctx, player) => {
-        if (player.data.hasUsedDaySkill && !player.data.hasReceivedPrinceInfo) {
-            let hasWolf = false;
-            if (ctx.exiledHistory) {
-                hasWolf = ctx.exiledHistory.some(seat => {
-                    const targetPlayer = ctx.getPlayer(seat);
-                    if (targetPlayer) {
-                        const checkRole = targetPlayer.data.camouflageRole || targetPlayer.role;
-                        return typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[checkRole]?.faction === 'wolf';
-                    }
-                    return false;
-                });
-            }
-            player.data.princeHasExiledWolf = hasWolf;
-        }
+        // [修改] 拔除舊版遍歷歷史放逐紀錄的髒邏輯，判定已在白天技能發動時完成
     },
     onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
         if (ctx.nightTags?.princeSanctioned) {
@@ -2294,21 +2276,21 @@ RoleRegistry.register("定序王子", {
     },
     getPrompt: (ctx, mySeat) => {
         const p = ctx.getPlayer(mySeat);
-        if (!p.data.princeHasExiledWolf) {
-            return `【被動技能】\n自遊戲開始至今被放逐的目標中，【沒有】狼人。\n你可以選擇制裁一名玩家 (無視防禦擊殺)：`;
+        if (p.data.savedTargetWasGood) {
+            return `【被動技能】\n你發動技能救下的玩家為【好人】。\n你可以選擇制裁一名玩家 (無視防禦擊殺)：`;
         }
-        return `【被動技能】\n自遊戲開始至今被放逐的目標中，【有】狼人。`;
+        return `【被動技能】\n你發動技能救下的玩家為【狼人】(或當日無人被放逐出局)。`;
     },
     getSelectableSeats: (ctx, mySeat) => {
         const p = ctx.getPlayer(mySeat);
-        if (!p.data.princeHasExiledWolf) {
+        if (p.data.savedTargetWasGood) {
             return ctx.getAlivePlayers().filter(x => x.seatNumber !== mySeat).map(x => x.seatNumber);
         }
         return [];
     },
     getButtons: (ctx, mySeat) => {
         const p = ctx.getPlayer(mySeat);
-        if (!p.data.princeHasExiledWolf) {
+        if (p.data.savedTargetWasGood) {
             return [
                 { id: 'sanction', text: '制裁', requiresTarget: true },
                 { id: 'pass', text: '跳過', requiresTarget: false }
@@ -2348,10 +2330,13 @@ RoleRegistry.register("定序王子", {
 
             player.isRevealed = true;
             player.data.hasUsedDaySkill = true; 
+            player.data.savedTargetWasGood = false;
             
             if (ctx.votedOutToday) {
                 const target = ctx.getPlayer(ctx.votedOutToday);
                 if (target && target.isDead && target.deathReason === 'voted') {
+                    player.data.savedTargetWasGood = (ctx.getDynamicFaction(target) !== 'wolf');
+                    
                     target.isDead = false;
                     target.deathReason = null;
                     ctx.players.filter(p => p.role === '尋香魅影').forEach(phantom => {
