@@ -392,7 +392,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     background-color: #1a1a1a; 
     border-radius: 12px;
     padding: 5px;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     gap: 5px;
     width: 100%;
     min-width: 280px; 
@@ -776,10 +776,10 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .board-grid { 
     display: grid; 
     grid-template-columns: repeat(4, 1fr); 
-    grid-auto-rows: 32px; 
-    height: 112px;         
-    gap: 8px; 
-    margin-bottom: 14px; 
+    grid-auto-rows: 28px; /* 降低列高 */
+    height: 96px;         /* 重新計算絕對高度 (3列*28px + 2間距*6px = 96px) */
+    gap: 6px;             /* 縮減間距 */
+    margin-bottom: 10px;  /* 壓縮外距 */
 }
 .board-btn { 
     height: 100%;
@@ -797,9 +797,9 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 
 .rules-grid { 
     display: grid; grid-template-columns: repeat(3, 1fr); 
-    gap: 10px 6px; 
-    min-height: 212px; /* 鎖定網格高度，防止分頁切換時畫面跳動 */
-    align-content: start; /* 確保內容不足時向上對齊 */
+    gap: 6px 6px;       /* 縮小上下間距 */
+    min-height: 185px;  /* 重新計算並維持絕對高度，徹底防止分頁跳動 */
+    align-content: start; 
 }
 .rule-item { 
     display: flex; flex-direction: column; align-items: center; 
@@ -809,7 +809,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 .rule-item label { 
     font-size: 10px; color: #bbb; 
-    margin-bottom: 6px; 
+    margin-bottom: 3px; /* 縮減標題下方空間 */
     font-weight: bold; 
 }
 .rule-item .toggle-group { 
@@ -817,7 +817,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 .rule-item .toggle-option { 
     font-size: 10px; 
-    padding: 4px 0; 
+    padding: 5px 0;     /* 合併並吸收原先位於第552行的分離樣式 */
     border-radius: 3px; 
 }
 #btn-host-settings, #btn-board-details {
@@ -886,13 +886,13 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     padding-bottom: 6px;
 }
 #board-role-preview {
-    height: 52px; /* 若字體加大，請同步調大高度 (例如 56px) */
+    height: 50px; /* 降低固定高度 */
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center; 
     margin-bottom: 4px;
-    font-size: 12px; /* 修改此處的文字大小 */
+    font-size: 12px; 
     line-height: 1.4;
 }
 
@@ -903,10 +903,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     align-items: flex-start; /* 文字內容絕對靠左對齊 */
     width: fit-content;      /* 依據最長的那一行自動撐開寬度 */
 }
-.rules-grid .toggle-option {
-    padding-top: 7px;
-    padding-bottom: 7px;
-}
+
 .global-role-tooltip {
     position: fixed;
     background: rgba(0, 0, 0, 0.9);
@@ -931,16 +928,16 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 #rules-page-indicator, 
 #btn-prev-rules-page, 
 #btn-next-rules-page {
-    margin-top: 5px !important;
-    margin-bottom: 5px !important;
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 #rules-page-indicator {
-    padding-bottom: 3.5px !important;
+    padding-bottom: 3.5px;
 }
 
 button[onclick*="startGame"], #btn-start-game {
-    padding: 9px 20px !important;  /* 原本 padding 可能較大，調降為 12px 縮減整體高度 */
-    margin-top: 4px !important;     /* 拉近與分頁箭頭的距離 */
-    font-size: 14px !important;     /* 維持良好的字體比例 */
+    padding: 9px 20px;
+    margin-top: 4px;
+    font-size: 14px;
 }
