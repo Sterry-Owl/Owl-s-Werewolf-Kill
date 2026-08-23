@@ -440,7 +440,7 @@ RoleRegistry.register("狼人", {
             if (ctx.nightTags.wolfTeamScholarDebuffed) return "【空刀】(狼隊遭受削弱)";
             return "【空刀】(狼隊遭受恐懼)";
         }
-        const allWolfActions = ctx.currentStepActions.filter(act => ROLE_DICTIONARY[act.player.role]?.faction === 'wolf');
+        const allWolfActions = ctx.currentStepActions.filter(act => ctx.getDynamicFaction(act.player) === 'wolf');
         let validTargets = allWolfActions.filter(act => act.actionId !== 'pass' && act.targets.length > 0).map(act => act.targets[0]);
         ctx.nightTags.wolfKillResolvedThisTurn = true; 
         if (validTargets.length === 0) return "空刀";
@@ -4118,9 +4118,10 @@ RoleRegistry.register("魅魔", {
     type: "third_party",
     canSelfExplode: false,
     canSeeWolves: true,
-    seenAsWolf: true,
+    seenAsWolf: false, // [修復核心] 關閉強制曝光，改由 customTopTags 進行偽裝
     seenBySeerAsWolf: true,
     hasWolfChatAccess: true,
+    getFaction: () => 'wolf', // [新增] 動態陣營視為狼人，確保其襲擊票數能被狼隊系統正確計入
     nightPhase: ["first_half", "midnight"],
     nightPriority: 4,
     
