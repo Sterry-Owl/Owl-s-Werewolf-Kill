@@ -410,11 +410,16 @@ function setupEngineFlowControllers() {
     });
 
     Engine.EventBus.on('PROCESS_DAWN', () => {
-        const hasBearInGame = engineContext.players.some(p => p.role === '熊' || (p.role === '機械狼' && p.data.learnedRole === '熊'));
+        // [重構] 透過 Filter 向角色系統詢問熊的咆哮結果
+        // 若回傳 null，代表本局無熊，直接跳過階段
+        const roarText = engineContext.applyFilter('EVALUATE_BEAR_ROAR', null);
 
-        if (hasBearInGame) {
+        if (roarText !== null) {
+            engineContext.bearRoarResult = roarText;
+            engineContext.systemLog = roarText;
             stateMachine.transitionTo('BEAR_ROAR_ANNOUNCE');
         } else {
+            // 無熊則直接進行下一個階段分流
             engineContext.bearRoarResult = null;
             if (engineContext.rules.sheriff === 'enabled' && !engineContext.sheriff.seat && !engineContext.sheriff.badgeLost) {
                 if (!engineContext.sheriff.isDelayedElection) stateMachine.transitionTo('SHERIFF_CANDIDACY');
