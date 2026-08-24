@@ -140,7 +140,7 @@ const TEMPLATES_FUN = [
 
 const TEMPLATES_QUICK = [
     { id: "standard_9", name: "9人 標準局", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
-    { id: "change_9", name: "9人 三重變動", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "守衛", "狼人", "狼人", "", "暗戀者", "野孩子", "復仇者"] },
+    { id: "change_9", name: "9人 三重變動", category: 'quick', playerCount: 9, deck: ["預言家", "煉金魔女", "守衛", "狼人", "狼人", "狼人", "暗戀者", "野孩子", "復仇者"] },
     { id: "standard_10", name: "10人 標準局", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_grd_10", name: "10人 狼王守衛", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "守衛", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_mag_10", name: "10人 狼王魔術師", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "魔術師", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
