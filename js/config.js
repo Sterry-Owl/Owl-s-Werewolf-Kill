@@ -92,7 +92,7 @@ const TEMPLATES_TEST = [
     { id: "test-13_6", name: "奇蹟商人(測試)", category: 'test', playerCount: 6, deck: ["女巫", "預言家", "守衛", "奇蹟商人", "狼王", "惡靈騎士"] },
     { id: "test-14_6", name: "無目之夜(測試)", category: 'test', playerCount: 6, deck: ["攝夢人", "女巫", "狼鴉之爪", "狼人", "石像鬼", "隱狼"] },
     { id: "test-15_6", name: "血月獵魔人(測試)", category: 'test', playerCount: 6, deck: ["預言家", "獵魔人", "血月使徒", "狼人", "女巫", "平民"] },
-    { id: "test-16_6", name: "熊河豚(測試)", category: 'test', playerCount: 6, deck: ["熊", "河豚", "狼人", "狼人", "平民", "平民"] },
+    { id: "test-16_6", name: "熊河豚(測試)", category: 'test', playerCount: 6, deck: ["熊", "白貓", "狼人", "狼人", "平民", "平民"] },
     { id: "test-17_6", name: "魅影覺醒預(測試)", category: 'test', playerCount: 6, deck: ["覺醒預言家", "女巫", "尋香魅影", "狼人", "狼人", "獵人"] },
     { id: "test-18_6", name: "永序之輪(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "守衛", "蝕時狼妃", "定序王子", "狼人"] },
     { id: "test-19_6", name: "純白夜影(測試)", category: 'test', playerCount: 6, deck: ["純白之女", "守衛", "狼巫", "狼人", "平民", "平民"] },
