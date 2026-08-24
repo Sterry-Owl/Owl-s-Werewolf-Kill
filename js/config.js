@@ -136,7 +136,7 @@ const TEMPLATES_FUN = [
 
 const TEMPLATES_QUICK = [
     { id: "standard_9", name: "9人 標準局", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民"] },
-    { id: "change_9", name: "9人 三重變動", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "守衛", "狼人", "狼人", "石像鬼", "暗戀者", "野孩子", "復仇者"] },
+    { id: "change_9", name: "9人 三重變動", category: 'quick', playerCount: 9, deck: ["預言家", "女巫", "守衛", "狼人", "狼人", "", "暗戀者", "野孩子", "復仇者"] },
     { id: "standard_10", name: "10人 標準局", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_grd_10", name: "10人 狼王守衛", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "守衛", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_mag_10", name: "10人 狼王魔術師", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "魔術師", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
@@ -218,7 +218,7 @@ const ROLE_DICTIONARY = {
     "白狼王": { faction: "wolf", type: "wolf", nightPhase: "midnight", actionType: "consensus",prompt: "選擇今晚的襲擊目標", description:"可自刀、自爆；自爆時可以擊殺一名玩家。" },
     "騎士": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "", description:"神職；白天放逐發言時可以決鬥一名玩家。被決鬥者為狼人則該狼人出局、進入夜晚。被決鬥者為好人則騎士出局、白天繼續。" },
     "守墓人": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "確認被放逐者的陣營", description:"神職；每晚可以得知前一天被放逐出局者的陣營。" },
-    "石像鬼": { faction: "wolf", type: "wolf", nightPhase: ["first_half", "midnight"], actionType: "dynamic_buttons", prompt: "石像鬼請選擇今晚的查驗目標\n(點擊左右列頭貼以發動技能)", description:"" },
+    "石像鬼": { faction: "wolf", type: "wolf", nightPhase: ["first_half", "midnight"], actionType: "dynamic_buttons", prompt: "石像鬼請選擇今晚的查驗目標\n(點擊左右列頭貼以發動技能)", description:"狼人陣營、不可自爆、不與狼人見面；每晚可以查驗一名玩家的具體身分。其餘狼人死亡後，石像鬼帶刀。" },
     "隱狼": { faction: "wolf", type: "wolf", nightPhase: "midnight", actionType: "single_select", prompt: "", description:"不可自爆、不參與襲擊、但知道所有隊友的號碼；被預言家查驗時顯示為「好人」。" },
     "烏鴉": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚的詛咒對象\n(點擊左右列頭貼以發動技能)", description:"神職；每晚可以詛咒一名玩家，白天放逐投票時，該玩家會被額外計算1票。不可連續兩晚詛咒同一名玩家。" },
     "噩夢之影": { faction: "wolf", type: "wolf", nightPhase: ["first_half", "midnight"], actionType: "dynamic_buttons", prompt: "選擇今晚的恐懼目標\n(點擊左右列頭貼以發動技能)", description:"可自刀、自爆；每晚可以恐懼一名玩家，被恐懼的玩家不可使用技能。若恐懼狼人，整個狼隊都無法刀人。" },
