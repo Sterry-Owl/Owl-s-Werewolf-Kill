@@ -78,6 +78,11 @@ function setupPlayerConnectionListeners(conn) {
                 
                 UI.renderPlayerView(localState, handleSeatSelect, handleActionSubmit, currentActionTarget, false);
                 break;
+            case 'KICKED':
+                // [新增] 接收被踢出封包
+                alert('您已被房主踢出房間。');
+                window.location.reload();
+                break;
         }
     });
 }
@@ -187,6 +192,19 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 wolfChatModal.style.display = 'none';
                 wolfChatModal.classList.add('hidden');
+            }
+        });
+    }
+    const btnLeaveRoom = document.getElementById('btn-leave-room');
+    if (btnLeaveRoom) {
+        btnLeaveRoom.addEventListener('click', () => {
+            if (confirm('確定要退出房間嗎？')) {
+                if (hostConnection) {
+                    hostConnection.send({ type: 'LEAVE_ROOM' });
+                    setTimeout(() => window.location.reload(), 100);
+                } else {
+                    window.location.reload();
+                }
             }
         });
     }
