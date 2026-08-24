@@ -352,11 +352,18 @@ const UI = {
         // [新增] 房主控制列與除錯按鈕顯示邏輯
         const btnHostSettings = document.getElementById('btn-host-settings');
         const btnBoardDetails = document.getElementById('btn-board-details'); // 加入詳情按鈕的 DOM 索引
+        const btnLeaveRoom = document.getElementById('btn-leave-room');
+
+        if (btnLeaveRoom) {
+            // [新增] 僅在大廳階段且非房主時，顯示退出房間按鈕
+            if (state.phase === 'LOBBY' && !state.isLocalHost) btnLeaveRoom.classList.remove('hidden');
+            else btnLeaveRoom.classList.add('hidden');
+        }
 
         if (state.isLocalHost) {
-            // 房主專屬設定按鈕常駐顯示，並隱藏詳情按鈕
+            // [修改] 解除互斥，房主在遊戲開始後同時擁有「房間設定」與「版型詳情」兩個按鈕
             if (btnHostSettings) btnHostSettings.classList.remove('hidden');
-            if (btnBoardDetails) btnBoardDetails.classList.add('hidden');
+            if (btnBoardDetails) btnBoardDetails.classList.remove('hidden');
             
             // 更新 Modal 內的控制按鈕狀態
             const btnHostAction = document.getElementById('btn-local-host-action');
