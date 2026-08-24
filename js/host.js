@@ -296,6 +296,19 @@ function handleIncomingPacket(peerId, data) {
             syncStateToAll();
         }
     }
+    else if (data.type === 'LEAVE_ROOM') {
+        // [新增] 處理玩家主動退出房間
+        if (engineContext.phase === 'LOBBY') {
+            const player = engineContext.getPlayerByPeer(peerId);
+            if (player) {
+                engineContext.players = engineContext.players.filter(p => p.peerId !== peerId);
+                // [防呆] 強制重新分配座號，避免新玩家加入時發生存取碰撞
+                engineContext.players.forEach((p, idx) => p.seatNumber = idx + 1);
+                engineContext.systemLog = `玩家 ${player.name} 已退出房間。`;
+                syncStateToAll();
+            }
+        }
+    }
 }
 
 window.startGame = function(selectedRoles, boardName, rules) {
@@ -1190,8 +1203,26 @@ function getDayBtnCommand(phase) {
     return dict[phase] || "";
 }
 
-window.handleHostCommand = function(cmd) {
-    if (cmd === 'FORCE_NEXT' || cmd === 'FORCE_TIMEOUT') {
+window.handleHostCommand = function(cmd, extraPayload = null) {
+    if (cmd === 'KICK_PLAYER') {
+        // [新增] 房主踢人指令處理
+        if (engineContext.phase !== 'LOBBY') return;
+        const targetSeat = extraPayload;
+        const targetPlayer = engineContext.players.find(p => p.seatNumber === targetSeat);
+        if (targetPlayer) {
+            if (connections[targetPlayer.peerId]) {
+                try { connections[targetPlayer.peerId].send({ type: 'KICKED' }); } catch(e) {}
+                setTimeout(() => { if (connections[targetPlayer.peerId]) connections[targetPlayer.peerId].close(); }, 500);
+            }
+            engineContext.players = engineContext.players.filter(p => p.seatNumber !== targetSeat);
+            // [防呆] 強制重新分配座號
+            engineContext.players.forEach((p, idx) => p.seatNumber = idx + 1);
+            engineContext.systemLog = `已將 ${targetPlayer.name} 踢出房間。`;
+            syncStateToAll();
+        }
+        return;
+    }
+    else if (cmd === 'FORCE_NEXT' || cmd === 'FORCE_TIMEOUT') {
         stateMachine.clearTimer();
         if (stateMachine.currentPhase && stateMachine.currentPhase.onTimeout) stateMachine.currentPhase.onTimeout(engineContext);
     } 
