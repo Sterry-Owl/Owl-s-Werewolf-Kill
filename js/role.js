@@ -332,9 +332,13 @@ window.RoleRegistry = {
                     const rightSeat = ctx.getNextAliveSeat(bearSeat, 1);
                     const lP = ctx.getPlayer(leftSeat);
                     const rP = ctx.getPlayer(rightSeat);
-                    // 轉化者在第一晚結算時仍視為好人，因此排除
                     const isWolf = (p) => p && ctx.getDynamicFaction(p) === 'wolf' && !(p.data.isConverted && ctx.nightCount === 1);
-                    return isWolf(lP) || isWolf(rP);
+                    
+                    const hasRoar = isWolf(lP) || isWolf(rP);
+                    if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                        Engine.EventBus.emit('MASTER_LOG', `【熊判定】左側${leftSeat}號，右側${rightSeat}號，結果：${hasRoar ? '咆哮' : '無咆哮'}`);
+                    }
+                    return hasRoar;
                 };
 
                 const aliveBears = ctx.players.filter(p => !p.isDead && (p.role === '熊' || (p.role === '機械狼' && p.data.machineState === 1 && p.data.learnedRole === '熊')));
@@ -344,6 +348,12 @@ window.RoleRegistry = {
                     const roarStr = hasRoar ? "【熊有咆哮】" : "【熊沒有咆哮】";
                     ctx.bearRoarResult = roarStr;
                     ctx.systemLog = roarStr;
+                } else {
+                    ctx.bearRoarResult = "【熊沒有咆哮】";
+                    ctx.systemLog = "【熊沒有咆哮】";
+                    if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                        Engine.EventBus.emit('MASTER_LOG', `【熊判定】熊已死亡，強制判定為無咆哮`);
+                    }
                 }
             }           
             ctx.players.forEach(p => {
@@ -410,10 +420,18 @@ window.RoleRegistry = {
             } else {
                 context.systemLog = `${player.seatNumber} 號玩家自爆\n天黑請閉眼。`;
             }
+            context.players.forEach(p => {
+                if (p.data.isUntargetable && !p.isDead) {
+                    if (context.nightCount >= p.data.expireNight) {
+                        p.data.isUntargetable = false;
+                        p.kill('skill_expired', context);
+                        context.systemLog += `\n(系統紀錄：因白天提前結束，${p.seatNumber} 號白貓大限已至，跟隨倒牌出局)`;
+                    }
+                }
+            });
 
             Engine.EventBus.emit('CHECK_WIN_CONDITION', context);
             if (context.phase !== 'GAME_OVER') {
-                // [修改] 取消強制入夜，改為寫入 60 秒技能遺言，並設定目的地交由路由接管
                 context.daySkillLastWordsQueue = [player.seatNumber];
                 context.destinationPhase = 'NIGHT_TRANSITION';
                 Engine.EventBus.emit('RESUME_ROUTINE');
@@ -733,8 +751,17 @@ RoleRegistry.register("白狼王", {
             }
 
             ctx.systemLog = `${player.seatNumber} 號玩家是白狼王\n他擊殺了 ${targetSeat} 號玩家，天黑請閉眼。`;
-            Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
+            ctx.players.forEach(p => {
+                if (p.data.isUntargetable && !p.isDead) {
+                    if (ctx.nightCount >= p.data.expireNight) {
+                        p.data.isUntargetable = false;
+                        p.kill('skill_expired', ctx);
+                        ctx.systemLog += `\n(系統紀錄：因白天提前結束，${p.seatNumber} 號白貓大限已至，跟隨倒牌出局)`;
+                    }
+                }
+            });
 
+            Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
             Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
             if (ctx.phase !== 'GAME_OVER') {
                 ctx.daySkillLastWordsQueue = [player.seatNumber];
@@ -775,10 +802,21 @@ RoleRegistry.register("騎士", {
 
             if (isWolf) {
                 targetPlayer.kill('dueled', ctx);
+                let extraLog = '';
+                ctx.players.forEach(p => {
+                    if (p.data.isUntargetable && !p.isDead) {
+                        if (ctx.nightCount >= p.data.expireNight) {
+                            p.data.isUntargetable = false;
+                            p.kill('skill_expired', ctx);
+                            extraLog += `\n(系統紀錄：因白天提前結束，${p.seatNumber} 號白貓大限已至，跟隨倒牌出局)`;
+                        }
+                    }
+                });
+
                 ctx.isResolvingAsync = true;
                 setTimeout(() => {
                     try {
-                        Engine.EventBus.emit('BROADCAST_MESSAGE', `決鬥結束，${targetSeat} 號玩家是狼人\n天黑請閉眼。`);
+                        Engine.EventBus.emit('BROADCAST_MESSAGE', `決鬥結束，${targetSeat} 號玩家是狼人\n天黑請閉眼。` + extraLog);
                         Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
                         if (ctx.phase !== 'GAME_OVER') {
                             ctx.destinationPhase = 'NIGHT_TRANSITION'; 
