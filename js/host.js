@@ -410,26 +410,11 @@ function setupEngineFlowControllers() {
     });
 
     Engine.EventBus.on('PROCESS_DAWN', () => {
-        let bearRoarText = null;
-        const bearPlayer = engineContext.players.find(p => p.role === '熊' && !p.isDead);
-        if (bearPlayer) {
-            const leftSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, -1);
-            const rightSeat = engineContext.getNextAliveSeat(bearPlayer.seatNumber, 1);
-            const isWolf = (p) => {
-                if (!p) return false;
-                const baseFaction = engineContext.getDynamicFaction ? engineContext.getDynamicFaction(p) : ROLE_DICTIONARY[p.role]?.faction;
-                const camoFaction = ROLE_DICTIONARY[p.data.camouflageRole || p.role]?.faction;
-                return baseFaction === 'wolf' || camoFaction === 'wolf';
-            };
-            bearRoarText = (isWolf(engineContext.getPlayer(leftSeat)) || isWolf(engineContext.getPlayer(rightSeat))) 
-                ? "【熊有咆哮】" : "【熊沒有咆哮】";
-            
-            Engine.EventBus.emit('MASTER_LOG', `【熊判定】左側${leftSeat}號，右側${rightSeat}號 ${bearRoarText}`);
-            engineContext.bearRoarResult = bearRoarText;
-            engineContext.systemLog = bearRoarText;
+        const hasBearInGame = engineContext.players.some(p => p.role === '熊' || (p.role === '機械狼' && p.data.learnedRole === '熊'));
+
+        if (hasBearInGame) {
             stateMachine.transitionTo('BEAR_ROAR_ANNOUNCE');
         } else {
-            // 無熊則直接進行下一個階段分流
             engineContext.bearRoarResult = null;
             if (engineContext.rules.sheriff === 'enabled' && !engineContext.sheriff.seat && !engineContext.sheriff.badgeLost) {
                 if (!engineContext.sheriff.isDelayedElection) stateMachine.transitionTo('SHERIFF_CANDIDACY');
