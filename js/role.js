@@ -185,6 +185,36 @@ window.RoleRegistry = {
                 }
                 return canAct;
             });
+            ctx.addFilter('EVALUATE_BEAR_ROAR', (result, args) => {
+                const hasBearInGame = ctx.players.some(p => p.role === '熊' || (p.role === '機械狼' && p.data.learnedRole === '熊'));
+                if (!hasBearInGame) return null;
+
+                const checkBearRoar = (bearSeat) => {
+                    const leftSeat = ctx.getNextAliveSeat(bearSeat, -1);
+                    const rightSeat = ctx.getNextAliveSeat(bearSeat, 1);
+                    const lP = ctx.getPlayer(leftSeat);
+                    const rP = ctx.getPlayer(rightSeat);
+
+                    const isWolf = (p) => p && ctx.getDynamicFaction(p) === 'wolf';
+                    const hasRoar = isWolf(lP) || isWolf(rP);
+                    
+                    if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                        Engine.EventBus.emit('MASTER_LOG', `【熊判定】左側${leftSeat}號，右側${rightSeat}號，判定為：${hasRoar ? '有狼' : '無狼'}`);
+                    }
+                    return hasRoar;
+                };
+                const aliveBears = ctx.players.filter(p => !p.isDead && (p.role === '熊' || (p.role === '機械狼' && p.data.machineState === 1 && p.data.learnedRole === '熊')));
+                
+                if (aliveBears.length > 0) {
+                    const hasRoar = aliveBears.some(b => checkBearRoar(b.seatNumber));
+                    return hasRoar ? "【熊有咆哮】" : "【熊沒有咆哮】";
+                } else {
+                    if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                        Engine.EventBus.emit('MASTER_LOG', `【熊判定】熊已死亡，強制判定為無咆哮`);
+                    }
+                    return "【熊沒有咆哮】";
+                }
+            });
 
             // ==========================================
             // [新增] 特殊資訊區域過濾器 (完全收斂角色知識)
@@ -325,37 +355,7 @@ window.RoleRegistry = {
                         p.data.virtualRoles = p.data.virtualRoles.filter(role => role !== '受增幅者');
                     }
                 });
-            }
-            if (payload.phase === 'BEAR_ROAR_ANNOUNCE') {
-                const checkBearRoar = (bearSeat) => {
-                    const leftSeat = ctx.getNextAliveSeat(bearSeat, -1);
-                    const rightSeat = ctx.getNextAliveSeat(bearSeat, 1);
-                    const lP = ctx.getPlayer(leftSeat);
-                    const rP = ctx.getPlayer(rightSeat);
-                    const isWolf = (p) => p && ctx.getDynamicFaction(p) === 'wolf';
-                    
-                    const hasRoar = isWolf(lP) || isWolf(rP);
-                    if (typeof Engine !== 'undefined' && Engine.EventBus) {
-                        Engine.EventBus.emit('MASTER_LOG', `【熊判定】左側${leftSeat}號，右側${rightSeat}號，結果：${hasRoar ? '咆哮' : '無咆哮'}`);
-                    }
-                    return hasRoar;
-                };
-
-                const aliveBears = ctx.players.filter(p => !p.isDead && (p.role === '熊' || (p.role === '機械狼' && p.data.machineState === 1 && p.data.learnedRole === '熊')));
-                
-                if (aliveBears.length > 0) {
-                    const hasRoar = aliveBears.some(b => checkBearRoar(b.seatNumber));
-                    const roarStr = hasRoar ? "【熊有咆哮】" : "【熊沒有咆哮】";
-                    ctx.bearRoarResult = roarStr;
-                    ctx.systemLog = roarStr;
-                } else {
-                    ctx.bearRoarResult = "【熊沒有咆哮】";
-                    ctx.systemLog = "【熊沒有咆哮】";
-                    if (typeof Engine !== 'undefined' && Engine.EventBus) {
-                        Engine.EventBus.emit('MASTER_LOG', `【熊判定】熊已死亡，強制判定為無咆哮`);
-                    }
-                }
-            }           
+            } 
             ctx.players.forEach(p => {
                 const plugin = RoleRegistry.plugins[p.role];
                 if (plugin && typeof plugin.onPhaseChanged === 'function') plugin.onPhaseChanged(ctx, p, payload.phase);
