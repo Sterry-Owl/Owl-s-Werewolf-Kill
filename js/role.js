@@ -222,6 +222,15 @@ window.RoleRegistry = {
             ctx.addFilter('BUILD_SPECIAL_INFOS', (infos, args) => {
                 const { context, player } = args;
                 const currentPhase = context.phase;
+                
+                if (currentPhase === 'BEAR_ROAR_ANNOUNCE' && context.bearRoarResult) {
+                    if (context.bearRoarResult === "【熊有咆哮】") {
+                        infos.push({ text: "熊咆哮了", subtext: "熊的左右兩邊有狼人" });
+                    } else if (context.bearRoarResult === "【熊沒有咆哮】") {
+                        infos.push({ text: "熊沒有咆哮", subtext: "熊的左右兩邊都是好人" });
+                    }
+                }
+
                 const isNightAction = currentPhase === 'NIGHT_ACTION';
                 const stepId = context.nightSequence?.[context.currentNightStepIndex]?.phaseId;
                 const isFirstHalf = isNightAction && stepId === 'first_half';
