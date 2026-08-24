@@ -652,6 +652,14 @@ const UI = {
                 seat.style.cursor = 'pointer';
                 seat.style.pointerEvents = 'auto';
                 seat.addEventListener('click', () => onSeatSelect(p.seatNumber));
+            } else if (state.phase === 'LOBBY' && state.isLocalHost && p.seatNumber !== state.mySeat) {
+                seat.style.cursor = 'pointer';
+                seat.style.pointerEvents = 'auto';
+                seat.addEventListener('click', () => {
+                    if (confirm(`確定要將 ${p.seatNumber} 號玩家 (${p.name}) 踢出房間嗎？`)) {
+                        if (window.handleHostCommand) window.handleHostCommand('KICK_PLAYER', p.seatNumber);
+                    }
+                });
             } else {
                 seat.classList.remove('selectable-target');
                 seat.style.pointerEvents = 'none';
