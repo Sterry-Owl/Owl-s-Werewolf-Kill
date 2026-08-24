@@ -129,6 +129,7 @@ const TEMPLATES_FUN = [
     { id: "lastday_8", name: "8人 末日狂徒", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "騎士", "狼人", "狼人", "狼人", "平民", "平民"] },
     { id: "evening_8", name: "8人 諸神黃昏", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "獵人", "女巫", "白痴", "惡靈騎士", "狼王", "白狼王"] },
     { id: "turn_8", name: "8人 漆黑的棉絮", category: 'fun', playerCount: 8, deck: ["魔鏡少女", "熊", "攝夢人", "巫妖", "隱狼", "平民", "平民", "邱比特"] },
+    { id: "turn_9", name: "9人 漆黑的棉絮", category: 'fun', playerCount: 9, deck: ["魔鏡少女", "熊", "攝夢人", "巫妖", "尋香魅影", "平民", "平民", "平民", "邱比特"] },
     { id: "eveningnew_8", name: "8人 諸神清晨", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "白晝學者", "女巫", "獵人", "狼王", "隱狼", "寂夜導師"] },
     { id: "evening_10", name: "10人 諸神黃昏", category: 'fun', playerCount: 10, deck: ["預言家", "女巫", "獵人", "流光伯爵", "攝夢人", "定序王子", "血月使徒", "狼王", "蝕時狼妃", "蝕日侍女"] },
     { id: "evening_11", name: "11人 諸神黃昏", category: 'fun', playerCount: 11, deck: ["預言家", "女巫", "獵人", "守衛", "白痴", "白狼王", "狼美人", "血月使徒", "平民", "平民", "平民"] },
