@@ -332,7 +332,7 @@ window.RoleRegistry = {
                     const rightSeat = ctx.getNextAliveSeat(bearSeat, 1);
                     const lP = ctx.getPlayer(leftSeat);
                     const rP = ctx.getPlayer(rightSeat);
-                    const isWolf = (p) => p && ctx.getDynamicFaction(p) === 'wolf' && !(p.data.isConverted && ctx.nightCount === 1);
+                    const isWolf = (p) => p && ctx.getDynamicFaction(p) === 'wolf';
                     
                     const hasRoar = isWolf(lP) || isWolf(rP);
                     if (typeof Engine !== 'undefined' && Engine.EventBus) {
