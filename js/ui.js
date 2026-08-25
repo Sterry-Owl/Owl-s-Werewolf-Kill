@@ -497,6 +497,9 @@ const UI = {
                 document.getElementById('role-desc-content').textContent = def ? def.description : '無技能說明。';
                 
                 cardContainer.classList.remove('hidden');
+            } else if (cardContainer) {
+                // [修復 2] 資料驅動視圖：若狀態無身分資料（如退回大廳時），必須明確隱藏卡牌容器，防止狀態殘留
+                cardContainer.classList.add('hidden');
             }
         }
 
