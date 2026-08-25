@@ -354,10 +354,18 @@ const UI = {
         const btnBoardDetails = document.getElementById('btn-board-details'); // 加入詳情按鈕的 DOM 索引
         const btnLeaveRoom = document.getElementById('btn-leave-room');
 
+        const btnRestartGame = document.getElementById('btn-restart-game');
+
         if (btnLeaveRoom) {
-            // [新增] 僅在大廳階段且非房主時，顯示退出房間按鈕
-            if (state.phase === 'LOBBY' && !state.isLocalHost) btnLeaveRoom.classList.remove('hidden');
+            // [新增] 大廳或遊戲結束時且非房主，顯示退出房間按鈕
+            if ((state.phase === 'LOBBY' || state.phase === 'GAME_OVER') && !state.isLocalHost) btnLeaveRoom.classList.remove('hidden');
             else btnLeaveRoom.classList.add('hidden');
+        }
+
+        if (btnRestartGame) {
+            // [新增] 遊戲結束時且為房主，顯示重新開始按鈕
+            if (state.phase === 'GAME_OVER' && state.isLocalHost) btnRestartGame.classList.remove('hidden');
+            else btnRestartGame.classList.add('hidden');
         }
 
         if (state.isLocalHost) {
