@@ -117,7 +117,7 @@ class GameContext {
     }
     
     resetToLobby() {
-        // [重置機制] 僅保留玩家的基本連線資訊，強制清空所有遊戲狀態
+        // [重置機制] 僅保留玩家的基礎物理連線與座位，還原狀態
         this.players.forEach(p => {
             p.role = null;
             p.isDead = false;
@@ -127,6 +127,25 @@ class GameContext {
             p.data = {};
         });
         
+        // [核心修復] 定義引擎原生應有的白名單屬性
+        const coreProperties = [
+            'players', 'rules', 'boardName', 'phase', 'nightCount', 
+            'systemLog', 'routineOrigin', 'deadThisNight', 'voteHistory', 
+            'votes', 'sheriff', 'wolfPreviews', 'pkTargets', 
+            'speakingQueue', 'currentSpeaker', 'speakingDirection',
+            'nightSequence', 'lastWordsTargets', 'exiledHistory', 
+            'nightTags', 'destinationPhase', 'filters'
+        ];
+
+        // 遍歷實體：刪除所有由角色插件外掛的動態屬性 (如 witchState, lovers, charmedSeat 等)，徹底防範舊局狀態殘留
+        Object.keys(this).forEach(key => {
+            // 保留白名單屬性，以及由 initPassives 注入的函式 (如 getDynamicFaction)
+            if (!coreProperties.includes(key) && typeof this[key] !== 'function') {
+                delete this[key];
+            }
+        });
+
+        // 初始化白名單內的狀態回出廠預設值
         this.phase = "LOBBY";
         this.nightCount = 0;
         this.systemLog = "等待遊戲開始...";
@@ -154,7 +173,6 @@ class GameContext {
         this.exiledHistory = [];
         this.nightTags = { killed: [], poisoned: [], witchUsedSaveTonight: false };
         this.destinationPhase = 'DAY_DISCUSSION';
-        // 不清空 this.filters，因為它們是在初始化時註冊的被動技能邏輯
     }
 
     // [修改] 斷線重連身分驗證覆寫
