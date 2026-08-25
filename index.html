@@ -48,13 +48,16 @@
             
                     <div class="header-center" style="display:flex; flex-direction:column; align-items:center; line-height: 1.2;">
                         <div id="dynamic-board-name"></div>
-                        <button id="btn-host-settings" class="hidden">房間設定 ⚙️</button>
-                        <button id="btn-board-details" class="hidden">版型詳情 ℹ️</button>
+                        <div style="display:flex; flex-direction:row; gap:5px; margin-top:2px;">
+                            <button id="btn-host-settings" class="hidden">房間設定 ⚙️</button>
+                            <button id="btn-board-details" class="hidden">版型詳情 ℹ️</button>
+                        </div>
                     </div>
                     
                     <div class="header-right">
                         <span class="role-text">身分：<span id="player-role-name">等待發牌</span></span>
                         <button id="btn-leave-room" class="btn-secondary hidden" style="font-size: 10px; padding: 2px 6px; margin-top: 4px; background: #9e646a; color: white;">退出房間</button>
+                        <button id="btn-restart-game" class="btn-primary hidden" style="font-size: 10px; padding: 2px 6px; margin-top: 4px; background: var(--accent-blue); color: white;">重新開始</button>
                     </div>
                 </div>
                 
