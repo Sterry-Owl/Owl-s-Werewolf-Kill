@@ -1204,7 +1204,17 @@ function getDayBtnCommand(phase) {
 }
 
 window.handleHostCommand = function(cmd, extraPayload = null) {
-    if (cmd === 'KICK_PLAYER') {
+    if (cmd === 'RESTART_GAME') {
+        if (engineContext.phase !== 'GAME_OVER') return;
+        // 1. 清空計時器
+        stateMachine.clearTimer();
+        // 2. 徹底物理清除所有殘留狀態
+        engineContext.resetToLobby();
+        // 3. 全局廣播切換狀態
+        syncStateToAll();
+        return;
+    }
+    else if (cmd === 'KICK_PLAYER') {
         // [新增] 房主踢人指令處理
         if (engineContext.phase !== 'LOBBY') return;
         const targetSeat = extraPayload;
