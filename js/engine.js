@@ -115,6 +115,47 @@ class GameContext {
             if (current < 1) current = totalSeats;
         }
     }
+    
+    resetToLobby() {
+        // [重置機制] 僅保留玩家的基本連線資訊，強制清空所有遊戲狀態
+        this.players.forEach(p => {
+            p.role = null;
+            p.isDead = false;
+            p.deathReason = null;
+            p.isRevealed = false;
+            p.clearTags();
+            p.data = {};
+        });
+        
+        this.phase = "LOBBY";
+        this.nightCount = 0;
+        this.systemLog = "等待遊戲開始...";
+        this.routineOrigin = 'MORNING';
+        this.deadThisNight = [];
+        this.voteHistory = [];
+        this.votes = {};
+        this.sheriff = { 
+            enabled: this.rules.sheriff === 'enabled', 
+            seat: null, 
+            badgeLost: false, 
+            candidates: [], 
+            withdrawn: [], 
+            pkTargets: [],           
+            explodeDelayCount: 0,    
+            tieDelayCount: 0,        
+            isDelayedElection: false 
+        };
+        this.wolfPreviews = {};
+        this.pkTargets = [];
+        this.speakingQueue = [];
+        this.currentSpeaker = null;
+        this.nightSequence = [];
+        this.lastWordsTargets = [];
+        this.exiledHistory = [];
+        this.nightTags = { killed: [], poisoned: [], witchUsedSaveTonight: false };
+        this.destinationPhase = 'DAY_DISCUSSION';
+        // 不清空 this.filters，因為它們是在初始化時註冊的被動技能邏輯
+    }
 
     // [修改] 斷線重連身分驗證覆寫
     addPlayer(peerId, name) { 
