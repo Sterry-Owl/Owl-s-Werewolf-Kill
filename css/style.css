@@ -66,6 +66,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     background: #1c2633; padding: 6px 15px; display: flex; justify-content: space-between; align-items: center;
     font-weight: bold; color: #e0e6ed; border-bottom: 2px solid #0f1620; 
     flex-shrink: 0; z-index: 10; position: relative;
+    min-height: 44px;
 }
 
 .header-left { display: flex; align-items: baseline; gap: 2px; }
