@@ -43,16 +43,17 @@ const HostPlayerLoopback = {
         const ls = HostPlayerLoopback.state;
         if (!ls.actionPanel || !ls.actionPanel.show) return;
         
+        UI.blockActionPanel();
+        HostPlayerLoopback.lockedSignature = `${ls.phase}_${ls.nightStepIndex}`;
+        
         if (actionId === 'SPECIAL_DAY_SKILL_SUBMIT') {
             handleIncomingPacket('LOCAL_HOST', { type: 'DAY_SKILL_SUBMIT', payload: { skillId: extraPayload, target: HostPlayerLoopback.actionTarget.length > 0 ? HostPlayerLoopback.actionTarget[0] : null } });
-            UI.blockActionPanel();
             return; 
         }
+        
         const packetType = ls.actionPanel.submitPacketType || PACKET_TYPE.ACTION_SUBMIT;
         const isPass = (actionId === 'pass' || actionId === 'save' || actionId === 'cancel_day_skill');
         handleIncomingPacket('LOCAL_HOST', { type: packetType, payload: { actionId: actionId, targets: isPass ? [] : HostPlayerLoopback.actionTarget } });
-        HostPlayerLoopback.lockedSignature = `${ls.phase}_${ls.nightStepIndex}`;
-        UI.blockActionPanel();
     }
 };
 
