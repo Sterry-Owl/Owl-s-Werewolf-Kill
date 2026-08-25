@@ -195,6 +195,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    const btnRestartGame = document.getElementById('btn-restart-game');
+    if (btnRestartGame) {
+        btnRestartGame.addEventListener('click', () => {
+            if (confirm('確定要重新開始遊戲嗎？這將重置當前對局的所有狀態。')) {
+                if (window.handleHostCommand) window.handleHostCommand('RESTART_GAME');
+            }
+        });
+    }
+
     const btnLeaveRoom = document.getElementById('btn-leave-room');
     if (btnLeaveRoom) {
         btnLeaveRoom.addEventListener('click', () => {
