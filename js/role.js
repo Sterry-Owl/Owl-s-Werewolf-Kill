@@ -20,24 +20,27 @@ window.RoleRegistry = {
             ctx.getSkillTarget = function(targetSeat, skillType, actorSeat) {
                 let actual = ctx.getActualTarget ? ctx.getActualTarget(targetSeat) : parseInt(targetSeat);
                 
-                // [新增] 狼人陣營發動的所有技能免疫反彈 (包含侍女偷竊的技能)
                 const actor = this.getPlayer(actorSeat);
-                if (actor && this.getDynamicFaction(actor) === 'wolf') {
-                    return actual;
-                }
+                const isWolf = actor && this.getDynamicFaction(actor) === 'wolf';
+                let finalTarget = actual;
 
-                if (this.nightTags && this.nightTags.sealedSeat === actual) {
-                    // [新增] 擴充 'gift' (奇蹟商人的贈禮) 納入反彈清單
-                    if (['check', 'poison', 'guard', 'dream', 'bless', 'curse', 'hunt', 'sanction', 'gift'].includes(skillType)) {
+                if (!isWolf && this.nightTags && this.nightTags.sealedSeat === actual) {
+                    if (['check', 'poison', 'guard', 'dream', 'bless', 'curse', 'hunt', 'sanction', 'gift', 'buff', 'debuff'].includes(skillType)) {
                         const sealer = this.getPlayer(this.nightTags.sealerSeat);
                         if (sealer) sealer.data.sealPermanentlyLost = true;
                         if (typeof Engine !== 'undefined' && Engine.EventBus) {
                             Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】蝕時狼妃封鎖生效，技能反彈至 ${actorSeat} 號`);
                         }
-                        return parseInt(actorSeat);
+                        finalTarget = parseInt(actorSeat);
                     }
                 }
-                return actual;
+
+                if (this.nightTags) {
+                    this.nightTags.skillLog = this.nightTags.skillLog || [];
+                    this.nightTags.skillLog.push({ target: finalTarget, skillType: skillType, actorSeat: parseInt(actorSeat) });
+                }
+
+                return finalTarget;
             };
 
             ctx.getDynamicFaction = function(p) {
@@ -1590,31 +1593,47 @@ RoleRegistry.register("惡靈騎士", {
 
         if (!player.data.hasReflected) {
             let hasTriggeredThisNight = false;
-            ctx.players.forEach(p => {
-                if (!p.isDead && p.data.latestCheckResult) {
-                    // [修復] 預言家的查驗紀錄為原始號碼(供UI顯示)，反傷判定必須動態轉換為實體座位
-                    const checkedActual = ctx.getActualTarget ? ctx.getActualTarget(p.data.latestCheckResult.seat) : p.data.latestCheckResult.seat;
-                    if (checkedActual === player.seatNumber) {
-                        if (RoleRegistry.plugins[p.role]?.isSeer || p.data.latestCheckResult?.isSeerAction) { 
-                            deathMap[p.seatNumber] = 'reflected'; 
-                            ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：惡靈騎士反傷發動，擊殺 ${p.seatNumber} 號)`;
+            
+            if (ctx.nightTags && ctx.nightTags.skillLog) {
+                for (const log of ctx.nightTags.skillLog) {
+                    if (log.target === player.seatNumber) {
+                        const reflectableSkills = ['check', 'poison', 'dream', 'curse', 'hunt', 'sanction', 'buff', 'debuff'];
+                        if (reflectableSkills.includes(log.skillType)) {
+                            const actorPlayer = ctx.getPlayer(log.actorSeat);
+                            if (!actorPlayer || actorPlayer.isDead) continue;
+
+                            if (['buff', 'debuff'].includes(log.skillType)) {
+                                if (ctx.getDynamicFaction(actorPlayer) === 'wolf') continue;
+                            }
+                            deathMap[log.actorSeat] = 'reflected';
+                            ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：惡靈騎士反傷發動，擊殺 ${log.actorSeat} 號)`;
                             hasTriggeredThisNight = true;
+
+                            if (log.skillType === 'curse' && ctx.cursedSeat === player.seatNumber) ctx.cursedSeat = null;
+                            if (log.skillType === 'sanction' && ctx.nightTags.princeSanctioned === player.seatNumber) ctx.nightTags.princeSanctioned = null;
+                            if (log.skillType === 'dream' && calc.dreamed.includes(player.seatNumber)) {
+                                calc.dreamed = calc.dreamed.filter(s => s !== player.seatNumber);
+                            }
+                            if (log.skillType === 'poison' && calc.poisoned.includes(player.seatNumber)) {
+                                calc.poisoned = calc.poisoned.filter(s => s !== player.seatNumber);
+                            }
+                            if (log.skillType === 'hunt' && ctx.nightTags.demonHunterKills && ctx.nightTags.demonHunterKills.includes(player.seatNumber)) {
+                                ctx.nightTags.demonHunterKills = ctx.nightTags.demonHunterKills.filter(s => s !== player.seatNumber);
+                            }
+                            if (log.skillType === 'debuff' && ctx.nightTags.scholarDebuffTarget === player.seatNumber) {
+                                ctx.nightTags.scholarDebuffTarget = null;
+                                ctx.nightTags.wolfTeamScholarDebuffed = false; 
+                            }
+                            if (log.skillType === 'buff') {
+                                player.data.virtualRoles = (player.data.virtualRoles || []).filter(r => r !== '受增幅者');
+                            }
+                            
+                            break;
                         }
                     }
                 }
-            });
-            
-            if (!hasTriggeredThisNight) {
-                const poisonedList = calc.poisoned || [];
-                if (poisonedList.includes(player.seatNumber)) {
-                    const poisonerSeat = ctx.nightTags?.poisonerSeat;
-                    if (poisonerSeat) {
-                        deathMap[poisonerSeat] = 'reflected';
-                        ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：惡靈騎士反傷發動，擊殺投毒者 ${poisonerSeat} 號)`;
-                        hasTriggeredThisNight = true;
-                    }
-                }
             }
+            
             if (hasTriggeredThisNight) player.data.hasReflected = true;
         }
     },
@@ -3454,7 +3473,7 @@ const ScholarMechanics = {
     handleAction: function(ctx, act, isScholar) {
         if (!act || act.actionId === 'pass') return "【保留技能】";
         const target = act.targets[0];
-        const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+        const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, act.actionId, act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
         const tPlayer = ctx.getPlayer(actualTarget);
         
         ctx.nightTags = ctx.nightTags || {};
