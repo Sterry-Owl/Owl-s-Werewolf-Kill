@@ -679,13 +679,23 @@ const UI = {
 
             let tagsHtml = '';
             
-            // 恢復 PK 圓點的無附加 Class 渲染，交由 CSS 統一處理右下角圓周定位
+            // [修改] 狀態標記圖片化 (PK、競選、退水)
+            let stateIconSrc = null;
+            let isPkAnim = false;
+
             if (p.isPKTarget) {
-                tagsHtml += `<div class="pk-dot"></div>`;
+                // 動態判定：警長競選 PK 還是 放逐 PK
+                stateIconSrc = (state.phase && state.phase.includes('SHERIFF')) ? 'electionpk.webp' : 'votedpk.webp';
+                isPkAnim = true;
             } else if (p.isCandidate) {
-                tagsHtml += `<div class="candidate-dot"></div>`;
+                stateIconSrc = 'electioning.webp';
             } else if (p.hasWithdrawn) {
-                tagsHtml += `<div class="candidate-dot withdrawn"></div>`;
+                stateIconSrc = 'bailouted.webp';
+            }
+
+            if (stateIconSrc) {
+                const animClass = isPkAnim ? ' pk-anim' : '';
+                tagsHtml += `<img src="./img/state/${stateIconSrc}" class="state-icon${animClass}" onerror="this.style.display='none';">`;
             }
 
             if (p.topTag) {
@@ -705,9 +715,8 @@ const UI = {
                 tagsHtml += `<div class="side-tag ${alignClass} ${colorClass}">${p.sideTag}</div>`;
             }
 
-            // [修改] 拔除 Inline CSS，改呼叫外部樣式類別
             if (p.isSheriff) {
-                tagsHtml += `<div class="sheriff-diamond"></div>`;
+                tagsHtml += `<img src="./img/state/sheriff.webp" class="state-icon sheriff" onerror="this.style.display='none';">`;
             }
 
             if (p.wolfPreviewTags && p.wolfPreviewTags.length > 0) {
