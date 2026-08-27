@@ -269,7 +269,7 @@ window.RoleRegistry = {
                     const pRole = player.data.camouflageRole || player.role;
                     const pFaction = context.getDynamicFaction(player);
                     const pType = typeof ROLE_DICTIONARY !== 'undefined' ? ROLE_DICTIONARY[pRole]?.type : null;
-                    const buffableRoles = ['預言家', '女巫', '守衛', '獵魔人', '流光伯爵', '攝夢人', '魔鏡少女', '覺醒預言家'];
+                    const buffableRoles = ['預言家', '女巫', '守衛', '獵魔人', '', '攝夢人', '魔鏡少女', '覺醒預言家'];
                     
                     if (player.data.virtualRoles && player.data.virtualRoles.includes('受增幅者')) {
                         if (buffableRoles.includes(pRole) || pFaction === 'wolf') {
@@ -3285,7 +3285,8 @@ RoleRegistry.register("蝕日侍女", {
         return false;
     }
 });
-canSelfExplode: false,
+RoleRegistry.register("流光伯爵", {
+    canSelfExplode: false,
     nightPhase: "second_half",
     actionType: "single_select",
     getPrompt: () => "選擇今晚保佑的目標\n(不可保佑自己，不可連續兩晚保佑同一人)",
