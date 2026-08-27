@@ -226,20 +226,19 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     border: 2px solid #555; position: relative; transition: 0.2s; flex-shrink: 0; overflow: visible; 
 }
 
-/* [替換] 將狀態圓點與 CSS 形狀替換為圖片標籤 */
 .state-icon {
     position: absolute; 
-    top: 85.35%; left: 85.35%; 
+    top: 90%; left: 90%; 
     transform: translate(-50%, -50%);
-    width: 26px; height: 26px; 
+    width: 32px; height: 32px;
     z-index: 18;
     object-fit: contain;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+    filter: drop-shadow(0 3px 5px rgba(0,0,0,0.8)) drop-shadow(0 0 2px rgba(255,255,255,0.4));
 }
 
 .state-icon.sheriff {
-    width: 32px; height: 32px; /* 警長徽章稍微放大以增加氣勢 */
-    z-index: 19; /* 確保警長徽章覆蓋在競選圖示之上 */
+    width: 38px; height: 38px;
+    z-index: 19;
 }
 
 .state-icon.pk-anim {
