@@ -1055,9 +1055,11 @@ RoleRegistry.register("噩夢之影", {
         if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') {
             return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
         }
+        const p = ctx.getPlayer(mySeat);
         return ctx.getAlivePlayers()
-            .filter(p => p.seatNumber !== mySeat && p.seatNumber !== ctx.lastFearedSeat) 
-            .map(p => p.seatNumber); 
+            // [修復] 改為讀取自身專屬的 lastFearedSeat，防止被白天邏輯清空
+            .filter(targetP => targetP.seatNumber !== mySeat && targetP.seatNumber !== p.data.lastFearedSeat) 
+            .map(targetP => targetP.seatNumber); 
     },
     getButtons: (ctx, mySeat) => {
         if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half') {
@@ -1089,12 +1091,16 @@ RoleRegistry.register("噩夢之影", {
         const act = actions[0];
         if (!act || act.actionId === 'pass') {
             unlockWolfVision(); 
+            // [新增] 若選擇跳過，清空自身紀錄
+            if (act && phaseId === 'first_half') act.player.data.lastFearedSeat = null;
             return "【跳過行動】";
         }
         
         if (phaseId === 'first_half' && act.actionId === 'fear') {
             const target = act.targets[0];
-            ctx.fearedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : target;
+            ctx.fearedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+            // [新增] 將紀錄精確寫入自身 data 中
+            act.player.data.lastFearedSeat = parseInt(target);
             
             const tPlayer = ctx.getPlayer(ctx.fearedSeat);
             if (tPlayer) {
@@ -1238,27 +1244,29 @@ RoleRegistry.register("暗戀者", {
         }
         return [{ id: 'pass', text: '確認', requiresTarget: false }];
     },
-    resolveNightAction: (ctx, actions, mySeat) => {
+    resolveNightAction: (ctx, actions) => {
         if (ctx.nightCount > 1 || ctx.crushTarget) return "【無效行動】";
         
         let target;
         const act = actions.find(a => a.actionId === 'crush');
-        
+        // [修復] 解除對未定義 mySeat 的依賴，標準化從 actions 獲取玩家實體
+        const admirerPlayer = act ? act.player : ctx.players.find(p => p.role === '暗戀者' && !p.isDead);
+        if (!admirerPlayer) return "【無效行動】";
+
         if (act && act.targets && act.targets.length > 0) {
             target = act.targets[0];
         } else {
-            const selectable = ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
+            const selectable = ctx.getAlivePlayers().filter(p => p.seatNumber !== admirerPlayer.seatNumber).map(p => p.seatNumber);
             if (selectable.length > 0) target = selectable[Math.floor(Math.random() * selectable.length)];
         }
         
         if (target) {
             ctx.crushTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
-            ctx.admirerSeat = mySeat; 
+            ctx.admirerSeat = admirerPlayer.seatNumber; 
             
-            const admirerPlayer = ctx.getPlayer(mySeat);
-            if (admirerPlayer) {
-                admirerPlayer.data.absoluteVictoryTarget = ctx.crushTarget;
-            }
+            admirerPlayer.data.absoluteVictoryTarget = ctx.crushTarget;
+            admirerPlayer.data.customSideTags = admirerPlayer.data.customSideTags || {};
+            admirerPlayer.data.customSideTags[target] = "暗戀對象";
             
             return `【暗戀: ${target}號】`;
         }
