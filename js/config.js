@@ -137,7 +137,7 @@ const TEMPLATES_FUN = [
     { id: "windlich_10", name: "10人 風聲諜影", category: 'fun', playerCount: 10, deck: ["預言家", "魔鏡少女", "熊", "白貓", "河豚", "攝夢人", "女巫", "巫妖", "機械狼", "暗戀者"] },
     { id: "windlich_12", name: "12人 風聲諜影", category: 'fun', playerCount: 12, deck: ["預言家", "魔鏡少女", "熊", "獵人", "白貓", "河豚", "攝夢人", "女巫", "巫妖", "巫妖", "機械狼", "暗戀者"] },
     { id: "licherking_12", name: "12人 夢語者之夢", category: 'fun', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "攝夢人", "守墓人", "巫妖", "狼王", "狼人", "平民", "平民", "平民", "平民"] },
-    { id: "noeyecit_12", name: "12人 無目之城", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "流光伯爵", "狼人", "狼鴉之爪", "寂夜導師", "蝕日侍女", "平民", "平民", "平民", "平民"] },
+    { id: "noeyecit_12", name: "12人 無目之城", category: 'fun', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "流光伯爵", "狼人", "狼鴉之爪", "寂夜導師", "蝕日侍女", "平民", "平民", "平民", "平民"] },
 ];
 
 const TEMPLATES_QUICK = [
@@ -182,7 +182,7 @@ const TEMPLATES_STANDARD = [
     { id: "wbt_kn_12", name: "12人 狼美人騎士", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "騎士", "守衛", "狼美人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "evkn_12", name: "12人 惡靈騎士", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "惡靈騎士", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "mir_mw_12", name: "12人 魔鏡機械狼", category: 'standard', playerCount: 12, deck: ["魔鏡少女", "女巫", "獵人", "守衛", "機械狼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
-    { id: "lightseer_12", name: "12人 燈影預言家", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "騎士", "守衛", "狼美人", "狼人", "狼人", "狼人", "燈影預言家", "平民", "平民", "平民"] },
+    { id: "lightseer_12", name: "12人 燈影預言家", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "騎士", "白痴", "惡靈騎士", "狼人", "狼人", "狼人", "燈影預言家", "平民", "平民", "平民"] },
     { id: "mirc_12", name: "12人 奇蹟商人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "奇蹟商人", "狼王", "惡靈騎士", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "noeye_12", name: "12人 無目之夜", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "攝夢人", "狼人", "狼鴉之爪", "隱狼", "石像鬼", "平民", "平民", "平民", "平民"] },
     { id: "bloodmoon_12", name: "12人 血月獵魔人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "白痴", "血月使徒", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
