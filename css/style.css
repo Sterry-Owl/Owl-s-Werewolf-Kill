@@ -781,8 +781,8 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .board-grid { 
     display: grid; 
     grid-template-columns: repeat(4, 1fr); 
-    grid-auto-rows: 32px; /* [修改] 單列高度提升至 32px */
-    height: 112px;        /* [新增] 配合 3列x32px + 2間隔x8px，調整總高度防裁切 */
+    grid-auto-rows: 36px; /* [修改] 單列高度提升至 36px */
+    height: 124px;        /* [修改] 配合 3列x36px + 2間距x8px，調整總高度至 124px 防裁切 */
     gap: 8px;      
     margin-bottom: 15px;
 }
@@ -898,7 +898,7 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     flex-direction: column;
     justify-content: center;
     align-items: center; 
-    margin-bottom: 8px;
+    margin-bottom: 0px;
     font-size: 14px;
     line-height: 1.5;
 }
@@ -934,12 +934,17 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 #rules-page-indicator, 
 #btn-prev-rules-page, 
 #btn-next-rules-page {
-    margin-top: 5px;
-    margin-bottom: 5px;
+    margin-top: 0px;
+    margin-bottom: 0px;
 }
 
 #rules-page-indicator {
     padding-bottom: 3.5px;
+}
+
+#board-pagination-controls,
+#rules-pagination-controls {
+    margin-top: 12px !important;
 }
 
 button[onclick*="startGame"], #btn-start-game {
