@@ -785,7 +785,8 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                 actionPanel.show = true;
                 actionPanel.deadline = ctx.deadline;
                 
-                actionPanel.type = typeof plugin.actionType === 'function' ? plugin.actionType(ctx) : plugin.actionType;
+                // [修復] 補齊第二參數 player.seatNumber，避免機械狼/受增幅者等 OCP 插件讀取 mySeat 失敗而崩潰
+                actionPanel.type = typeof plugin.actionType === 'function' ? plugin.actionType(ctx, player.seatNumber) : plugin.actionType;
                 const isAttacker = typeof plugin.isAttacker === 'function' ? plugin.isAttacker(ctx, player.seatNumber) : plugin.isAttacker;
 
                 actionPanel.selectableSeats = plugin.getSelectableSeats(ctx, player.seatNumber);
@@ -796,7 +797,8 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                     const myPreview = ctx.wolfPreviews[player.peerId];
                     if (myPreview && myPreview.target !== 'pass') actionPanel.preSelectedTarget = parseInt(myPreview.target);
                 } else {
-                    actionPanel.preSelectedTarget = plugin.getPreSelectedTarget ? plugin.getPreSelectedTarget(ctx) : null; 
+                    // [修復] 補齊第二參數 player.seatNumber
+                    actionPanel.preSelectedTarget = plugin.getPreSelectedTarget ? plugin.getPreSelectedTarget(ctx, player.seatNumber) : null; 
                 }
 
                 if (hasActed) {
