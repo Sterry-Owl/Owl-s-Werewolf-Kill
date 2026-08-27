@@ -107,6 +107,9 @@ const TEMPLATES_TEST = [
     { id: "test-30_6", name: "巫妖測試(測試)", category: 'test', playerCount: 6, deck: ["預言家", "熊", "狼人", "巫妖", "隱狼", "平民"] },
     { id: "test-31_6", name: "侍女狼妃咒狐(測試)", category: 'test', playerCount: 6, deck: ["奇蹟商人", "獵魔人", "蝕日侍女", "蝕時狼妃", "平民", "咒狐"] },
     { id: "test-32_6", name: "魅魔(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "狼人", "隱狼", "平民", "魅魔"] },
+    { id: "test-ocp-1_6", name: "測試OCP機械狼", category: 'test', playerCount: 7, deck: ["預言家", "女巫", "獵人", "守衛", "攝夢人", "狼人", "機械狼"] },
+    { id: "test-ocp-2_6", name: "測試OCP蝕日侍女", category: 'test', playerCount: 7, deck: ["預言家", "女巫", "獵魔人", "流光伯爵", "攝夢人", "狼人", "蝕日侍女"] },
+    { id: "test-ocp-3_6", name: "測試OCP增幅削弱", category: 'test', playerCount: 7, deck: ["白晝學者", "女巫", "獵魔人", "流光伯爵", "攝夢人", "狼人", "寂夜導師"] },
 ];
 
 const TEMPLATES_FUN = [
