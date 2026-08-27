@@ -134,6 +134,7 @@ const TEMPLATES_FUN = [
     { id: "windlich_10", name: "10人 風聲諜影", category: 'fun', playerCount: 10, deck: ["預言家", "魔鏡少女", "熊", "白貓", "河豚", "攝夢人", "女巫", "巫妖", "機械狼", "暗戀者"] },
     { id: "windlich_12", name: "12人 風聲諜影", category: 'fun', playerCount: 12, deck: ["預言家", "魔鏡少女", "熊", "獵人", "白貓", "河豚", "攝夢人", "女巫", "巫妖", "巫妖", "機械狼", "暗戀者"] },
     { id: "licherking_12", name: "12人 夢語者之夢", category: 'fun', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "攝夢人", "守墓人", "巫妖", "狼王", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "noeyecit_12", name: "12人 無目之城", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "流光伯爵", "狼人", "狼鴉之爪", "寂夜導師", "蝕日侍女", "平民", "平民", "平民", "平民"] },
 ];
 
 const TEMPLATES_QUICK = [
