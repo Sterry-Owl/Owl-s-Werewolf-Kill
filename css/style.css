@@ -51,12 +51,16 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 .host-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 15px; background: #222; padding: 15px; border-radius: 8px; border: 1px dashed #555; }
 
 /* ==================================================== */
-/* 玩家端 4:5 嚴格比例排版 */
+/* 玩家端 9:16 嚴格比例排版 */
 /* ==================================================== */
 
 .player-app-container {
-    display: flex; flex-direction: column; width: 100%; max-width: 420px; 
-    height: 85vh; min-height: 600px; max-height: 750px; 
+    display: flex; flex-direction: column; 
+    width: 100%; 
+    max-width: 420px; 
+    aspect-ratio: 9 / 16;
+    height: auto;
+    max-height: 95vh;
     margin: 0 auto; background: #1a1a1a; border-radius: 12px; overflow: hidden; 
     border: 1px solid var(--border-color); box-shadow: 0 10px 20px rgba(0,0,0,0.5);
     position: relative; 
