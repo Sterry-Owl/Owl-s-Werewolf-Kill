@@ -3285,7 +3285,61 @@ RoleRegistry.register("蝕日侍女", {
         return false;
     }
 });
-
+canSelfExplode: false,
+    nightPhase: "second_half",
+    actionType: "single_select",
+    getPrompt: () => "選擇今晚保佑的目標\n(不可保佑自己，不可連續兩晚保佑同一人)",
+    getSelectableSeats: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        return ctx.getAlivePlayers().filter(x => x.seatNumber !== mySeat && x.seatNumber !== p.data.lastBlessedSeat).map(x => x.seatNumber);
+    },
+    getButtons: () => [{ id: 'bless', text: '保佑', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
+    resolveNightAction: (ctx, actions) => {
+        const act = actions.find(a => a.player.role === '流光伯爵');
+        if (!act || act.actionId === 'pass') {
+            if (act) act.player.data.lastBlessedSeat = null;
+            return "【跳過行動】";
+        }
+        
+        const target = act.targets[0];
+        const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'bless', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
+        ctx.blessedSeat = actualTarget;
+        act.player.data.lastBlessedSeat = parseInt(target);
+        return `【保佑: ${target}號】`;
+    },
+    exportedSkills: {
+        maid: {
+            actionType: "single_select",
+            getPrompt: () => "【吞噬技能: 流光伯爵】選擇保佑目標 (不可保佑自己，不可連續兩晚保佑同一人)",
+            getSelectableSeats: (ctx, mySeat) => {
+                const p = ctx.getPlayer(mySeat);
+                return ctx.getAlivePlayers().filter(x => x.seatNumber !== mySeat && x.seatNumber !== p.data.maidLastBlessedSeat).map(x => x.seatNumber);
+            },
+            getButtons: () => [{ id: 'bless', text: '保佑', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
+            resolve: (ctx, act) => {
+                const target = act.targets[0];
+                const p = act.player;
+                ctx.blessedSeat = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'bless', p.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
+                p.data.maidLastBlessedSeat = parseInt(target);
+                return `【保佑: ${target}號】`;
+            }
+        },
+        buff: {
+            actionType: "single_select",
+            getPrompt: () => "【被動：增幅】\n你獲得了額外的保佑機會(仍不可保佑自己)",
+            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+            getButtons: () => [{ id: 'bless', text: '額外保佑', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
+            resolve: (ctx, act) => {
+                const target = act.targets[0];
+                const p = act.player;
+                const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'bless', p.seatNumber) : parseInt(target);
+                ctx.nightTags = ctx.nightTags || {};
+                ctx.nightTags.buffBlessedSeat = actualTarget;
+                return `【額外保佑: ${target}號】`;
+            }
+        }
+    }
+});
 RoleRegistry.register("煉金魔女", {
     canSelfExplode: false,
     nightPhase: "first_half",
