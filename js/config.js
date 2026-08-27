@@ -165,9 +165,9 @@ const TEMPLATES_QUICK = [
     { id: "starindark_10", name: "10人 暗夜星辰", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "覺醒獵人", "覺醒狼美人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "awakenlich_10", name: "10人 巫妖隱狼", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "奇蹟商人", "巫妖", "隱狼", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "bearphantom_10", name: "10人 熊與魅影", category: 'quick', playerCount: 10, deck: ["熊", "女巫", "守衛", "尋香魅影", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
-    { id: "bloodmoonsp_11", name: "11人 血月吹笛者", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "覺醒愚者", "血月使徒", "狼人", "狼人", "平民", "平民", "平民", "吹笛者"] },
+    { id: "bloodmoonsp_11", name: "11人 血月吹笛者", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "覺醒愚者", "血月使徒", "狼人", "狼人", "平民", "平民", "平民", "平民", "吹笛者"] },
     { id: "theifsp_11", name: "11人 盜賊石像鬼", category: 'quick', playerCount: 11, deck: ["魔鏡少女", "女巫", "獵人", "守衛", "石像鬼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民", "盜賊", ] },
-    { id: "mixersp_11", name: "11人 狼巫暗戀者", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "魔術師", "狼巫", "狼人", "狼人", "平民", "平民", "平民", "暗戀者"] },
+    { id: "mixersp_11", name: "11人 狼巫暗戀者", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "守墓人", "魔術師", "狼巫", "狼王", "狼人", "平民", "平民", "平民", "暗戀者"] },
     { id: "seedsp_11", name: "11人 巫妖標準局", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "定序王子", "守衛", "巫妖", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
 ];
 
