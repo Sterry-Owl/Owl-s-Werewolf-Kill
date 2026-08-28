@@ -230,16 +230,15 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
     position: absolute; 
     top: 85.35%; left: 85.35%; 
     transform: translate(-50%, -50%);
-    width: 26px; height: 26px;
+    width: 20px; height: 20px;
     z-index: 18;
     object-fit: contain;
-    padding: 3px; 
-    box-sizing: border-box;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); /* 僅保留基本物理陰影 */
+    border-radius: 50%;
 }
 
 .state-icon.sheriff {
-    width: 28px; height: 28px;
+    width: 20px; height: 20px; /* 警長徽章維持略大比例 */
     z-index: 19; 
 }
 
@@ -248,9 +247,9 @@ input[type="text"], select { padding: 10px; margin: 8px 0; width: 100%; box-sizi
 }
 
 @keyframes pulse-red {
-    0% { transform: translate(-50%, -50%) scale(0.95); box-shadow: 0 0 0 0 rgba(239, 35, 60, 0.7); }
-    70% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 0 6px rgba(239, 35, 60, 0); }
-    100% { transform: translate(-50%, -50%) scale(0.95); box-shadow: 0 0 0 0 rgba(239, 35, 60, 0); }
+    0% { transform: translate(-50%, -50%); box-shadow: 0 0 0 0 rgba(239, 35, 60, 0.7); }
+    70% { transform: translate(-50%, -50%); box-shadow: 0 0 0 6px rgba(239, 35, 60, 0); }
+    100% { transform: translate(-50%, -50%); box-shadow: 0 0 0 0 rgba(239, 35, 60, 0); }
 }
 
 .top-tag { 
