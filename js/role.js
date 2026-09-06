@@ -272,7 +272,7 @@ window.RoleRegistry = {
                     const pRole = player.data.camouflageRole || player.role;
                     const pFaction = context.getDynamicFaction(player);
                     const pType = typeof ROLE_DICTIONARY !== 'undefined' ? ROLE_DICTIONARY[pRole]?.type : null;
-                    const buffableRoles = ['預言家', '女巫', '守衛', '獵魔人', '', '攝夢人', '魔鏡少女', '覺醒預言家'];
+                    const buffableRoles = ['預言家', '女巫', '守衛', '獵魔人', '攝夢人', '魔鏡少女', '覺醒預言家'];
                     
                     if (player.data.virtualRoles && player.data.virtualRoles.includes('受增幅者')) {
                         if (buffableRoles.includes(pRole) || pFaction === 'wolf') {
@@ -291,7 +291,7 @@ window.RoleRegistry = {
                         infos.push({ text: `你被誘引了，已被誘引者有${charmedList}號`, subtext: "吹笛者誘引存活的所有人將獲勝" });
                     }
                     if (player.role === '吹笛者') {
-                        infos.push({ text: `已被誘引的名單者有${charmedList}號`, subtext: "誘引全場存活玩家即可獲勝" });
+                        infos.push({ text: `已被誘引的玩家有${charmedList}號`, subtext: "誘引全場存活玩家即可獲勝" });
                     }
                 }
                 if (player.role === '暗戀者' && context.crushTarget && context.admirerSeat === player.seatNumber) {
