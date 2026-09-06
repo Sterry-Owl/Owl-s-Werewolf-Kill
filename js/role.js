@@ -325,7 +325,6 @@ window.RoleRegistry = {
                     });
                 }
                 
-                // [新增] 魅魔與其伴侶的專屬資訊面板
                 if (context.succubusLovers && context.succubusLovers.includes(player.seatNumber)) {
                     const partner = context.succubusLovers.find(s => s !== player.seatNumber);
                     if (player.role === '魅魔') {
@@ -340,9 +339,16 @@ window.RoleRegistry = {
                         });
                     }
                 }
+                if (context.knightDuelRecords) {
+                    context.knightDuelRecords.forEach(record => {
+                        infos.push({
+                            text: `${record.knight} 號是騎士`,
+                            subtext: `向 ${record.target} 號發動了決鬥`
+                        });
+                    });
+                }
                 
                 return infos;
-            });
         }
 
         Engine.EventBus.on('START_NIGHT', () => {
@@ -718,7 +724,7 @@ RoleRegistry.register("預言家", {
     actionType: "single_select",
     isSeer: true,
     getPrompt: () => "選擇今晚的查驗目標",
-    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat && !p.data.isDueledGood).map(p => p.seatNumber),
     getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
         const act = actions.find(a => a.player.role === '預言家');
@@ -727,7 +733,6 @@ RoleRegistry.register("預言家", {
         if (act.actionId === 'confirm' && target) {
             const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
             const tPlayer = ctx.getPlayer(actualTarget);
-            // 優先讀取掩護身分 (供機械狼偽裝使用)
             const alignment = ctx.getSeerAlignment(actualTarget);
             act.player.data.seerRecords = act.player.data.seerRecords || {};
             act.player.data.seerRecords[target] = alignment; // (燈影為 fakeAlignment)
@@ -741,7 +746,7 @@ RoleRegistry.register("預言家", {
         maid: {
             actionType: "single_select",
             getPrompt: () => "【吞噬技能: 預言家】選擇查驗目標",
-            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat && !p.data.isDueledGood).map(p => p.seatNumber),
             getButtons: () => [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
             resolve: (ctx, act) => {
                 const target = act.targets[0];
@@ -758,7 +763,7 @@ RoleRegistry.register("預言家", {
         machineWolf: {
             actionType: "single_select",
             getPrompt: () => "【技能: 預言家】選擇查驗目標",
-            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat && !p.data.isDueledGood).map(p => p.seatNumber),
             getButtons: () => [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
             resolve: (ctx, act) => {
                 const target = act.targets[0];
@@ -775,7 +780,7 @@ RoleRegistry.register("預言家", {
         buff: {
             actionType: "single_select",
             getPrompt: () => "【被動：增幅】\n你獲得了額外的查驗機會",
-            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat && !p.data.isDueledGood).map(p => p.seatNumber),
             getButtons: () => [{ id: 'check', text: '額外查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
             resolve: (ctx, act) => {
                 const target = act.targets[0];
@@ -798,7 +803,7 @@ RoleRegistry.register("燈影預言家", {
     actionType: "single_select",
     isSeer: true,
     getPrompt: () => "選擇今晚的查驗目標",
-    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat && !p.data.isDueledGood).map(p => p.seatNumber),
     getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
         const act = actions.find(a => a.player.role === '燈影預言家');
@@ -1022,6 +1027,9 @@ RoleRegistry.register("騎士", {
             const targetPlayer = ctx.getPlayer(targetSeat);
             player.isRevealed = true;
             ctx.systemLog = `${player.seatNumber} 號玩家是騎士，向${targetSeat} 號玩家發起決鬥。`;
+            ctx.knightDuelRecords = ctx.knightDuelRecords || [];
+            ctx.knightDuelRecords.push({ knight: player.seatNumber, target: targetSeat });
+            
             Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
             if (typeof PhaseRegistry !== 'undefined' && PhaseRegistry.sm) {
                 PhaseRegistry.sm.clearTimer();
@@ -1068,6 +1076,7 @@ RoleRegistry.register("騎士", {
                 }, 5000);
             } else {
                 player.kill('dueled', ctx);
+                targetPlayer.data.isDueledGood = true;
                 ctx.isResolvingAsync = true;
                 setTimeout(() => {
                     try {
@@ -1646,7 +1655,7 @@ RoleRegistry.register("魔鏡少女", {
     actionType: "single_select",
     isSeer: true, 
     getPrompt: () => "選擇今晚揭示具體身分的目標",
-    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat && !p.data.isDueledGood).map(p => p.seatNumber),
     getButtons: () => [
         { id: 'confirm', text: '確認', requiresTarget: true }, 
         { id: 'pass', text: '跳過', requiresTarget: false }
@@ -1675,7 +1684,7 @@ RoleRegistry.register("魔鏡少女", {
         maid: {
             actionType: "single_select",
             getPrompt: () => "【吞噬技能: 魔鏡少女】選擇查驗目標",
-            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat && !p.data.isDueledGood).map(p => p.seatNumber),
             getButtons: () => [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
             resolve: (ctx, act) => {
                 const target = act.targets[0];
@@ -1693,7 +1702,7 @@ RoleRegistry.register("魔鏡少女", {
         machineWolf: {
             actionType: "single_select",
             getPrompt: () => "【技能: 魔鏡少女】選擇查驗目標",
-            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat && !p.data.isDueledGood).map(p => p.seatNumber),
             getButtons: () => [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
             resolve: (ctx, act) => {
                 const target = act.targets[0];
@@ -1711,7 +1720,7 @@ RoleRegistry.register("魔鏡少女", {
         buff: {
             actionType: "single_select",
             getPrompt: () => "【被動：增幅】\n你獲得了額外的查驗機會",
-            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat && !p.data.isDueledGood).map(p => p.seatNumber),
             getButtons: () => [{ id: 'check', text: '額外查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
             resolve: (ctx, act) => {
                 const target = act.targets[0];
@@ -2517,7 +2526,7 @@ RoleRegistry.register("覺醒預言家", {
     actionType: "double_select",
     isSeer: true,
     getPrompt: () => "選擇今晚的兩名查驗目標\n(包含自己，可重複選擇)",
-    getSelectableSeats: (ctx) => ctx.getAlivePlayers().map(p => p.seatNumber),
+    getSelectableSeats: (ctx) => ctx.getAlivePlayers().filter(p => !p.data.isDueledGood).map(p => p.seatNumber),
     getButtons: () => [
         { id: 'check', text: '查驗', requiresTarget: true },
         { id: 'pass', text: '跳過', requiresTarget: false }
@@ -2558,7 +2567,7 @@ RoleRegistry.register("覺醒預言家", {
         maid: {
             actionType: "double_select",
             getPrompt: () => "【吞噬技能: 覺醒預言家】選擇兩名查驗目標",
-            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().map(x => x.seatNumber),
+            getSelectableSeats: (ctx) => ctx.getAlivePlayers().filter(p => !p.data.isDueledGood).map(p => p.seatNumber),
             getButtons: () => [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
             resolve: (ctx, act) => {
                 const p = act.player;
@@ -2585,7 +2594,7 @@ RoleRegistry.register("覺醒預言家", {
         buff: {
             actionType: "double_select",
             getPrompt: () => "【被動：增幅】\n你獲得了額外的雙查驗機會",
-            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().map(p => p.seatNumber),
+            getSelectableSeats: (ctx) => ctx.getAlivePlayers().filter(p => !p.data.isDueledGood).map(p => p.seatNumber),
             getButtons: () => [{ id: 'check', text: '額外查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
             resolve: (ctx, act) => {
                 const p = act.player;
@@ -2873,7 +2882,7 @@ RoleRegistry.register("純白之女", {
         }
     },
     getPrompt: () => "選擇今晚揭示具體身分的目標",
-    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat && !p.data.isDueledGood).map(p => p.seatNumber),
     getButtons: () => [
         { id: 'check', text: '查驗', requiresTarget: true }, 
         { id: 'pass', text: '跳過', requiresTarget: false }
