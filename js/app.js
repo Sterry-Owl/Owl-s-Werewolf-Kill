@@ -245,56 +245,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnOpenCompendium = document.getElementById('btn-open-compendium');
     const btnCloseCompendium = document.getElementById('close-compendium-btn');
     const gridCompendium = document.getElementById('compendium-grid');
-    const btnPrevCompendium = document.getElementById('btn-prev-compendium');
-    const btnNextCompendium = document.getElementById('btn-next-compendium');
-    const indicatorCompendium = document.getElementById('compendium-page-indicator');
 
-    let currentCompendiumPage = 0;
-    const ROLES_PER_PAGE = 6; // 3 橫列 x 2 欄
     let activeExpandedRole = null;
     let allRolesList = [];
 
     if (btnOpenCompendium && compendiumModal) {
         btnOpenCompendium.addEventListener('click', () => {
-            // 動態提取字典，排除掉不可見的內部標籤
             allRolesList = Object.keys(ROLE_DICTIONARY).map(role => ({
                 name: role,
                 ...ROLE_DICTIONARY[role]
             }));
-            currentCompendiumPage = 0;
-            renderCompendiumPage();
+            renderCompendium();
             compendiumModal.classList.remove('hidden');
         });
 
         btnCloseCompendium.addEventListener('click', () => {
             compendiumModal.classList.add('hidden');
         });
-
-        btnPrevCompendium.addEventListener('click', () => {
-            if (currentCompendiumPage > 0) {
-                currentCompendiumPage--;
-                renderCompendiumPage();
-            }
-        });
-
-        btnNextCompendium.addEventListener('click', () => {
-            const totalPages = Math.ceil(allRolesList.length / ROLES_PER_PAGE);
-            if (currentCompendiumPage < totalPages - 1) {
-                currentCompendiumPage++;
-                renderCompendiumPage();
-            }
-        });
     }
 
-    function renderCompendiumPage() {
+    function renderCompendium() {
         gridCompendium.innerHTML = '';
         activeExpandedRole = null;
 
-        const start = currentCompendiumPage * ROLES_PER_PAGE;
-        const end = start + ROLES_PER_PAGE;
-        const pageRoles = allRolesList.slice(start, end);
-
-        pageRoles.forEach((roleData, idx) => {
+        // [修改] 拔除分頁邏輯，直接渲染所有角色
+        allRolesList.forEach((roleData, idx) => {
             const card = document.createElement('div');
             card.className = 'compendium-card';
             
@@ -306,16 +281,17 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             
             card.addEventListener('click', () => {
-                handleCompendiumCardClick(roleData, card, idx, pageRoles.length);
+                // 將全體陣列長度作為最後一個參數傳入，維持擴展面板定位相容性
+                handleCompendiumCardClick(roleData, card, idx, allRolesList.length);
+                
+                // [優化] 當點擊展開時，讓該卡牌平滑滾動至可視範圍中央，提升 UX
+                setTimeout(() => {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 50);
             });
 
             gridCompendium.appendChild(card);
         });
-
-        const totalPages = Math.ceil(allRolesList.length / ROLES_PER_PAGE);
-        indicatorCompendium.textContent = `${currentCompendiumPage + 1} / ${totalPages}`;
-        btnPrevCompendium.disabled = currentCompendiumPage === 0;
-        btnNextCompendium.disabled = currentCompendiumPage >= totalPages - 1;
     }
 
     function handleCompendiumCardClick(roleData, cardElement, idx, totalItemsOnPage) {
