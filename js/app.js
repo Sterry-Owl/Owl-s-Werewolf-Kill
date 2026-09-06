@@ -346,9 +346,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <div>${roleData.description || '無技能說明。'}</div>
         `;
 
-        // 【空間運算】計算插入位置，保證面板出現在該橫列的正下方
-        const rowStartIndex = Math.floor(idx / 2) * 2;
-        const rowEndIndex = rowStartIndex + 1;
+        // 【空間運算】動態適配 3 欄式網格，精準定位至該橫列的最後一個元素
+        const COLUMNS = 3;
+        const rowStartIndex = Math.floor(idx / COLUMNS) * COLUMNS;
+        const rowEndIndex = rowStartIndex + (COLUMNS - 1);
         
         const cards = Array.from(gridCompendium.querySelectorAll('.compendium-card'));
         const insertAfterIndex = Math.min(rowEndIndex, cards.length - 1);
