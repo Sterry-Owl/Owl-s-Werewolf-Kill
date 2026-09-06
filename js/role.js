@@ -349,7 +349,8 @@ window.RoleRegistry = {
                 }
                 
                 return infos;
-        });
+            });
+        }
 
         Engine.EventBus.on('START_NIGHT', () => {
             if (ctx) {
