@@ -1024,7 +1024,7 @@ button[onclick*="startGame"], #btn-start-game {
 
 /* 擴展的技能說明區塊 */
 .compendium-detail {
-    grid-column: span 2; /* 強制橫跨兩欄 */
+    grid-column: span 3; /* 強制橫跨兩欄 */
     background: #1a1a1a;
     border-left: 3px solid var(--wolf-yellow);
     padding: 10px 12px;
