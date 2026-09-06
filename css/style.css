@@ -961,3 +961,65 @@ button[onclick*="startGame"], #btn-start-game {
         transform: scale(0.75);
     }
 }
+/* =========================================
+   全角色圖鑑 (Compendium)
+   ========================================= */
+.compendium-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    align-content: start; /* 確保內容靠上對齊，下方留白給擴展空間 */
+}
+
+.compendium-card {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 10px 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.compendium-card:active { transform: scale(0.96); }
+.compendium-card.active {
+    border-color: var(--wolf-yellow);
+    background: rgba(209, 171, 90, 0.15);
+}
+
+.compendium-card img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+}
+
+.compendium-card .role-name {
+    font-size: 11px;
+    font-weight: bold;
+    color: #ddd;
+}
+
+/* 擴展的技能說明區塊 */
+.compendium-detail {
+    grid-column: span 2; /* 強制橫跨兩欄 */
+    background: #1a1a1a;
+    border-left: 3px solid var(--wolf-yellow);
+    padding: 10px 12px;
+    font-size: 11px;
+    color: #bbb;
+    line-height: 1.5;
+    border-radius: 4px;
+    animation: fadeInDown 0.2s ease-out forwards;
+    transform-origin: top;
+    text-align: justify;
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: scaleY(0.8); }
+    to { opacity: 1; transform: scaleY(1); }
+}
