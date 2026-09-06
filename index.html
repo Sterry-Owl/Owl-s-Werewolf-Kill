@@ -26,14 +26,16 @@
                     <button id="btn-create-room" style="width: 100%; margin-top: 10px;">建立房間</button>
                 </div>
                 
-                <div class="entry-box">
-                    <h3 class="entry-box-title" style="color: var(--accent-green);">加入房間</h3>
-                    <input type="text" id="input-room-id" placeholder="請輸入房間代碼">
-                    <input type="text" id="input-player-name" placeholder="請輸入暱稱">
-                    <button id="btn-join-room" class="btn-success" style="width: 100%; margin-top: 10px;">加入房間</button>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div class="entry-box">
+                        <h3 class="entry-box-title" style="color: var(--accent-green);">加入房間</h3>
+                        <input type="text" id="input-room-id" placeholder="請輸入房間代碼">
+                        <input type="text" id="input-player-name" placeholder="請輸入暱稱">
+                        <button id="btn-join-room" class="btn-success" style="width: 100%; margin-top: 10px;">加入房間</button>
+                    </div>
+                    
+                    <button id="btn-open-compendium" class="btn-secondary" style="width: 100%; background: #3a4a5a; color: #e0e6ed;">全角色圖鑑</button>
                 </div>
-
-                <button id="btn-open-compendium" class="btn-secondary" style="width: 100%; margin-top: 15px; background: #3a4a5a; color: #e0e6ed;">全角色圖鑑</button>
             </div>
             
             <div id="compendium-modal" class="hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 4000; background: rgba(15, 15, 15, 0.98); display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box;">
