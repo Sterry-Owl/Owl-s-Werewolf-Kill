@@ -255,6 +255,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 name: role,
                 ...ROLE_DICTIONARY[role]
             }));
+            
+            // [新增] 視圖層動態排序：依據神職 -> 狼人 -> 平民 -> 其餘陣營進行分類
+            const sortWeight = {
+                'god': 1,
+                'wolf': 2,
+                'villager': 3,
+                'third_party': 4,
+                'special': 5
+            };
+            
+            allRolesList.sort((a, b) => {
+                const weightA = sortWeight[a.type] || 99;
+                const weightB = sortWeight[b.type] || 99;
+                return weightA - weightB;
+            });
+
             renderCompendium();
             compendiumModal.classList.remove('hidden');
         });
