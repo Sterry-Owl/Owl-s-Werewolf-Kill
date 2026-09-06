@@ -241,6 +241,133 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('my-card-container')?.addEventListener('click', () => {
         document.getElementById('my-card-flipper')?.classList.toggle('flipped');
     });
+    const compendiumModal = document.getElementById('compendium-modal');
+    const btnOpenCompendium = document.getElementById('btn-open-compendium');
+    const btnCloseCompendium = document.getElementById('close-compendium-btn');
+    const gridCompendium = document.getElementById('compendium-grid');
+    const btnPrevCompendium = document.getElementById('btn-prev-compendium');
+    const btnNextCompendium = document.getElementById('btn-next-compendium');
+    const indicatorCompendium = document.getElementById('compendium-page-indicator');
+
+    let currentCompendiumPage = 0;
+    const ROLES_PER_PAGE = 6; // 3 橫列 x 2 欄
+    let activeExpandedRole = null;
+    let allRolesList = [];
+
+    if (btnOpenCompendium && compendiumModal) {
+        btnOpenCompendium.addEventListener('click', () => {
+            // 動態提取字典，排除掉不可見的內部標籤
+            allRolesList = Object.keys(ROLE_DICTIONARY).map(role => ({
+                name: role,
+                ...ROLE_DICTIONARY[role]
+            }));
+            currentCompendiumPage = 0;
+            renderCompendiumPage();
+            compendiumModal.classList.remove('hidden');
+        });
+
+        btnCloseCompendium.addEventListener('click', () => {
+            compendiumModal.classList.add('hidden');
+        });
+
+        btnPrevCompendium.addEventListener('click', () => {
+            if (currentCompendiumPage > 0) {
+                currentCompendiumPage--;
+                renderCompendiumPage();
+            }
+        });
+
+        btnNextCompendium.addEventListener('click', () => {
+            const totalPages = Math.ceil(allRolesList.length / ROLES_PER_PAGE);
+            if (currentCompendiumPage < totalPages - 1) {
+                currentCompendiumPage++;
+                renderCompendiumPage();
+            }
+        });
+    }
+
+    function renderCompendiumPage() {
+        gridCompendium.innerHTML = '';
+        activeExpandedRole = null;
+
+        const start = currentCompendiumPage * ROLES_PER_PAGE;
+        const end = start + ROLES_PER_PAGE;
+        const pageRoles = allRolesList.slice(start, end);
+
+        pageRoles.forEach((roleData, idx) => {
+            const card = document.createElement('div');
+            card.className = 'compendium-card';
+            
+            const baseRoleName = roleData.name.split(/[-()]/)[0].trim();
+            
+            card.innerHTML = `
+                <img src="./img/${baseRoleName}.webp" onerror="this.onerror=null; this.src='./img/back.webp';">
+                <div class="role-name">${roleData.name}</div>
+            `;
+            
+            card.addEventListener('click', () => {
+                handleCompendiumCardClick(roleData, card, idx, pageRoles.length);
+            });
+
+            gridCompendium.appendChild(card);
+        });
+
+        const totalPages = Math.ceil(allRolesList.length / ROLES_PER_PAGE);
+        indicatorCompendium.textContent = `${currentCompendiumPage + 1} / ${totalPages}`;
+        btnPrevCompendium.disabled = currentCompendiumPage === 0;
+        btnNextCompendium.disabled = currentCompendiumPage >= totalPages - 1;
+    }
+
+    function handleCompendiumCardClick(roleData, cardElement, idx, totalItemsOnPage) {
+        const existingDetail = gridCompendium.querySelector('.compendium-detail');
+        const isClickingActive = activeExpandedRole === roleData.name;
+
+        // 重置所有卡片狀態
+        gridCompendium.querySelectorAll('.compendium-card').forEach(c => c.classList.remove('active'));
+
+        if (existingDetail) {
+            existingDetail.remove();
+        }
+
+        // 若點擊的是已展開的卡片，則僅收合，不生成新面板
+        if (isClickingActive) {
+            activeExpandedRole = null;
+            return; 
+        }
+
+        activeExpandedRole = roleData.name;
+        cardElement.classList.add('active');
+
+        // 生成新的橫跨面板
+        const detail = document.createElement('div');
+        detail.className = 'compendium-detail';
+        
+        let factionStr = "";
+        if (roleData.faction === 'wolf') factionStr = '🐺 狼人陣營';
+        else if (roleData.faction === 'good') factionStr = '🛡️ 好人陣營';
+        else if (roleData.faction === 'third_party') factionStr = '🎭 第三方陣營';
+        
+        detail.innerHTML = `
+            <div style="color: var(--wolf-yellow); font-size: 13px; font-weight: bold; margin-bottom: 6px; border-bottom: 1px solid #444; padding-bottom: 4px;">
+                ${roleData.name} <span style="font-size:10px; color:#888; margin-left:5px;">${factionStr}</span>
+            </div>
+            <div>${roleData.description || '無技能說明。'}</div>
+        `;
+
+        // 【空間運算】計算插入位置，保證面板出現在該橫列的正下方
+        const rowStartIndex = Math.floor(idx / 2) * 2;
+        const rowEndIndex = rowStartIndex + 1;
+        
+        const cards = Array.from(gridCompendium.querySelectorAll('.compendium-card'));
+        const insertAfterIndex = Math.min(rowEndIndex, cards.length - 1);
+        const insertAfterElement = cards[insertAfterIndex];
+
+        if (insertAfterElement.nextSibling) {
+            gridCompendium.insertBefore(detail, insertAfterElement.nextSibling);
+        } else {
+            gridCompendium.appendChild(detail);
+        }
+    }
 });
 // === PWA Service Worker 註冊 ===
 if ('serviceWorker' in navigator) {
