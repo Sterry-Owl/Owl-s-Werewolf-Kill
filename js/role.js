@@ -476,7 +476,7 @@ window.RoleRegistry = {
             }
         });
     }
-});
+};
 
 RoleRegistry.register("狼人", {
     canSelfExplode: true,
