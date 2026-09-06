@@ -335,13 +335,13 @@ document.addEventListener('DOMContentLoaded', () => {
         detail.className = 'compendium-detail';
         
         let factionStr = "";
-        if (roleData.faction === 'wolf') factionStr = '🐺 狼人陣營';
-        else if (roleData.faction === 'good') factionStr = '🛡️ 好人陣營';
-        else if (roleData.faction === 'third_party') factionStr = '🎭 第三方陣營';
+        if (roleData.faction === 'wolf') factionStr = '狼人陣營';
+        else if (roleData.faction === 'good') factionStr = '好人陣營';
+        else if (roleData.faction === 'third_party') factionStr = '第三方陣營';
         
         detail.innerHTML = `
-            <div style="color: var(--wolf-yellow); font-size: 13px; font-weight: bold; margin-bottom: 6px; border-bottom: 1px solid #444; padding-bottom: 4px;">
-                ${roleData.name} <span style="font-size:10px; color:#888; margin-left:5px;">${factionStr}</span>
+            <div style="color: var(--wolf-yellow); font-size: 16px; font-weight: bold; margin-bottom: 6px; border-bottom: 1px solid #444; padding-bottom: 4px;">
+                ${roleData.name} <span style="font-size:12px; color:#888; margin-left:5px;">${factionStr}</span>
             </div>
             <div>${roleData.description || '無技能說明。'}</div>
         `;
