@@ -1017,7 +1017,7 @@ button[onclick*="startGame"], #btn-start-game {
 }
 
 .compendium-card .role-name {
-    font-size: 16px; /* [修改] 加大字體配合卡牌比例 */
+    font-size: 12px; /* [修改] 加大字體配合卡牌比例 */
     font-weight: bold;
     color: #ddd;
 }
@@ -1028,7 +1028,7 @@ button[onclick*="startGame"], #btn-start-game {
     background: #1a1a1a;
     border-left: 3px solid var(--wolf-yellow);
     padding: 10px 12px;
-    font-size: 11px;
+    font-size: 14px;
     color: #bbb;
     line-height: 1.5;
     border-radius: 4px;
