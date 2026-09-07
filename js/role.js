@@ -1150,12 +1150,7 @@ RoleRegistry.register("石像鬼", {
     canSelfExplode: false,
     canSeeWolves: false,
     seenAsWolf: false,
-    isAttacker: (ctx, mySeat) => {
-        const step = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
-        if (step !== 'midnight') return false;
-        const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
-        return otherWolves.length === 0;
-    },   
+    isAttacker: (ctx, mySeat) => { const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat); return otherWolves.length === 0; },
     nightPhase: ["first_half", "midnight"], 
     actionType: "dynamic_buttons",
     hasAction: (ctx, mySeat) => {
@@ -1210,12 +1205,7 @@ RoleRegistry.register("隱狼", {
     canSelfExplode: false,
     canSeeWolves: true,
     seenAsWolf: false,
-    isAttacker: (ctx, mySeat) => {
-        const step = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
-        if (step !== 'midnight') return false;
-        const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
-        return otherWolves.length === 0;
-    },
+    isAttacker: (ctx, mySeat) => { const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat); return otherWolves.length === 0; },
     onNightStart: (ctx, player) => {
         // [擴充：弱化1] 若規則設定為弱隱狼，直接中斷執行，失去看見隊友的功能
         if (ctx.rules?.hiddenWolfType === 'weak') return;
@@ -1296,7 +1286,7 @@ RoleRegistry.register("噩夢之影", {
     hasWolfChatAccess: true,
     nightPhase: ["first_half", "midnight"], 
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half' ? 'single_select' : 'consensus',
-    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
+    isAttacker: true,
     onNightStart: (ctx, player) => {
         if (ctx.nightCount > 1) {
             player.data.customTopTags = player.data.customTopTags || {};
@@ -1385,7 +1375,7 @@ RoleRegistry.register("狼美人", {
     hasWolfChatAccess: true,
     nightPhase: ["midnight", "second_half"], 
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
-    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
+    isAttacker: true,
     getPrompt: (ctx, mySeat) => {
         if (ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight') return "選擇今晚的襲擊目標";
         return "選擇今晚的魅惑目標(不可連續魅惑同一人)";
@@ -2150,8 +2140,7 @@ RoleRegistry.register("狼鴉之爪", {
     
     nightPhase: ["midnight", "second_half"],
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
-    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
-    
+    isAttacker: (ctx, mySeat) => !!ctx.getPlayer(mySeat).data.isAwakened,
     onNightStart: (ctx, player) => {
         const totalWolves = ctx.getAlivePlayers().filter(p => ROLE_DICTIONARY[p.role]?.faction === 'wolf').length;
         if (!player.isDead && !player.data.isAwakened && totalWolves <= 2) {
@@ -3163,12 +3152,7 @@ RoleRegistry.register("蝕日侍女", {
     hasWolfChatAccess: false,
     nightPhase: ["first_half", "midnight", "second_half"],
     nightPriority: 3,
-    isAttacker: (ctx, mySeat) => {
-        const step = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
-        if (step !== 'midnight') return false;
-        const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
-        return otherWolves.length === 0;
-    },
+    isAttacker: (ctx, mySeat) => { const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat); return otherWolves.length === 0; },
     actionType: (ctx, mySeat) => {
         const step = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
         if (step === 'midnight') return 'consensus';
@@ -3714,10 +3698,7 @@ RoleRegistry.register("野孩子", {
     canSeeWolves: (ctx, player) => !!player.data.isEnraged,
     hasWolfChatAccess: (ctx, player) => !!player.data.isEnraged,
     seenBySeerAsWolf: (ctx, seat) => !!ctx.getPlayer(seat).data.isEnraged,
-    isAttacker: (ctx, seat) => {
-        const p = typeof seat === 'object' ? seat : ctx.getPlayer(seat);
-        return !!p.data.isEnraged && ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight';
-    },
+    isAttacker: (ctx, seat) => !!(typeof seat === 'object' ? seat : ctx.getPlayer(seat)).data.isEnraged,
 
     nightPhase: ["first_half", "midnight"],
     nightPriority: 4, 
@@ -3973,7 +3954,7 @@ RoleRegistry.register("夜之貴族", {
     hasWolfChatAccess: true,
     nightPhase: ["first_half", "midnight"],
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
-    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
+    isAttacker: true,
     
     onNightStart: (ctx, player) => {
         if (ctx.nightServantExpireNight && ctx.nightCount > ctx.nightServantExpireNight) {
@@ -4341,7 +4322,7 @@ RoleRegistry.register("巫妖", {
         // 抓出所有具備刀人權限的狼人
         const attackers = ctx.getAlivePlayers().filter(p => {
             const plugin = RoleRegistry.plugins[p.role];
-            return ctx.getDynamicFaction(p) === 'wolf' && (typeof plugin?.isAttacker === 'function' ? plugin.isAttacker(ctx, p.seatNumber) : plugin?.isAttacker);
+            return ctx.getDynamicFaction(p) === 'wolf' && (typeof plugin?.isAttacker === 'function' ? plugin.isAttacker(ctx, p.seatNumber) : !!plugin?.isAttacker);
         });
 
         // 進行物理座位 +1 與 -1 的模數擴展
@@ -4400,7 +4381,7 @@ RoleRegistry.register("巫妖", {
                     tPlayer.data.isConverted = true;
                     ctx.getAlivePlayers().forEach(p => {
                         const plugin = RoleRegistry.plugins[p.role];
-                        const isAttackingWolf = ctx.getDynamicFaction(p) === 'wolf' && (typeof plugin?.isAttacker === 'function' ? plugin.isAttacker(ctx, p.seatNumber) : plugin?.isAttacker);
+                        const isAttackingWolf = ctx.getDynamicFaction(p) === 'wolf' && (typeof plugin?.isAttacker === 'function' ? plugin.isAttacker(ctx, p.seatNumber) : !!plugin?.isAttacker);
                         if (isAttackingWolf) {
                             p.data.customTopTags = p.data.customTopTags || {};
                             p.data.customTopTags[actualTarget] = '轉化者';
@@ -4494,8 +4475,7 @@ RoleRegistry.register("魅魔", {
     getFaction: () => 'wolf', // [新增] 動態陣營視為狼人，確保其襲擊票數能被狼隊系統正確計入
     nightPhase: ["first_half", "midnight"],
     nightPriority: 4,
-    
-    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
+    isAttacker: true,
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'first_half' ? 'single_select' : 'consensus',
 
     onNightStart: (ctx, player) => {
@@ -4618,7 +4598,7 @@ RoleRegistry.register("大野狼", {
     hasWolfChatAccess: true,
     nightPhase: ["midnight", "second_half"],
     nightPriority: 5,
-    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
+    isAttacker: true,
     actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
     
     onOtherPlayerDied: (ctx, observer, deadPlayer, reason) => {
@@ -4700,12 +4680,12 @@ RoleRegistry.register("旅客", {
             let nearestWolves = [];
             
             ctx.getAlivePlayers().forEach(p => {
-                if (ctx.getDynamicFaction(p) === 'wolf') {
-                    const plugin = RoleRegistry.plugins[p.role];
-                    const isAttacker = typeof plugin?.isAttacker === 'function' ? plugin.isAttacker(ctx, p.seatNumber) : plugin?.isAttacker;
-                    if (isAttacker) {
-                        let diff = Math.abs(p.seatNumber - player.seatNumber);
-                        let dist = Math.min(diff, totalSeats - diff);
+                const plugin = RoleRegistry.plugins[p.role];
+                const isAttacker = typeof plugin?.isAttacker === 'function' ? plugin.isAttacker(ctx, p.seatNumber) : !!plugin?.isAttacker;
+                
+                if (ctx.getDynamicFaction(p) === 'wolf' && isAttacker) {
+                    let diff = Math.abs(p.seatNumber - player.seatNumber);
+                    let dist = Math.min(diff, totalSeats - diff);
                         
                         if (dist < minDist) {
                             minDist = dist;
