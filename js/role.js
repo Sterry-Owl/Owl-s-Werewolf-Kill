@@ -284,10 +284,11 @@ window.RoleRegistry = {
                     const pRole = player.data.camouflageRole || player.role;
                     const pFaction = context.getDynamicFaction(player);
                     const pType = typeof ROLE_DICTIONARY !== 'undefined' ? ROLE_DICTIONARY[pRole]?.type : null;
-                    const buffableRoles = ['預言家', '女巫', '守衛', '獵魔人', '攝夢人', '魔鏡少女', '覺醒預言家'];
+                    const basePlugin = RoleRegistry.plugins[pRole];
+                    const hasBuffSkill = !!(basePlugin?.exportedSkills?.buff || pFaction === 'wolf');
                     
                     if (player.data.virtualRoles && player.data.virtualRoles.includes('受增幅者')) {
-                        if (buffableRoles.includes(pRole) || pFaction === 'wolf') {
+                        if (hasBuffSkill) {
                             infos.push({ text: "你受到增幅", subtext: "可以多使用一次自身技能" });
                         }
                     } else if (context.nightTags?.scholarDebuffTarget === player.seatNumber) {
@@ -355,8 +356,15 @@ window.RoleRegistry = {
                     context.knightDuelRecords.forEach(record => {
                         infos.push({
                             text: `${record.knight} 號是騎士`,
-                            subtext: `向 ${record.target} 號發動了決鬥`
+                            subtext: `向 ${record.target} 號發動了決鬥！`
                         });
+                    });
+                }
+                // [新增] 旅客雷達面板推播
+                if (player.role === '旅客' && player.data.touristWolfRadar) {
+                    infos.push({
+                        text: `你察覺到狼人位於 ${player.data.touristWolfRadar.join(' 或 ')} 號座位`,
+                        subtext: "首夜遇襲，追蹤到最近的帶刀狼人"
                     });
                 }
                 
@@ -3297,7 +3305,7 @@ RoleRegistry.register("蝕日侍女", {
     },
     onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
         if (player.data.devouredRole === '咒狐') {
-            const immuneCauses = ['killed', 'poisoned', 'doubledreamed', 'bloodlusted', 'skill_backfire', 'claw_killed', 'reflected'];
+            const immuneCauses = ['killed', 'poisoned', 'doubledreamed', 'bloodlusted', 'skill_backfire', 'claw_killed', 'reflected', 'piercing_killed'];
             if (immuneCauses.includes(deathMap[player.seatNumber])) {
                 delete deathMap[player.seatNumber];
                 if (typeof Engine !== 'undefined' && Engine.EventBus) {
@@ -4439,7 +4447,7 @@ RoleRegistry.register("咒狐", {
             }
         });
         
-        const immuneCauses = ['killed', 'poisoned', 'doubledreamed', 'bloodlusted', 'skill_backfire', 'claw_killed', 'reflected'];
+        const immuneCauses = ['killed', 'poisoned', 'doubledreamed', 'bloodlusted', 'skill_backfire', 'claw_killed', 'reflected', 'piercing_killed'];
         if (immuneCauses.includes(deathMap[player.seatNumber])) {
             delete deathMap[player.seatNumber];
             if (typeof Engine !== 'undefined' && Engine.EventBus) {
@@ -4600,6 +4608,121 @@ RoleRegistry.register("魅魔", {
             return { winner: "第三方陣營 (魅魔)", reason: "魅魔與伴侶成功淘汰全場其他玩家" };
         } else {
             return { preventNormalWin: true };
+        }
+    }
+});
+RoleRegistry.register("大野狼", {
+    canSelfExplode: true,
+    canSeeWolves: true,
+    seenAsWolf: true,
+    hasWolfChatAccess: true,
+    nightPhase: ["midnight", "second_half"],
+    nightPriority: 5,
+    isAttacker: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight',
+    actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
+    
+    onOtherPlayerDied: (ctx, observer, deadPlayer, reason) => {
+        if (ctx.getDynamicFaction(deadPlayer) === 'wolf') {
+            observer.data.lostExtraKill = true;
+        }
+    },
+    
+    hasAction: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        const p = ctx.getPlayer(mySeat);
+        if (step === 'midnight') return true;
+        if (step === 'second_half') return !p.data.lostExtraKill;
+        return false;
+    },
+    
+    getPrompt: (ctx) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return "選擇今晚的襲擊目標";
+        return "【大野狼技能】\n請選擇額外擊殺目標\n若與狼隊襲擊同一目標，能無視守護和解藥)";
+    },
+    
+    getSelectableSeats: (ctx, mySeat) => {
+        if (ctx.nightSequence[ctx.currentNightStepIndex].phaseId === 'midnight') {
+            return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
+        }
+        return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
+    },
+    
+    getButtons: (ctx) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
+        return [{ id: 'kill', text: '額外擊殺', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
+    },
+    
+    resolveNightAction: (ctx, actions) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
+        
+        const act = actions[0];
+        if (!act || act.actionId === 'pass') return "【空刀】";
+        
+        const target = act.targets[0];
+        ctx.nightTags = ctx.nightTags || {};
+        ctx.nightTags.extraKilled = ctx.nightTags.extraKilled || [];
+        ctx.nightTags.extraKilled.push(parseInt(target));
+        ctx.nightTags.bbwTarget = parseInt(target); 
+        
+        return `【額外擊殺: ${target}號】`;
+    },
+    
+    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        if (ctx.nightTags?.bbwTarget && ctx.nightTags?.killed) {
+            if (ctx.nightTags.killed.includes(ctx.nightTags.bbwTarget)) {
+                const actualTarget = ctx.magicianSwap ? ctx.getActualTarget(ctx.nightTags.bbwTarget) : ctx.nightTags.bbwTarget;
+                
+                deathMap[actualTarget] = 'piercing_killed';
+                if (!ctx.nightTags.bbwLogWritten) {
+                    ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：大野狼與狼隊襲擊同一目標，無視護盾擊殺 ${actualTarget} 號)`;
+                    ctx.nightTags.bbwLogWritten = true;
+                }
+            }
+        }
+    }
+});
+
+RoleRegistry.register("旅客", {
+    faction: "good",
+    type: "villager",      
+    nightPhase: "none", 
+    actionType: "none",
+    
+    onDawnDeathEvaluation: (ctx, player, calc, deathMap) => {
+        if (ctx.nightCount === 1 && deathMap[player.seatNumber]) {
+            delete deathMap[player.seatNumber];
+            
+            const totalSeats = ctx.players.length; 
+            let minDist = Infinity;
+            let nearestWolves = [];
+            
+            ctx.getAlivePlayers().forEach(p => {
+                if (ctx.getDynamicFaction(p) === 'wolf') {
+                    const plugin = RoleRegistry.plugins[p.role];
+                    const isAttacker = typeof plugin?.isAttacker === 'function' ? plugin.isAttacker(ctx, p.seatNumber) : plugin?.isAttacker;
+                    if (isAttacker) {
+                        let diff = Math.abs(p.seatNumber - player.seatNumber);
+                        let dist = Math.min(diff, totalSeats - diff);
+                        
+                        if (dist < minDist) {
+                            minDist = dist;
+                            nearestWolves = [p.seatNumber];
+                        } else if (dist === minDist) {
+                            nearestWolves.push(p.seatNumber);
+                        }
+                    }
+                }
+            });
+            
+            player.data.touristWolfRadar = nearestWolves.sort((a,b) => a - b);
+            if (!ctx.nightTags) ctx.nightTags = {};
+            if (!ctx.nightTags.touristLogWritten) {
+                ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：旅客 ${player.seatNumber} 號首夜遭遇致命傷害，發動免死並追蹤帶刀狼人)`;
+                ctx.nightTags.touristLogWritten = true;
+            }
         }
     }
 });
