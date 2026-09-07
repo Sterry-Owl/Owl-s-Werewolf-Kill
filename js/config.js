@@ -268,3 +268,4 @@ const ROLE_DICTIONARY = {
     "魅魔": { faction: "third_party", type: "special", nightPhase: "none", actionType: "none", prompt: "請選擇你要結為情侶的目標", description:"獨立陣營；偽裝成狼人加入狼隊。首夜選擇一名好人玩家與自己連結為情侶。情侶一方死亡另一方殉情。情侶的勝利條件為屠城。當伴侶與魅魔在白天的放逐公投均投給同一個目標且該目標沒有出局時，隔天該玩家出局。" },
     "大野狼": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "dynamic", prompt: "大野狼請行動\n(點擊左右列頭貼以發動技能)", description: "狼人陣營；參與狼隊襲擊。每個後半夜可單獨睜眼額外擊殺一名玩家。當任意狼人出局後，大野狼將此額外擊殺技能。若大野狼選擇的目標與當夜狼隊襲擊的目標相同，將可以無視任何防禦。"},
     "旅客": { faction: "good", type: "villager", nightPhase: "none", actionType: "none", prompt: "", description: "平民陣營；首夜一定不會死亡。若首夜遭遇致命傷害，則會得知距離自己座位最近的帶刀狼人的號碼。若兩側帶刀狼人與自身的距離相同，則會得知兩個號碼。" },
+];
