@@ -1150,7 +1150,10 @@ RoleRegistry.register("石像鬼", {
     canSelfExplode: false,
     canSeeWolves: false,
     seenAsWolf: false,
-    isAttacker: (ctx, mySeat) => { const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat); return otherWolves.length === 0; },
+    isAttacker: (ctx, mySeat) => {
+        const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
+        return otherWolves.length === 0;
+    },
     nightPhase: ["first_half", "midnight"], 
     actionType: "dynamic_buttons",
     hasAction: (ctx, mySeat) => {
@@ -1205,7 +1208,10 @@ RoleRegistry.register("隱狼", {
     canSelfExplode: false,
     canSeeWolves: true,
     seenAsWolf: false,
-    isAttacker: (ctx, mySeat) => { const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat); return otherWolves.length === 0; },
+    isAttacker: (ctx, mySeat) => {
+        const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
+        return otherWolves.length === 0;
+    },
     onNightStart: (ctx, player) => {
         // [擴充：弱化1] 若規則設定為弱隱狼，直接中斷執行，失去看見隊友的功能
         if (ctx.rules?.hiddenWolfType === 'weak') return;
@@ -1341,7 +1347,6 @@ RoleRegistry.register("噩夢之影", {
         const act = actions[0];
         if (!act || act.actionId === 'pass') {
             unlockWolfVision(); 
-            // [新增] 若選擇跳過，清空自身紀錄
             if (act && phaseId === 'first_half') act.player.data.lastFearedSeat = null;
             return "【跳過行動】";
         }
@@ -1349,13 +1354,13 @@ RoleRegistry.register("噩夢之影", {
         if (phaseId === 'first_half' && act.actionId === 'fear') {
             const target = act.targets[0];
             ctx.fearedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
-            // [新增] 將紀錄精確寫入自身 data 中
             act.player.data.lastFearedSeat = parseInt(target);
             
             const tPlayer = ctx.getPlayer(ctx.fearedSeat);
             if (tPlayer) {
                 const tPlugin = RoleRegistry.plugins[tPlayer.role];
-                if (ROLE_DICTIONARY[tPlayer.role]?.faction === 'wolf' && !!tPlugin?.isAttacker) {
+                const isTgtAttacker = typeof tPlugin?.isAttacker === 'function' ? tPlugin.isAttacker(ctx, ctx.fearedSeat) : !!tPlugin?.isAttacker;
+                if (ROLE_DICTIONARY[tPlayer.role]?.faction === 'wolf' && isTgtAttacker) {
                     ctx.nightTags = ctx.nightTags || {};
                     ctx.nightTags.wolfTeamFeared = true;
                 }
@@ -3152,7 +3157,10 @@ RoleRegistry.register("蝕日侍女", {
     hasWolfChatAccess: false,
     nightPhase: ["first_half", "midnight", "second_half"],
     nightPriority: 3,
-    isAttacker: (ctx, mySeat) => { const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat); return otherWolves.length === 0; },
+    isAttacker: (ctx, mySeat) => {
+        const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
+        return otherWolves.length === 0;
+    },
     actionType: (ctx, mySeat) => {
         const step = ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId;
         if (step === 'midnight') return 'consensus';
@@ -3698,7 +3706,10 @@ RoleRegistry.register("野孩子", {
     canSeeWolves: (ctx, player) => !!player.data.isEnraged,
     hasWolfChatAccess: (ctx, player) => !!player.data.isEnraged,
     seenBySeerAsWolf: (ctx, seat) => !!ctx.getPlayer(seat).data.isEnraged,
-    isAttacker: (ctx, seat) => !!(typeof seat === 'object' ? seat : ctx.getPlayer(seat)).data.isEnraged,
+    isAttacker: (ctx, seat) => {
+        const p = typeof seat === 'object' ? seat : ctx.getPlayer(seat);
+        return !!p.data.isEnraged;
+    },
 
     nightPhase: ["first_half", "midnight"],
     nightPriority: 4, 
