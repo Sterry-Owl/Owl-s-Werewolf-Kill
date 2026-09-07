@@ -200,6 +200,7 @@ const TEMPLATES_STANDARD = [
     { id: "starindark_12", name: "12人 暗夜星辰", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "覺醒獵人", "守衛", "覺醒狼美人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "awakendlich_12", name: "12人 巫妖隱狼", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "奇蹟商人", "巫妖", "隱狼", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "bearphantom_12", name: "12人 熊與魅影", category: 'standard', playerCount: 12, deck: ["熊", "女巫", "騎士", "守衛", "尋香魅影", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "bigbadwolf_12", name: "12人 大野狼旅客", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "奇蹟商人", "大野狼", "隱狼", "狼人", "狼人", "旅客", "平民", "平民", "平民"] },
 ];
 
 const BOARD_TEMPLATES = [
