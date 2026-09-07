@@ -135,6 +135,18 @@ window.RoleRegistry = {
                         }
                     }
                 });
+                if (ctx.nightTags?.extraKilled) {
+                    let extraTargets = ctx.nightTags.extraKilled;
+                    if (ctx.magicianSwap) {
+                        extraTargets = extraTargets.map(seat => ctx.getActualTarget(seat));
+                    }
+                    extraTargets.forEach(targetSeat => {
+                        if (!calc.guarded.includes(targetSeat)) {
+                            deathMap[targetSeat] = 'killed';
+                        }
+                    });
+                }
+
                 if (ctx.blessedSeat && ctx.devouredSeat === ctx.blessedSeat && ctx.devourerSeat) {
                     deathMap[ctx.devourerSeat] = 'skill_backfire';
                     if (typeof Engine !== 'undefined' && Engine.EventBus) Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】蝕日侍女吞噬了被保佑的 ${ctx.blessedSeat} 號，遭到流光反噬`);
@@ -533,8 +545,9 @@ RoleRegistry.register("狼人", {
             getButtons: () => [{ id: 'kill', text: '額外襲擊', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
             resolve: (ctx, act) => {
                 const target = act.targets[0];
-                if (!ctx.nightTags) ctx.nightTags = { killed: [], poisoned: [] };
-                ctx.nightTags.killed.push(parseInt(target));
+                ctx.nightTags = ctx.nightTags || {};
+                ctx.nightTags.extraKilled = ctx.nightTags.extraKilled || [];
+                ctx.nightTags.extraKilled.push(parseInt(target));
                 return `【額外襲擊: ${target}號】`;
             }
         },
@@ -545,11 +558,9 @@ RoleRegistry.register("狼人", {
             getButtons: () => [{ id: 'kill', text: '額外襲擊', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
             resolve: (ctx, act) => {
                 const target = act.targets[0];
-                const p = act.player;
-                const finalTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'poison', p.seatNumber) : parseInt(target);
                 ctx.nightTags = ctx.nightTags || {};
-                ctx.nightTags.killed = ctx.nightTags.killed || [];
-                ctx.nightTags.killed.push(finalTarget);
+                ctx.nightTags.extraKilled = ctx.nightTags.extraKilled || [];
+                ctx.nightTags.extraKilled.push(parseInt(target));
                 return `【額外襲擊: ${target}號】`;
             }
         }
