@@ -4705,8 +4705,7 @@ RoleRegistry.register("旅客", {
                             nearestWolves.push(p.seatNumber);
                         }
                     }
-                }
-            });
+                });
             
             player.data.touristWolfRadar = nearestWolves.sort((a,b) => a - b);
             if (!ctx.nightTags) ctx.nightTags = {};
