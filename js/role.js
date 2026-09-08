@@ -210,9 +210,6 @@ window.RoleRegistry = {
                 if (args.context.nightTags?.scholarDebuffTarget === args.player.seatNumber) {
                     if (typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[args.player.role]?.type === 'god') return false;
                 }
-                if (args.context.holyArcherSealedNight === args.context.nightCount) {
-                    if (args.context.getDynamicFaction(args.player) === 'wolf') return false;
-                }
                 return canAct;
             });
             ctx.addFilter('EVALUATE_BEAR_ROAR', (result, args) => {
@@ -511,12 +508,10 @@ RoleRegistry.register("狼人", {
     nightPhase: "midnight",      
     actionType: "consensus",     
     getPrompt: (ctx) => {
-        if (ctx.holyArcherSealedNight === ctx.nightCount) return "【聖靈弓手壓制】\n今晚狼人陣營無法發起襲擊且無法使用技能。";
         if (ctx.nightCount === 1 && ctx.rules.firstNightKill === 'disabled') return "【規則：首夜無刀】\n今晚無法發起襲擊，可使用語音或右下角通訊頻道交流。";
         return "選擇今晚的襲擊目標";
     },
     getSelectableSeats: (ctx, mySeat) => {
-        if (ctx.holyArcherSealedNight === ctx.nightCount) return [];
         if (ctx.nightCount === 1 && ctx.rules.firstNightKill === 'disabled') return [];
         let seats = ctx.getAlivePlayers()
             .filter(p => !RoleRegistry.plugins[p.role]?.immuneToWolfBite)
@@ -528,15 +523,10 @@ RoleRegistry.register("狼人", {
         return seats;
     },
     getButtons: (ctx) => {
-        if (ctx.holyArcherSealedNight === ctx.nightCount) return [{ id: 'pass', text: '確認', requiresTarget: false }];
         if (ctx.nightCount === 1 && ctx.rules.firstNightKill === 'disabled') return [{ id: 'pass', text: '確認', requiresTarget: false }];
         return [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
     },
     resolveNightAction: (ctx, actions) => {
-        if (ctx.holyArcherSealedNight === ctx.nightCount) {
-            ctx.nightTags.wolfKillResolvedThisTurn = true;
-            return "【空刀】(受聖靈弓手壓制)";
-        }
         if (ctx.nightTags.wolfKillResolvedThisTurn) return "已參與狼人陣營襲擊";
         if (ctx.nightTags.wolfTeamFeared || ctx.nightTags.wolfTeamConfused || ctx.nightTags.wolfTeamScholarDebuffed) {
             ctx.nightTags.wolfKillResolvedThisTurn = true;
@@ -4726,61 +4716,4 @@ RoleRegistry.register("旅客", {
             }
         }
     }
-});
-RoleRegistry.register("聖靈弓手", {
-    canSelfExplode: false,
-    onPlayerDied: (ctx, player, reason) => {
-        ctx.holyArcherSealedNight = ctx.nightCount + 1;
-        if (typeof Engine !== 'undefined' && Engine.EventBus) {
-            Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】聖靈弓手 ${player.seatNumber} 號出局，將壓制下一個夜晚的狼人陣營。`);
-        }
-    }
-});
-
-RoleRegistry.register("聖女", {
-    canSelfExplode: false,
-    nightPhase: "first_half", 
-    actionType: "single_select",
-    nightPriority: 2, 
-    hasAction: (ctx, mySeat) => {
-        const p = ctx.getPlayer(mySeat);
-        return ctx.nightCount >= 2 && !p.data.hasPurified;
-    },
-    getPrompt: () => "選擇感化一名玩家 (全局限用一次)\n若目標為狼人將使其失去所有狼人能力",
-    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
-    getButtons: () => [
-        { id: 'purify', text: '感化', requiresTarget: true },
-        { id: 'pass', text: '不發動', requiresTarget: false }
-    ],
-    resolveNightAction: (ctx, actions) => {
-        const act = actions[0];
-        if (!act || act.actionId === 'pass') return "【保留技能】";
-
-        act.player.data.hasPurified = true;
-        const target = act.targets[0];
-        const actualTarget = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
-        const tPlayer = ctx.getPlayer(actualTarget);
-
-        if (ctx.getDynamicFaction(tPlayer) === 'wolf') {
-            tPlayer.data.camouflageRole = tPlayer.data.camouflageRole || tPlayer.role;
-            tPlayer.role = "被感化的狼人";
-            tPlayer.data.customTopTags = {};
-            
-            return `【感化: ${target}號 (感化成功，剝奪能力)】`;
-        } else {
-            return `【感化: ${target}號 (無效)】`;
-        }
-    }
-});
-
-RoleRegistry.register("被感化的狼人", {
-    getFaction: () => 'wolf',
-    getType: () => 'wolf',
-    canSelfExplode: false,
-    canSeeWolves: false,
-    seenAsWolf: true,
-    isAttacker: false,
-    hasWolfChatAccess: false,
-    nightPhase: "none",
-    actionType: "none"
 });
