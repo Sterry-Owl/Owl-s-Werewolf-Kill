@@ -839,6 +839,8 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                                 'choose_hate': t => `${t[0]} 號玩家為你的仇恨目標。`,
                                 'shoot_arrow': t => `你的情侶是 ${t.join(' 號與 ')} 號。`,
                                 'charm_lover': t => `已與 ${t[0]} 號玩家連結為情侶。`,
+                                'warcry': t => ` ${t[0]} 號玩家被護體。`,
+                                'postpone': t => `你推遲了月亮。`,
                             };
 
                             if (customFormatMap[myAct.actionId]) {
@@ -848,7 +850,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                                     'poison': '毒殺', 'guard': '守護', 'charm': '魅惑', 'fear': '恐懼',
                                     'dream': '攝夢', 'curse': '咒詛', 'hunt': '狩獵', 'crush': '暗戀',
                                     'learn': '學習', 'check': '查驗', 'give_check': '贈與查驗', 
-                                    'give_poison': '贈與毒藥', 'give_guard': '贈與守護', 'claw_kill': '發動利爪',
+                                    'give_poison': '贈與毒藥', 'give_guard': '贈與守護', 'claw_kill': '利爪擊殺',
                                     'resurrect': '復活', 'delude': '誘引',
                                     'devour': '吞噬', 'seal': '封鎖', 'bless': '保護', 'confuse': '迷惑'
                                 };
@@ -859,7 +861,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                                 }
                                 
                                 actName = actName || '指定';
-                                actionText = `已選擇${actName} ${submittedTargets.join('、')} 號玩家。`;
+                                actionText = `${submittedTargets.join('、')} 號玩家被${actName}。`;
                             }
                         }
                     }
