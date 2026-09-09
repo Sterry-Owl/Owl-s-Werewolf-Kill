@@ -4639,7 +4639,7 @@ RoleRegistry.register("大野狼", {
     getPrompt: (ctx) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         if (step === 'midnight') return "選擇今晚的襲擊目標";
-        return "【大野狼技能】\n請選擇額外擊殺目標\n若與狼隊襲擊同一目標，能無視守護和解藥)";
+        return "進行額外襲擊。\n若與狼隊襲擊同一目標，能無視守護和解藥。";
     },
     
     getSelectableSeats: (ctx, mySeat) => {
@@ -4745,7 +4745,7 @@ RoleRegistry.register("天狗", {
     getPrompt: (ctx) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
         if (step === 'midnight') return "選擇今晚的襲擊目標";
-        return "請選擇護體目標\n(目標明日被放逐將免除出局。不可連續兩晚護體同一人，不可護體自己)";
+        return "請選擇護體目標\n目標明日免疫被放逐出局。";
     },
     getSelectableSeats: (ctx, mySeat) => {
         const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
@@ -4801,10 +4801,11 @@ RoleRegistry.register("月女", {
     actionType: "dynamic_buttons",
     
     hasAction: (ctx, mySeat) => {
-        const p = ctx.getPlayer(mySeat);
-        return !p.data.hasPostponedMoon;
-    },
-    getPrompt: () => "選擇是否發動「推遲月亮」\n(立刻天亮，且下個白天將變為連續兩個夜晚。全局限用一次)",
+    const p = ctx.getPlayer(mySeat);
+    const hasVoted = ctx.voteHistory && ctx.voteHistory.length > 0;
+    return hasVoted && !p.data.hasPostponedMoon;
+},
+    getPrompt: () => "你要推遲月亮的到來嗎？",
     getSelectableSeats: () => [],
     getButtons: () => [
         { id: 'postpone', text: '推遲月亮', requiresTarget: false },
