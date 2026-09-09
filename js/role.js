@@ -199,7 +199,14 @@ window.RoleRegistry = {
                 });
                 return result;
             });
-
+            ctx.addFilter('VOTE_OUT_INTERCEPTOR', (result, args) => {
+                if (ctx.tenguWarcriedSeat === args.targetPlayer.seatNumber) {
+                    result.prevented = true;
+                    result.logMessage = `投票結果出爐，${args.targetPlayer.seatNumber} 號玩家因天狗護體，免除本次放逐出局！`;
+                    ctx.tenguWarcriedSeat = null; 
+                }
+                return result;
+            });
             ctx.addFilter('NIGHT_ACTION_PERMISSION', (canAct, args) => {
                 const feared = args.context.fearedSeat;
                 if (feared === args.player.seatNumber) return false;
@@ -208,6 +215,9 @@ window.RoleRegistry = {
                     if (typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[args.player.role]?.type === 'god') return false;
                 }
                 if (args.context.nightTags?.scholarDebuffTarget === args.player.seatNumber) {
+                    if (typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[args.player.role]?.type === 'god') return false;
+                }
+                if (args.player.data.tenguSilencedNight === args.context.nightCount) {
                     if (typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[args.player.role]?.type === 'god') return false;
                 }
                 return canAct;
