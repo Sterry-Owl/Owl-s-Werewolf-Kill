@@ -3937,8 +3937,8 @@ RoleRegistry.register("盜賊", {
         const newDef = RoleRegistry.plugins[newRole];
         if (newDef && newDef.nightPhase) {
             const phaseArray = Array.isArray(newDef.nightPhase) ? newDef.nightPhase : [newDef.nightPhase];
-            const orderMap = { 'thief_action': 0, 'first_half': 1, 'lucky_action': 2, 'scholar_action': 3, 'midnight': 4, 'second_half': 5 };
-            const getPhaseDisplayName = (pid) => ({ 'first_half': '前半夜', 'midnight': '午夜 (狼人)', 'second_half': '後半夜', 'lucky_action': '幸運兒行動', 'scholar_action': '增幅行動' }[pid] || pid);
+            const orderMap = { 'pre_night': -1, 'thief_action': 0, 'first_half': 1, 'lucky_action': 2, 'scholar_action': 3, 'midnight': 4, 'second_half': 5 };
+            const getPhaseDisplayName = (pid) => ({ 'pre_night': '準備入夜', 'first_half': '前半夜', 'midnight': '午夜 (狼人)', 'second_half': '後半夜', 'lucky_action': '幸運兒行動', 'scholar_action': '增幅行動' }[pid] || pid);
 
             phaseArray.forEach(phaseName => {
                 let targetSeq = ctx.nightSequence.find(s => s.phaseId === phaseName);
@@ -4724,5 +4724,105 @@ RoleRegistry.register("旅客", {
                 ctx.nightTags.touristLogWritten = true;
             }
         }
+    }
+});
+RoleRegistry.register("天狗", {
+    canSelfExplode: true,
+    canSeeWolves: true,
+    seenAsWolf: true,
+    isAttacker: true,
+    hasWolfChatAccess: true,
+    immuneToWolfBite: true, 
+    nightPhase: ["midnight", "second_half"],
+    actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
+    
+    hasAction: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return true;
+        if (step === 'second_half') return true;
+        return false;
+    },
+    getPrompt: (ctx) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return "選擇今晚的襲擊目標";
+        return "請選擇護體目標\n(目標明日被放逐將免除出局。不可連續兩晚護體同一人，不可護體自己)";
+    },
+    getSelectableSeats: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
+        
+        const p = ctx.getPlayer(mySeat);
+        return ctx.getAlivePlayers()
+            .filter(x => x.seatNumber !== mySeat && x.seatNumber !== p.data.lastWarcriedSeat)
+            .map(x => x.seatNumber);
+    },
+    getButtons: (ctx) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
+        return [{ id: 'warcry', text: '護體', requiresTarget: true }, { id: 'pass', text: '空守', requiresTarget: false }];
+    },
+    resolveNightAction: (ctx, actions) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
+        
+        const act = actions[0];
+        if (!act || act.actionId === 'pass') {
+            if (act) act.player.data.lastWarcriedSeat = null;
+            return "【空守】";
+        }
+        
+        const target = act.targets[0];
+        ctx.tenguWarcriedSeat = ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target);
+        act.player.data.lastWarcriedSeat = parseInt(target);
+        return `【護體: ${target}號】`;
+    },
+    onPlayerDied: (ctx, player, reason) => {
+        if (reason === 'voted') {
+            let silenced = [];
+            Object.entries(ctx.votes || {}).forEach(([voterSeatStr, targetSeat]) => {
+                if (parseInt(targetSeat) === player.seatNumber) {
+                    const voter = ctx.getPlayer(parseInt(voterSeatStr));
+                    if (voter && ROLE_DICTIONARY[voter.role]?.type === 'god') {
+                        voter.data.tenguSilencedNight = ctx.nightCount + 1;
+                        silenced.push(voter.seatNumber);
+                    }
+                }
+            });
+            if (silenced.length > 0 && typeof Engine !== 'undefined' && Engine.EventBus) {
+                Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】天狗被放逐，怨念封印了投給他的神職： ${silenced.join(', ')} 號`);
+            }
+        }
+    }
+});
+
+RoleRegistry.register("月女", {
+    canSelfExplode: false,
+    nightPhase: "pre_night",
+    actionType: "dynamic_buttons",
+    
+    hasAction: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        return !p.data.hasPostponedMoon;
+    },
+    getPrompt: () => "選擇是否發動「推遲月亮」\n(立刻天亮，且下個白天將變為連續兩個夜晚。全局限用一次)",
+    getSelectableSeats: () => [],
+    getButtons: () => [
+        { id: 'postpone', text: '推遲月亮', requiresTarget: false },
+        { id: 'pass', text: '跳過', requiresTarget: false }
+    ],
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || act.actionId === 'pass') return "【保留技能】";
+        
+        act.player.data.hasPostponedMoon = true;
+
+        ctx.nightSequence.splice(ctx.currentNightStepIndex + 1);
+        ctx.moonMaidenDoubleNight = ctx.nightCount + 1;
+        
+        if (typeof Engine !== 'undefined' && Engine.EventBus) {
+            Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】月女發動技能，強制結束今夜，預定下一天為雙黑夜。`);
+        }
+        
+        return "【推遲月亮】";
     }
 });
