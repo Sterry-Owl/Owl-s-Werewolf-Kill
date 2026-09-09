@@ -376,8 +376,7 @@ function setupEngineFlowControllers() {
         engineContext.players.forEach(p => p.data.latestCheckResult = null);
         
         const alive = engineContext.getAlivePlayers();
-        // [新增] 擴充 thief_action 階段，位於最前方
-        let phases = { 'thief_action': [], 'first_half': [], 'midnight': [], 'second_half': [] };
+        let phases = { 'pre_night': [], 'thief_action': [], 'first_half': [], 'midnight': [], 'second_half': [] };
         alive.forEach(p => {
             const def = RoleRegistry.plugins[p.role];
             if (def && def.nightPhase) {
@@ -393,6 +392,7 @@ function setupEngineFlowControllers() {
         });
         
         engineContext.nightSequence = [];
+        if (phases['pre_night'].length > 0) engineContext.nightSequence.push({ phaseId: 'pre_night', phaseName: '準備入夜', roles: phases['pre_night'] });
         if (phases['thief_action'].length > 0) engineContext.nightSequence.push({ phaseId: 'thief_action', phaseName: '盜賊行動', roles: phases['thief_action'] });
         if (phases['first_half'].length > 0) engineContext.nightSequence.push({ phaseId: 'first_half', phaseName: '前半夜', roles: phases['first_half'] });
         if (phases['midnight'].length > 0) engineContext.nightSequence.push({ phaseId: 'midnight', phaseName: '午夜 (狼人)', roles: phases['midnight'] });
