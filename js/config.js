@@ -111,7 +111,7 @@ const TEMPLATES_TEST = [
     { id: "test-ocp-2_6", name: "測試OCP蝕日侍女", category: 'test', playerCount: 7, deck: ["預言家", "女巫", "獵魔人", "流光伯爵", "攝夢人", "狼人", "蝕日侍女"] },
     { id: "test-ocp-3_6", name: "測試OCP增幅削弱", category: 'test', playerCount: 7, deck: ["白晝學者", "女巫", "獵魔人", "流光伯爵", "攝夢人", "狼人", "寂夜導師"] },
     { id: "test-33_6", name: "大野狼旅客(測試)", category: 'test', playerCount: 6, deck: ["守衛", "女巫", "狼人", "大野狼", "平民", "旅客"] },
-    { id: "test-34_6", name: "聖靈弓手聖女(測試)", category: 'test', playerCount: 6, deck: ["聖靈弓手", "女巫", "狼人", "狼美人", "聖女", "平民"] },
+    { id: "test-34_6", name: "天狗月女(測試)", category: 'test', playerCount: 6, deck: ["月女", "守衛", "狼人", "天狗", "旅客", "平民"] },
 ];
 
 const TEMPLATES_FUN = [
@@ -272,6 +272,6 @@ const ROLE_DICTIONARY = {
     "魅魔": { faction: "third_party", type: "special", nightPhase: "none", actionType: "none", prompt: "請選擇你要結為情侶的目標", description:"獨立陣營；偽裝成狼人加入狼隊。首夜選擇一名好人玩家與自己連結為情侶。情侶一方死亡另一方殉情。情侶的勝利條件為屠城。當伴侶與魅魔在白天的放逐公投均投給同一個目標且該目標沒有出局時，隔天該玩家出局。" },
     "大野狼": { faction: "wolf", type: "wolf", nightPhase: ["midnight", "second_half"], actionType: "dynamic", prompt: "大野狼請行動\n(點擊左右列頭貼以發動技能)", description: "狼人陣營；參與狼隊襲擊。每個後半夜可單獨睜眼額外擊殺一名玩家。當任意狼人出局後，大野狼將此額外擊殺技能。若大野狼選擇的目標與當夜狼隊襲擊的目標相同，將可以無視任何防禦。"},
     "旅客": { faction: "good", type: "villager", nightPhase: "none", actionType: "none", prompt: "", description: "平民陣營；首夜一定不會死亡。若首夜遭遇致命傷害，則會得知距離自己座位最近的帶刀狼人的號碼。若兩側帶刀狼人與自身的距離相同，則會得知兩個號碼。" },
-    "聖靈弓手": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "", description: "神職；聖靈弓手死亡後的下一個夜晚，所有狼人必須空刀，且無法發動任何夜間特殊技能。" },
-    "聖女": { faction: "good", type: "villager", nightPhase: "first_half", actionType: "single_select", prompt: "選擇感化一名玩家 (全局限用一次)\n若目標為狼人將使其失去所有狼人能力", description: "平民陣營；從第二晚開始，全局限用一次，可感化一名玩家。若被感化的玩家為狼人，該名玩家將失去所有狼人的能力（但被查驗依然為狼、且勝利條件不變）。若被感化的玩家為好人則沒有任何效果。" },
+    "天狗": { faction: "wolf", type: "wolf", nightPhase: ["midnight","second_half"], actionType: "dynamic_buttons", prompt: "請選擇護體的目標", description: "狼人陣營，不可自刀。每晚可以護體一位玩家，被護體的玩家免疫下一個白天的放逐。不可護體自己、不可連續護體同一位玩家。天狗自己被放逐出局時，下一晚所有投票給天狗的神職將無法發動技能。" },
+    "月女": { faction: "good", type: "god", nightPhase: "pre_night", actionType: "single_select", prompt: "請選擇是否要推遲月亮", description: "神職。每晚入夜前可以選擇是否要發動技能推遲月亮。推遲月亮後，黑夜將被延後至下一個白天後再降臨。本技能只能發動一次。" },
 };
