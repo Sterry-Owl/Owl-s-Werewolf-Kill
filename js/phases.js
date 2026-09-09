@@ -819,12 +819,17 @@ window.PhaseRegistry = {
             
             if (!ctx.exiledHistory) ctx.exiledHistory = [];
             ctx.exiledHistory.push(finalTarget);
+            let hookResult = ctx.applyFilter('VOTE_OUT_INTERCEPTOR', { prevented: false }, { targetPlayer: tPlayer });
             
-            const plugin = RoleRegistry.plugins[tPlayer.role];
-            if (plugin && typeof plugin.onVotedOut === 'function') {
-                const hookResult = plugin.onVotedOut(ctx, tPlayer);
-                if (hookResult && hookResult.prevented) {
-                    header = hookResult.logMessage || `投票結果出爐，${finalTarget} 號玩家免除出局`;
+            if (!hookResult.prevented) {
+                const plugin = RoleRegistry.plugins[tPlayer.role];
+                if (plugin && typeof plugin.onVotedOut === 'function') {
+                    hookResult = plugin.onVotedOut(ctx, tPlayer) || { prevented: false };
+                }
+            }
+
+            if (hookResult && hookResult.prevented) {
+                header = hookResult.logMessage || `投票結果出爐，${finalTarget} 號玩家免除出局`;
                     ctx.currentVoteResultString = `${header}\n${resultLines.join('\n')}`;
                     ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】\n${ctx.currentVoteResultString}`);
                     Engine.EventBus.emit('MASTER_LOG', `【投票結算】第 ${ctx.nightCount} 天\n${ctx.currentVoteResultString}`);
