@@ -830,23 +830,21 @@ window.PhaseRegistry = {
 
             if (hookResult && hookResult.prevented) {
                 header = hookResult.logMessage || `投票結果出爐，${finalTarget} 號玩家免除出局`;
-                    ctx.currentVoteResultString = `${header}\n${resultLines.join('\n')}`;
-                    ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】\n${ctx.currentVoteResultString}`);
-                    Engine.EventBus.emit('MASTER_LOG', `【投票結算】第 ${ctx.nightCount} 天\n${ctx.currentVoteResultString}`);
-                    ctx.systemLog = header.replace('\n', '');
-                    
-                    ctx.destinationPhase = 'NIGHT_TRANSITION';
-                    if (ctx.sheriff.seat === finalTarget && hookResult.transferSheriff) {
-                        ctx.nextPhaseAfterVoteDisplay = 'SHERIFF_TRANSFER';
-                    } else {
-                        ctx.nextPhaseAfterVoteDisplay = 'RESUME_ROUTINE';
-                    }
-                    
-                    this.sm.transitionTo('VOTE_RESULT_DISPLAY');
-                    return; 
+                ctx.currentVoteResultString = `${header}\n${resultLines.join('\n')}`;
+                ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】\n${ctx.currentVoteResultString}`);
+                Engine.EventBus.emit('MASTER_LOG', `【投票結算】第 ${ctx.nightCount} 天\n${ctx.currentVoteResultString}`);
+                ctx.systemLog = header.replace('\n', '');
+                
+                ctx.destinationPhase = 'NIGHT_TRANSITION';
+                if (ctx.sheriff.seat === finalTarget && hookResult.transferSheriff) {
+                    ctx.nextPhaseAfterVoteDisplay = 'SHERIFF_TRANSFER';
+                } else {
+                    ctx.nextPhaseAfterVoteDisplay = 'RESUME_ROUTINE';
                 }
+                
+                this.sm.transitionTo('VOTE_RESULT_DISPLAY');
+                return; 
             }
-
             tPlayer.kill('voted', ctx); 
             ctx.lastWordsTargets = [finalTarget];
             ctx.votedOutToday = finalTarget;
