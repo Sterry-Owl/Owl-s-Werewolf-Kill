@@ -497,6 +497,15 @@ function setupEngineFlowControllers() {
         const dead = engineContext.deadThisNight || [];
         engineContext.lastWordsTargets = (engineContext.nightCount === 1 && dead.length > 0) ? [...dead] : [];
         
+        if (engineContext.moonMaidenDoubleNight === engineContext.nightCount) {
+            engineContext.systemLog = "【月女技能生效】\n白晝被吞噬，即將進入下一個黑夜。";
+            Engine.EventBus.emit('BROADCAST_MESSAGE', engineContext.systemLog);
+            engineContext.destinationPhase = 'NIGHT_TRANSITION';
+            engineContext.routineOrigin = 'MORNING';
+            resumeRoutinePhase();
+            return;
+        }
+        
         if (engineContext.sheriff.seat && !engineContext.sheriff.badgeLost) {
             engineContext.dayDiscussionPrompt = `請警長決定發言順序`;
             engineContext.destinationPhase = 'SHERIFF_ORDER_SELECTION';
@@ -867,6 +876,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                 const isFeared = ctx.fearedSeat === player.seatNumber;
                 const isDevoured = ctx.devouredSeat === player.seatNumber;
                 const isDebuffed = ctx.nightTags?.scholarDebuffTarget === player.seatNumber;
+                const isTenguSilenced = player.data.tenguSilencedNight === ctx.nightCount;
                 const isGod = typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[player.role]?.type === 'god';
                 
                 if (isDevoured) {
@@ -888,6 +898,13 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
                     actionPanel.deadline = ctx.deadline;
                     actionPanel.type = 'none';
                     actionPanel.prompt = "你被恐懼了，無法使用技能";
+                    actionPanel.buttons = [];
+                    actionPanel.hasActed = true;
+                } else if (isTenguSilenced && isGod) {
+                    actionPanel.show = true;
+                    actionPanel.deadline = ctx.deadline;
+                    actionPanel.type = 'none';
+                    actionPanel.prompt = "現在是天狗詛咒之夜，所有神職無法使用技能";
                     actionPanel.buttons = [];
                     actionPanel.hasActed = true;
                 }
