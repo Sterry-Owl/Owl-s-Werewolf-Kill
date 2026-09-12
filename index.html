@@ -174,16 +174,9 @@
                             </div>
                             <input type="hidden" id="select-board-template" value="">
 
-                            <div id="rule-section-title" style="color:var(--accent-blue); font-size:12px; font-weight:bold; margin-top:12px; margin-bottom:10px; border-bottom:1px solid #444; padding-bottom:4px; text-align:center;">遊戲規則設定</div>
+                            <div id="rule-section-title" style="color:var(--accent-blue); font-size:12px; font-weight:bold; margin-top:12px; margin-bottom:10px; border-bottom:1px solid #444; padding-bottom:4px; text-align:center;">基礎規則設定</div>
                             
                             <div id="rules-page-1" class="rules-grid">
-                                <div class="rule-item">
-                                    <label>首夜襲擊</label>
-                                    <div class="toggle-group" data-target="rule-first-night-kill">
-                                        <div class="toggle-option active" data-value="enabled" style="--active-bg: #6b8496; --active-color: #fff;">預設</div>
-                                        <div class="toggle-option" data-value="disabled" style="--active-bg: #9e646a; --active-color: #fff;">無刀</div>
-                                    </div><input type="hidden" id="rule-first-night-kill" value="enabled">
-                                </div>
                                 <div class="rule-item" style="grid-column: span 2;">
                                     <label>發言時長</label>
                                     <div class="toggle-group" data-target="rule-speech-time">
@@ -231,15 +224,22 @@
 
                             <div id="rules-page-2" class="rules-grid" style="display: none;">
                                 <div class="rule-item">
+                                    <label>首夜襲擊</label>
+                                    <div class="toggle-group" data-target="rule-first-night-kill">
+                                        <div class="toggle-option active" data-value="enabled" style="--active-bg: #6b8496; --active-color: #fff;">預設</div>
+                                        <div class="toggle-option" data-value="disabled" style="--active-bg: #9e646a; --active-color: #fff;">無刀</div>
+                                    </div><input type="hidden" id="rule-first-night-kill" value="enabled">
+                                </div>
+                                <div class="rule-item">
                                     <label>卡面樣式</label>
                                     <div class="toggle-group" data-target="rule-square-card">
                                         <div class="toggle-option active" data-value="off" style="--active-bg: #6b8496; --active-color: #fff;">經典</div>
                                         <div class="toggle-option" data-value="on" style="--active-bg: #9e646a; --active-color: #fff;">舊日</div>
                                     </div><input type="hidden" id="rule-square-card" value="off">
                                 </div>
-                                <div class="rule-item">
+                                <div id="wolf-type-container" class="rule-item">
                                     <label>隱狼類型</label>
-                                    <div class="toggle-group" data-target="rule-hidden-wolf-type">
+                                    <div class="toggle-group" data-target="rule-hidden-wolf-type" id="wolf-type-toggle">
                                         <div class="toggle-option active" data-value="strong" style="--active-bg: #6b8496; --active-color: #fff;">強</div>
                                         <div class="toggle-option" data-value="weak" style="--active-bg: #9e646a; --active-color: #fff;">弱</div>
                                     </div><input type="hidden" id="rule-hidden-wolf-type" value="strong">
