@@ -3639,17 +3639,35 @@ RoleRegistry.register("寂夜導師", {
     canSelfExplode: true,
     canSeeWolves: false,
     seenAsWolf: true,
-    isAttacker: false,
     hasWolfChatAccess: false,
-    nightPhase: "first_half",
-    actionType: "single_select",
-    hasAction: (ctx, mySeat) => {
-        const p = ctx.getPlayer(mySeat);
-        return ctx.nightCount >= 2 && (!p.data.hasBuffed || !p.data.hasDebuffed);
+    nightPhase: ["first_half", "midnight"],
+    isAttacker: (ctx, mySeat) => {
+        const otherWolves = ctx.getAlivePlayers().filter(p => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[p.role]?.faction === 'wolf' && p.seatNumber !== mySeat);
+        return otherWolves.length === 0;
     },
-    getPrompt: () => "選擇發動增幅或削弱",
-    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+    actionType: (ctx) => ctx.nightSequence?.[ctx.currentNightStepIndex]?.phaseId === 'midnight' ? 'consensus' : 'single_select',
+    hasAction: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') {
+            const otherWolves = ctx.getAlivePlayers().filter(x => typeof ROLE_DICTIONARY !== 'undefined' && ROLE_DICTIONARY[x.role]?.faction === 'wolf' && x.seatNumber !== mySeat);
+            return otherWolves.length === 0;
+        }
+        const p = ctx.getPlayer(mySeat);
+        return step === 'first_half' && ctx.nightCount >= 2 && (!p.data.hasBuffed || !p.data.hasDebuffed);
+    },
+    getPrompt: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return "其餘狼人皆已出局\n請選擇今晚的襲擊目標 (或跳過以空刀)";
+        return "選擇發動增幅或削弱";
+    },
+    getSelectableSeats: (ctx, mySeat) => {
+        if (ctx.nightSequence[ctx.currentNightStepIndex].phaseId === 'midnight') return RoleRegistry.plugins["狼人"].getSelectableSeats(ctx, mySeat);
+        return ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber);
+    },
     getButtons: (ctx, mySeat) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return [{ id: 'confirm', text: '確認襲擊', requiresTarget: true }, { id: 'pass', text: '空刀', requiresTarget: false }];
+        
         const p = ctx.getPlayer(mySeat);
         let btns = [];
         if (!p.data.hasBuffed) btns.push({ id: 'buff', text: '增幅', requiresTarget: true });
@@ -3657,7 +3675,11 @@ RoleRegistry.register("寂夜導師", {
         btns.push({ id: 'pass', text: '跳過', requiresTarget: false });
         return btns;
     },
-    resolveNightAction: (ctx, actions) => ScholarMechanics.handleAction(ctx, actions[0], false)
+    resolveNightAction: (ctx, actions) => {
+        const step = ctx.nightSequence[ctx.currentNightStepIndex].phaseId;
+        if (step === 'midnight') return RoleRegistry.plugins["狼人"].resolveNightAction(ctx, actions);
+        return ScholarMechanics.handleAction(ctx, actions[0], false);
+    }
 });
 
 RoleRegistry.register("受增幅者", {
