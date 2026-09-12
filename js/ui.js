@@ -494,7 +494,12 @@ const UI = {
                 imgEl.src = `${imgDir}/${baseRoleName}.webp`;
                 
                 document.getElementById('role-desc-title').textContent = displayRoleName;
-                document.getElementById('role-desc-content').textContent = def ? def.description : '無技能說明。';
+                let finalDesc = def ? def.description : '無技能說明。';
+                if (state.myRole === '隱狼' && state.rules && state.rules.hiddenWolfType === 'weak') {
+                    finalDesc = "不可自爆、不參與襲擊、不知曉隊友號碼且其他狼人亦不知曉你；被預言家查驗時顯示為「好人」。其餘狼人陣營皆出局時，你將孤立無援並隨之殉情出局。";
+                }
+                
+                document.getElementById('role-desc-content').textContent = finalDesc;
                 
                 cardContainer.classList.remove('hidden');
             } else if (cardContainer) {
@@ -997,9 +1002,9 @@ UI.initRulePagination = function() {
 
     const updateView = () => {
         if (currentPage === 1) {
-            page1.style.display = ''; // 恢復 CSS Grid 預設顯示
+            page1.style.display = '';
             page2.style.display = 'none';
-            title.textContent = '遊戲規則設定';
+            title.textContent = '基礎規則設定';
             btnPrev.disabled = true;
             btnNext.disabled = false;
         } else {
