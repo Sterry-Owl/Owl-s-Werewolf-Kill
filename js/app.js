@@ -56,6 +56,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${renderLine(others)}
                 </div>
             `;
+            const wolfToggleContainer = document.getElementById('wolf-type-container');
+            const wolfToggleGroup = document.getElementById('wolf-type-toggle');
+            if (wolfToggleContainer && wolfToggleGroup) {
+                if (deck.includes('隱狼')) {
+                    wolfToggleContainer.style.opacity = '1';
+                    wolfToggleGroup.style.pointerEvents = 'auto';
+                } else {
+                    wolfToggleContainer.style.opacity = '0.3';
+                    wolfToggleGroup.style.pointerEvents = 'none';
+                }
+            }
         };
 
         const renderBoardPage = () => {
