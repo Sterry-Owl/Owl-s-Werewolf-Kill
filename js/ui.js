@@ -496,7 +496,7 @@ const UI = {
                 document.getElementById('role-desc-title').textContent = displayRoleName;
                 let finalDesc = def ? def.description : '無技能說明。';
                 if (state.myRole === '隱狼' && state.rules && state.rules.hiddenWolfType === 'weak') {
-                    finalDesc = "不可自爆、不參與襲擊、不知曉隊友號碼且其他狼人亦不知曉你；被預言家查驗時顯示為「好人」。其餘狼人陣營皆出局時，你將孤立無援並隨之殉情出局。";
+                    finalDesc = "不可自爆、不參與襲擊、不進狼隊。被預言家查驗時顯示為「好人」。其餘狼人出局時，狼人判負。";
                 }
                 
                 document.getElementById('role-desc-content').textContent = finalDesc;
