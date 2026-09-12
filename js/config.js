@@ -208,12 +208,57 @@ const TEMPLATES_STANDARD = [
     { id: "archer_12", name: "12人 天狗月女", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "月女", "天狗", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
 ];
 
+function buildRecommendedRules(tpl) {
+    let rec = {};
+
+    if (tpl.playerCount === 11 || tpl.playerCount === 12) {
+        rec = { speechTime: 120, witchSave: 'never', winCondition: 'kill_side', sheriff: 'enabled', sheriffExplodeRule: 'double', deathReveal: 'dark' };
+    } else if (tpl.playerCount === 10) {
+        rec = { speechTime: 120, witchSave: 'first_night', winCondition: 'kill_side', sheriff: 'enabled', sheriffExplodeRule: 'single', deathReveal: 'dark' };
+    }
+
+    if (tpl.name.includes('盜賊邱比特')) {
+        rec.sheriffExplodeRule = 'single';
+    }
+    if (tpl.name.includes('風聲諜影')) {
+        rec.winCondition = 'kill_all';
+        rec.sheriffExplodeRule = 'single';
+    }
+    if (tpl.name.includes('諸神黃昏') || tpl.name.includes('諸神清晨') || tpl.name.includes('漆黑的棉絮')) {
+        rec.witchSave = 'first_night';
+        rec.winCondition = 'kill_all';
+        rec.sheriff = 'disabled';
+        rec.deathReveal = 'light';
+    }
+    if (tpl.name.includes('獵殺潛狼') || tpl.name.includes('連連看')) {
+        rec.firstNightKill = 'disabled';
+        rec.winCondition = 'kill_all';
+    }
+    if (['quick-1_6', 'quick-2_6', 'quick-3_6', 'standard_9'].includes(tpl.id)) {
+        rec.witchSave = 'never';
+        rec.winCondition = 'kill_side';
+        rec.sheriff = 'disabled';
+        rec.deathReveal = 'dark';
+    }
+    if (tpl.name.includes('生還者')) {
+        rec.witchSave = 'first_night';
+        rec.winCondition = 'kill_side';
+        rec.sheriff = 'disabled';
+        rec.deathReveal = 'dark';
+    }
+
+    return Object.keys(rec).length > 0 ? rec : undefined;
+}
+
 const BOARD_TEMPLATES = [
     ...TEMPLATES_TEST,
     ...TEMPLATES_FUN,
     ...TEMPLATES_QUICK,
     ...TEMPLATES_STANDARD
-];
+].map(tpl => ({
+    ...tpl,
+    recommendedRules: buildRecommendedRules(tpl)
+}));
 
 const ROLE_DICTIONARY = {
     // ==========================================
