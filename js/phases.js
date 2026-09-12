@@ -791,18 +791,22 @@ window.PhaseRegistry = {
                 for (const [t, count] of Object.entries(voteCounts)) {
                     if (count === maxVotes) ctx.pkTargets.push(parseInt(t));
                 }
-                // [新增] 建立放逐 PK 佇列
-                const startPK = ctx.pkTargets[Math.floor(Math.random() * ctx.pkTargets.length)];
-                ctx.buildSpeakingQueue(startPK, 1, ctx.pkTargets);
-                
-                ctx.currentVoteResultString = `【平票發生】\n${resultLines.join('\n')}\n\n準備進入放逐 PK 發言。`;
-                ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(放逐首次投票)\n${ctx.currentVoteResultString}`);
-                // [新增] 全知紀錄
-                Engine.EventBus.emit('MASTER_LOG', `【投票結算】(放逐首次投票) 第 ${ctx.nightCount} 天\n${ctx.currentVoteResultString}`);
-                ctx.nextPhaseAfterVoteDisplay = 'DAY_PK_SPEECH';
-                ctx.postVoteSkillPhasePending = false;
-                this.sm.transitionTo('VOTE_RESULT_DISPLAY');
-                return; 
+
+                if (ctx.pkTargets.length >= aliveCount) {
+                    ctx.isPK = false;
+                    ctx.pkTargets = [];
+                } else {
+                    const startPK = ctx.pkTargets[Math.floor(Math.random() * ctx.pkTargets.length)];
+                    ctx.buildSpeakingQueue(startPK, 1, ctx.pkTargets);
+                    
+                    ctx.currentVoteResultString = `【平票發生】\n${resultLines.join('\n')}\n\n準備進入放逐 PK 發言。`;
+                    ctx.voteHistory.push(`【第 ${ctx.nightCount} 天】(放逐首次投票)\n${ctx.currentVoteResultString}`);
+                    Engine.EventBus.emit('MASTER_LOG', `【投票結算】(放逐首次投票) 第 ${ctx.nightCount} 天\n${ctx.currentVoteResultString}`);
+                    ctx.nextPhaseAfterVoteDisplay = 'DAY_PK_SPEECH';
+                    ctx.postVoteSkillPhasePending = false;
+                    this.sm.transitionTo('VOTE_RESULT_DISPLAY');
+                    return; 
+                }
             }
         }
 
