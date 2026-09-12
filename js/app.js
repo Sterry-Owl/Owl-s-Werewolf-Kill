@@ -13,6 +13,58 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentCategoryTemplates = [];
         let currentBoardPage = 0;
         const BOARDS_PER_PAGE = 12;
+        // [新增] 規則屬性與 DOM ID 映射表
+        const RULE_ID_MAP = {
+            firstNightKill: 'rule-first-night-kill',
+            speechTime: 'rule-speech-time',
+            witchSave: 'rule-witch-save',
+            winCondition: 'rule-win-condition',
+            sheriff: 'rule-sheriff',
+            sheriffExplodeRule: 'rule-sheriff-explode',
+            deathReveal: 'rule-death-reveal',
+            squareCard: 'rule-square-card',
+            hiddenWolfType: 'rule-hidden-wolf-type'
+        };
+
+        // [新增] 全域預設基礎規則 (用於狀態回退)
+        const GLOBAL_DEFAULT_RULES = {
+            firstNightKill: 'enabled',
+            speechTime: 120,
+            witchSave: 'never',
+            winCondition: 'kill_side',
+            sheriff: 'enabled',
+            sheriffExplodeRule: 'double',
+            deathReveal: 'dark',
+            squareCard: 'off',
+            hiddenWolfType: 'strong'
+        };
+
+        // [新增] 套用推薦規則之視圖控制器
+        const applyRecommendedRules = (recommendedRules = {}) => {
+            const finalRules = { ...GLOBAL_DEFAULT_RULES, ...recommendedRules };
+            
+            Object.keys(finalRules).forEach(ruleKey => {
+                const targetDomId = RULE_ID_MAP[ruleKey];
+                if (!targetDomId) return;
+
+                const targetValue = String(finalRules[ruleKey]);
+                const group = document.querySelector(`.toggle-group[data-target="${targetDomId}"]`);
+                
+                if (group) {
+                    const options = group.querySelectorAll('.toggle-option');
+                    options.forEach(opt => {
+                        if (opt.getAttribute('data-value') === targetValue) {
+                            opt.classList.add('active');
+                            const hiddenInput = document.getElementById(targetDomId);
+                            if (hiddenInput) hiddenInput.value = targetValue;
+                        } else {
+                            opt.classList.remove('active');
+                        }
+                    });
+                }
+            });
+        };
+
         const updateRolePreview = (deck) => {
             const previewEl = document.getElementById('board-role-preview');
             if (!previewEl) return;
@@ -88,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (hiddenSelectBoard.value === tpl.id) {
                     item.classList.add('active');
                     updateRolePreview(tpl.deck);
+                    applyRecommendedRules(tpl.recommendedRules);
                 }
                 item.textContent = tpl.name;
                 
@@ -96,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     item.classList.add('active');
                     hiddenSelectBoard.value = tpl.id;
                     updateRolePreview(tpl.deck);
+                    applyRecommendedRules(tpl.recommendedRules);
                 });
                 boardContainer.appendChild(item);
             });
