@@ -408,8 +408,11 @@ function setupEngineFlowControllers() {
             Engine.EventBus.emit('PROCESS_DAWN');
         } else {
             const currentStep = engineContext.nightSequence[engineContext.currentNightStepIndex];
-            engineContext.dynamicNightDuration = (currentStep.phaseId === 'midnight') ? 45000 : (currentStep.phaseId === 'pre_night') ? 10000 : 20000;
-            stateMachine.transitionTo('NIGHT_ACTION');
+            engineContext.dynamicNightDuration = (currentStep.phaseId === 'midnight') ? 45000 : 20000;
+            stateMachine.transitionTo('NIGHT_TRANSITION');
+            setTimeout(() => {
+                stateMachine.transitionTo('NIGHT_ACTION');
+            }, 50);
         }
     });
 
