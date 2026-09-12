@@ -78,40 +78,6 @@ const NETWORK_CONFIG = {
 
 const TEMPLATES_TEST = [
     { id: "test-1_6", name: "介面測試", category: 'test', playerCount: 1, deck: ["預言家"] },
-    { id: "test-2_6", name: "狼王守衛(測試)", category: 'test', playerCount: 6, deck: ["預言家", "守衛", "狼王", "狼人", "平民", "平民"] },
-    { id: "test-3_6", name: "狼王魔術師(測試)", category: 'test', playerCount: 6, deck: ["預言家", "魔術師", "狼王", "狼人", "女巫", "平民"] },    
-    { id: "test-4_6", name: "白狼王騎士(測試)", category: 'test', playerCount: 6, deck: ["守衛", "騎士", "白狼王", "狼人", "平民", "平民"] },
-    { id: "test-5_6", name: "石像鬼守墓(測試)", category: 'test', playerCount: 6, deck: ["預言家", "守墓人", "石像鬼", "狼人", "平民", "平民"] },
-    { id: "test-6_6", name: "隱狼烏鴉(測試)", category: 'test', playerCount: 6, deck: ["預言家", "烏鴉", "隱狼", "狼人", "咒狐", "平民"] },
-    { id: "test-7_6", name: "狼美人騎士(測試)", category: 'test', playerCount: 6, deck: ["守衛", "騎士", "狼美人", "狼人", "平民", "平民"] },
-    { id: "test-8_6", name: "夢魘攝夢人(測試)", category: 'test', playerCount: 6, deck: ["女巫", "攝夢人", "噩夢之影", "狼人", "平民", "平民"] },
-    { id: "test-9_6", name: "暗戀者(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "平民", "暗戀者"] },
-    { id: "test-10_6", name: "燈影預言家(測試)", category: 'test', playerCount: 6, deck: ["預言家", "騎士", "狼王", "狼人", "燈影預言家", "平民"] },
-    { id: "test-11_6", name: "惡靈騎士(測試)", category: 'test', playerCount: 6, deck: ["女巫", "預言家", "惡靈騎士", "狼人", "平民", "平民"] },
-    { id: "test-12_6", name: "機械狼(測試)", category: 'test', playerCount: 6, deck: ["女巫", "魔鏡少女", "守衛", "獵人", "狼人", "機械狼"] },
-    { id: "test-13_6", name: "奇蹟商人(測試)", category: 'test', playerCount: 6, deck: ["女巫", "預言家", "守衛", "奇蹟商人", "狼王", "惡靈騎士"] },
-    { id: "test-14_6", name: "無目之夜(測試)", category: 'test', playerCount: 6, deck: ["攝夢人", "女巫", "狼鴉之爪", "狼人", "石像鬼", "隱狼"] },
-    { id: "test-15_6", name: "獵魔人相關(測試)", category: 'test', playerCount: 6, deck: ["覺醒愚者", "獵魔人", "血月使徒", "夜之貴族", "女巫", "平民"] },
-    { id: "test-16_6", name: "動物板子(測試)", category: 'test', playerCount: 6, deck: ["熊", "白貓", "狼人", "狼人", "平民", "平民"] },
-    { id: "test-17_6", name: "魅影覺醒預(測試)", category: 'test', playerCount: 6, deck: ["覺醒預言家", "女巫", "尋香魅影", "狼人", "狼人", "獵人"] },
-    { id: "test-18_6", name: "永序之輪(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "守衛", "蝕時狼妃", "定序王子", "狼人"] },
-    { id: "test-19_6", name: "純白夜影(測試)", category: 'test', playerCount: 6, deck: ["純白之女", "守衛", "狼巫", "狼人", "平民", "平民"] },
-    { id: "test-20_6", name: "吹笛不死鳥(測試)", category: 'test', playerCount: 6, deck: ["預言家", "不死鳥", "狼人", "狼人", "平民", "吹笛者"] },
-    { id: "test-22_6", name: "獵日逐光(測試)", category: 'test', playerCount: 7, deck: ["預言家", "女巫", "攝夢人", "流光伯爵", "狼人", "蝕日侍女", "平民"] },
-    { id: "test-24_6", name: "煉金魔女(測試)", category: 'test', playerCount: 6, deck: ["煉金魔女", "攝夢人", "狼鴉之爪", "狼人", "平民", "平民"] },
-    { id: "test-25_6", name: "時波之亂(測試)", category: 'test', playerCount: 6, deck: ["白晝學者", "預言家", "女巫", "守衛", "狼人", "寂夜導師"] },
-    { id: "test-26_6", name: "野孩子復仇者(測試)", category: 'test', playerCount: 7, deck: ["預言家", "女巫", "狼人", "狼人", "暗戀者", "復仇者", "野孩子"] },
-    { id: "test-27_6", name: "盜賊邱比特(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "狼人", "狼人", "邱比特", "平民", "平民", "盜賊"] },
-    { id: "test-28_6", name: "秘密之夜(測試)", category: 'test', playerCount: 6, deck: ["獵魔人", "覺醒愚者", "夜之貴族", "狼人", "平民", "平民"] },
-    { id: "test-29_6", name: "暗夜星辰(測試)", category: 'test', playerCount: 6, deck: ["覺醒獵人", "守衛", "覺醒狼美人", "狼人", "平民", "平民"] },
-    { id: "test-30_6", name: "巫妖測試(測試)", category: 'test', playerCount: 6, deck: ["預言家", "熊", "狼人", "巫妖", "隱狼", "平民"] },
-    { id: "test-31_6", name: "侍女狼妃咒狐(測試)", category: 'test', playerCount: 6, deck: ["奇蹟商人", "獵魔人", "蝕日侍女", "蝕時狼妃", "平民", "咒狐"] },
-    { id: "test-32_6", name: "魅魔(測試)", category: 'test', playerCount: 6, deck: ["預言家", "女巫", "狼人", "隱狼", "平民", "魅魔"] },
-    { id: "test-ocp-1_6", name: "測試OCP機械狼", category: 'test', playerCount: 7, deck: ["預言家", "女巫", "獵人", "守衛", "攝夢人", "狼人", "機械狼"] },
-    { id: "test-ocp-2_6", name: "測試OCP蝕日侍女", category: 'test', playerCount: 7, deck: ["預言家", "女巫", "獵魔人", "流光伯爵", "攝夢人", "狼人", "蝕日侍女"] },
-    { id: "test-ocp-3_6", name: "測試OCP增幅削弱", category: 'test', playerCount: 7, deck: ["白晝學者", "女巫", "獵魔人", "流光伯爵", "攝夢人", "狼人", "寂夜導師"] },
-    { id: "test-33_6", name: "大野狼旅客(測試)", category: 'test', playerCount: 6, deck: ["守衛", "女巫", "狼人", "大野狼", "平民", "旅客"] },
-    { id: "test-34_6", name: "天狗月女(測試)", category: 'test', playerCount: 6, deck: ["月女", "守衛", "狼人", "天狗", "旅客", "平民"] },
 ];
 
 const TEMPLATES_FUN = [
@@ -128,17 +94,12 @@ const TEMPLATES_FUN = [
     { id: "whip_10", name: "10人 連連看", category: 'fun', playerCount: 10, deck: ["獵魔人", "獵魔人", "獵魔人", "獵魔人", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影", "尋香魅影"] },
     { id: "survivorstd_7", name: "7人 生還者", category: 'fun', playerCount: 7, deck: ["預言家", "守衛", "女巫", "獵人", "白狼王", "狼人", "平民"] },
     { id: "survivorstd_9", name: "9人 生還者", category: 'fun', playerCount: 9, deck: ["預言家", "女巫", "守衛", "覺醒愚者", "流光伯爵", "騎士", "狼美人", "狼鴉之爪", "平民"] },
-    { id: "laststar_7", name: "7人 孤星狂徒", category: 'fun', playerCount: 7, deck: ["預言家", "覺醒愚者", "獵人", "石像鬼", "狼鴉之爪", "暗戀者", "野孩子"] },
     { id: "lastday_8", name: "8人 末日狂徒", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "騎士", "狼人", "狼人", "狼人", "平民", "平民"] },
     { id: "evening_8", name: "8人 諸神黃昏", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "獵人", "女巫", "白痴", "惡靈騎士", "狼王", "白狼王"] },
-    { id: "turn_8", name: "8人 漆黑的棉絮", category: 'fun', playerCount: 8, deck: ["純白之女", "熊", "攝夢人", "巫妖", "隱狼", "平民", "平民", "邱比特"] },
-    { id: "turn_9", name: "9人 漆黑的棉絮", category: 'fun', playerCount: 9, deck: ["純白之女", "熊", "攝夢人", "巫妖", "尋香魅影", "平民", "平民", "平民", "邱比特"] },
-    { id: "eveningnew_8", name: "8人 諸神清晨", category: 'fun', playerCount: 8, deck: ["預言家", "守衛", "白晝學者", "女巫", "獵人", "狼王", "隱狼", "寂夜導師"] },
     { id: "evening_10", name: "10人 諸神黃昏", category: 'fun', playerCount: 10, deck: ["預言家", "女巫", "獵人", "流光伯爵", "攝夢人", "定序王子", "血月使徒", "狼王", "蝕時狼妃", "蝕日侍女"] },
     { id: "evening_11", name: "11人 諸神黃昏", category: 'fun', playerCount: 11, deck: ["預言家", "女巫", "獵人", "守衛", "白痴", "白狼王", "狼美人", "血月使徒", "平民", "平民", "平民"] },
     { id: "windlich_10", name: "10人 風聲諜影", category: 'fun', playerCount: 10, deck: ["預言家", "魔鏡少女", "熊", "白貓", "河豚", "攝夢人", "女巫", "巫妖", "機械狼", "暗戀者"] },
     { id: "windlich_12", name: "12人 風聲諜影", category: 'fun', playerCount: 12, deck: ["預言家", "魔鏡少女", "熊", "獵人", "白貓", "河豚", "攝夢人", "女巫", "巫妖", "巫妖", "機械狼", "暗戀者"] },
-    { id: "licherking_12", name: "12人 夢語者之夢", category: 'fun', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "攝夢人", "守墓人", "巫妖", "狼王", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "noeyecit_12", name: "12人 無目之城", category: 'fun', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "流光伯爵", "狼人", "狼鴉之爪", "寂夜導師", "蝕日侍女", "平民", "平民", "平民", "平民"] },
 ];
 
@@ -224,7 +185,7 @@ function buildRecommendedRules(tpl) {
         rec.winCondition = 'kill_all';
         rec.sheriffExplodeRule = 'single';
     }
-    if (tpl.name.includes('諸神黃昏') || tpl.name.includes('諸神清晨') || tpl.name.includes('漆黑的棉絮')) {
+    if (tpl.name.includes('諸神黃昏')) {
         rec.witchSave = 'first_night';
         rec.winCondition = 'kill_all';
         rec.sheriff = 'disabled';
