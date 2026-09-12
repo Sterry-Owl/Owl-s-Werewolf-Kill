@@ -197,6 +197,24 @@ function handleIncomingPacket(peerId, data) {
             engineContext.sheriff.candidates = engineContext.sheriff.candidates.filter(s => s !== player.seatNumber);
             engineContext.sheriff.withdrawn.push(player.seatNumber);
             engineContext.systemLog = `宣布${player.seatNumber} 號玩家退水`;
+            
+            // [修復] 動態檢查剩餘候選人數，防範投票期或PK期因人數不足(0或1人)而卡死
+            if (engineContext.sheriff.candidates.length === 0) {
+                stateMachine.clearTimer();
+                engineContext.sheriff.badgeLost = true;
+                engineContext.systemLog = `所有候選人皆已退水，本局警徽流失。`;
+                Engine.EventBus.emit('MASTER_LOG', engineContext.systemLog);
+                stateMachine.transitionTo('DAWN_DEATH_ANNOUNCE');
+                return;
+            } else if (engineContext.sheriff.candidates.length === 1) {
+                stateMachine.clearTimer();
+                engineContext.sheriff.seat = engineContext.sheriff.candidates[0];
+                engineContext.systemLog = `其餘候選人皆已退水，${engineContext.sheriff.seat} 號自動當選警長！`;
+                Engine.EventBus.emit('MASTER_LOG', engineContext.systemLog);
+                stateMachine.transitionTo('DAWN_DEATH_ANNOUNCE');
+                return;
+            }
+
             if (engineContext.currentSpeaker === player.seatNumber) {
                 stateMachine.handleAction(player, 'end_speech');
             }
