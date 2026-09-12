@@ -109,7 +109,7 @@ const TEMPLATES_QUICK = [
     { id: "standard_10", name: "10人 標準局", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_grd_10", name: "10人 狼王守衛", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "守衛", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wk_mag_10", name: "10人 狼王魔術師", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "魔術師", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
-    { id: "inw_cl_10", name: "10人 咒狐隱鴉", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "烏鴉", "隱狼", "狼人", "狼人", "平民", "平民", "平民", "咒狐"] },
+    { id: "inw_cl_10", name: "10人 咒狐隱狼烏鴉", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "烏鴉", "隱狼", "狼人", "狼人", "平民", "平民", "平民", "咒狐"] },
     { id: "wwk_kn_10", name: "10人 白狼王騎士", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "騎士", "白狼王", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wbt_kn_10", name: "10人 狼美人騎士", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "騎士", "狼美人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
     { id: "gh_gra_10", name: "10人 守墓石像", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "守墓人", "石像鬼", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
@@ -130,10 +130,9 @@ const TEMPLATES_QUICK = [
     { id: "bearphantom_10", name: "10人 熊與魅影", category: 'quick', playerCount: 10, deck: ["熊", "女巫", "守衛", "尋香魅影", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "bigbadwolf_10", name: "10人 大野狼旅客", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "奇蹟商人", "大野狼", "隱狼", "狼人", "旅客", "平民", "平民", "平民"] },
     { id: "archer_10", name: "10人 天狗月女", category: 'quick', playerCount: 10, deck: ["預言家", "女巫", "獵魔人", "月女", "天狗", "狼王", "狼人", "平民", "平民", "平民"] },
-    { id: "bloodmoonsp_11", name: "11人 血月吹笛者", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "覺醒愚者", "血月使徒", "狼人", "狼人", "平民", "平民", "平民", "平民", "吹笛者"] },
-    { id: "theifsp_11", name: "11人 盜賊石像鬼", category: 'quick', playerCount: 11, deck: ["魔鏡少女", "女巫", "獵人", "守衛", "石像鬼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民", "盜賊", ] },
-    { id: "mixersp_11", name: "11人 狼巫暗戀者", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "守墓人", "魔術師", "狼巫", "狼王", "狼人", "平民", "平民", "平民", "暗戀者"] },
-    { id: "seedsp_11", name: "11人 巫妖守衛", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "定序王子", "守衛", "巫妖", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "nightmare_11", name: "11人 夢魘守衛", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "守衛", "噩夢之影", "狼王", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "wildchild_11", name: "11人 狼美人野孩子", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "騎士", "守衛", "狼美人", "狼人", "狼人", "平民", "平民", "平民", "野孩子"] },
+    { id: "dreamer_11", name: "11人 狼王攝夢人", category: 'quick', playerCount: 11, deck: ["預言家", "女巫", "獵人", "攝夢人", "狼王", "狼人", "寂夜導師", "平民", "平民", "平民", "平民"] },
 ];
 
 const TEMPLATES_STANDARD = [
@@ -142,7 +141,7 @@ const TEMPLATES_STANDARD = [
     { id: "wk_mag_12", name: "12人 狼王魔術師", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "魔術師", "狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "gh_gra_12", name: "12人 守墓石像", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守墓人", "石像鬼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
     { id: "wwk_kn_12", name: "12人 白狼王騎士", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "騎士", "守衛", "白狼王", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
-    { id: "inw_cl_12", name: "12人 咒狐隱鴉", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "烏鴉", "隱狼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "咒狐"] },
+    { id: "inw_cl_12", name: "12人 咒狐隱狼烏鴉", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "烏鴉", "隱狼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "咒狐"] },
     { id: "nim_dgr_12", name: "12人 夢魘攝夢人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "攝夢人", "噩夢之影", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wbt_kn_12", name: "12人 狼美人騎士", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "騎士", "守衛", "狼美人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "evkn_12", name: "12人 惡靈騎士", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "惡靈騎士", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
@@ -207,7 +206,12 @@ function buildRecommendedRules(tpl) {
         rec.sheriff = 'disabled';
         rec.deathReveal = 'dark';
     }
-
+    if (tpl.name.includes('無目之夜') || tpl.name.includes('無目之城') || tpl.name.includes('咒狐隱狼烏鴉')) {
+        rec.hiddenWolfType = 'strong';
+    }
+    if (tpl.name.includes('巫妖隱狼') || tpl.name.includes('大野狼旅客') || tpl.name.includes('隱狼野孩子')) {
+        rec.hiddenWolfType = 'weak';
+    }
     return Object.keys(rec).length > 0 ? rec : undefined;
 }
 
