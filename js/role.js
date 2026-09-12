@@ -393,6 +393,8 @@ window.RoleRegistry = {
                 ctx.nightTags.demonHunterBackfires = [];
                 ctx.nightTags.wolfTeamConfused = false;
                 ctx.confusedSeats = [];
+                ctx.tenguWarcriedSeat = null;
+                ctx.foolGuardedSeat = null;
                 
                 // [控制反轉] 拔除字串硬編碼，改為讀取角色設定的 nightPriority 屬性排序
                 const firstHalf = ctx.nightSequence.find(s => s.phaseId === 'first_half');
@@ -4768,6 +4770,7 @@ RoleRegistry.register("天狗", {
         const act = actions[0];
         if (!act || act.actionId === 'pass') {
             if (act) act.player.data.lastWarcriedSeat = null;
+            ctx.tenguWarcriedSeat = null;
             return "【空守】";
         }
         
