@@ -197,7 +197,7 @@ const TEMPLATES_STANDARD = [
     { id: "pure_12", name: "12人 純白夜影", category: 'standard', playerCount: 12, deck: ["純白之女", "女巫", "守衛", "獵人", "狼巫", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "grabsun_12", name: "12人 獵日逐光", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "攝夢人", "流光伯爵", "蝕日侍女", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "mistclaw_12", name: "12人 迷霧鴉影", category: 'standard', playerCount: 12, deck: ["預言家", "煉金魔女", "攝夢人", "白痴", "狼鴉之爪", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
-    { id: "change_12", name: "12人 三重底限", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "暗戀者", "野孩子", "復仇者"] },
+    { id: "wildkid_12", name: "12人 隱狼野孩子", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼人", "狼人", "狼人", "隱狼", "平民", "平民", "平民", "野孩子"] },
     { id: "timekeeper_12", name: "12人 時波之亂", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "白晝學者", "寂夜導師", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "thiefandlove_12", name: "12人 盜賊邱比特", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "白痴", "狼王", "狼人", "狼人", "平民", "平民", "平民", "平民", "平民", "邱比特", "盜賊"] },
     { id: "secretnight_12", name: "12人 秘密之夜", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "覺醒愚者", "夜之貴族", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
