@@ -1627,50 +1627,56 @@ RoleRegistry.register("惡靈騎士", {
         if (player.isDead) return;
         if (deathMap[player.seatNumber]) delete deathMap[player.seatNumber];
 
-        if (!player.data.hasReflected) {
-            let hasTriggeredThisNight = false;
-            
-            if (ctx.nightTags && ctx.nightTags.skillLog) {
-                for (const log of ctx.nightTags.skillLog) {
-                    if (log.target === player.seatNumber) {
-                        const reflectableSkills = ['check', 'poison', 'dream', 'curse', 'hunt', 'sanction', 'buff', 'debuff'];
-                        if (reflectableSkills.includes(log.skillType)) {
-                            const actorPlayer = ctx.getPlayer(log.actorSeat);
-                            if (!actorPlayer || actorPlayer.isDead) continue;
+        if (!player.data.hasReflected && ctx.nightTags?.skillLog) {
+            const reflectableSkills = ['poison', 'hunt', 'sanction', 'check', 'guard', 'dream', 'curse', 'buff', 'debuff'];
 
-                            if (['buff', 'debuff'].includes(log.skillType)) {
-                                if (ctx.getDynamicFaction(actorPlayer) === 'wolf') continue;
-                            }
-                            deathMap[log.actorSeat] = 'reflected';
-                            ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：惡靈騎士反傷發動，擊殺 ${log.actorSeat} 號)`;
-                            hasTriggeredThisNight = true;
+            let candidates = ctx.nightTags.skillLog.filter(log => {
+                if (log.target !== player.seatNumber) return false;
+                if (!reflectableSkills.includes(log.skillType)) return false;
+                
+                const actorPlayer = ctx.getPlayer(log.actorSeat);
+                if (!actorPlayer || actorPlayer.isDead) return false;
 
-                            if (log.skillType === 'curse' && ctx.cursedSeat === player.seatNumber) ctx.cursedSeat = null;
-                            if (log.skillType === 'sanction' && ctx.nightTags.princeSanctioned === player.seatNumber) ctx.nightTags.princeSanctioned = null;
-                            if (log.skillType === 'dream' && calc.dreamed.includes(player.seatNumber)) {
-                                calc.dreamed = calc.dreamed.filter(s => s !== player.seatNumber);
-                            }
-                            if (log.skillType === 'poison' && calc.poisoned.includes(player.seatNumber)) {
-                                calc.poisoned = calc.poisoned.filter(s => s !== player.seatNumber);
-                            }
-                            if (log.skillType === 'hunt' && ctx.nightTags.demonHunterKills && ctx.nightTags.demonHunterKills.includes(player.seatNumber)) {
-                                ctx.nightTags.demonHunterKills = ctx.nightTags.demonHunterKills.filter(s => s !== player.seatNumber);
-                            }
-                            if (log.skillType === 'debuff' && ctx.nightTags.scholarDebuffTarget === player.seatNumber) {
-                                ctx.nightTags.scholarDebuffTarget = null;
-                                ctx.nightTags.wolfTeamScholarDebuffed = false; 
-                            }
-                            if (log.skillType === 'buff') {
-                                player.data.virtualRoles = (player.data.virtualRoles || []).filter(r => r !== '受增幅者');
-                            }
-                            
-                            break;
-                        }
-                    }
+                if (['buff', 'debuff'].includes(log.skillType) && ctx.getDynamicFaction(actorPlayer) === 'wolf') {
+                    return false;
+                }
+                return true;
+            });
+
+            if (candidates.length > 0) {
+                const getPriority = (type) => {
+                    if (['poison', 'hunt', 'sanction'].includes(type)) return 1;
+                    if (type === 'check') return 2;
+                    return 3;
+                };
+                candidates.sort((a, b) => getPriority(a.skillType) - getPriority(b.skillType));
+
+                const chosen = candidates[0];
+                deathMap[chosen.actorSeat] = 'reflected';
+                ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：惡靈騎士反傷發動，擊殺 ${chosen.actorSeat} 號)`;
+                player.data.hasReflected = true;
+                if (chosen.skillType === 'curse' && ctx.cursedSeat === player.seatNumber) ctx.cursedSeat = null;
+                if (chosen.skillType === 'sanction' && ctx.nightTags.princeSanctioned === player.seatNumber) ctx.nightTags.princeSanctioned = null;
+                if (chosen.skillType === 'dream' && calc.dreamed.includes(player.seatNumber)) {
+                    calc.dreamed = calc.dreamed.filter(s => s !== player.seatNumber);
+                }
+                if (chosen.skillType === 'poison' && calc.poisoned.includes(player.seatNumber)) {
+                    calc.poisoned = calc.poisoned.filter(s => s !== player.seatNumber);
+                }
+                if (chosen.skillType === 'hunt' && ctx.nightTags.demonHunterKills?.includes(player.seatNumber)) {
+                    ctx.nightTags.demonHunterKills = ctx.nightTags.demonHunterKills.filter(s => s !== player.seatNumber);
+                }
+                if (chosen.skillType === 'guard' && ctx.guardedSeat === player.seatNumber) {
+                    ctx.guardedSeat = null;
+                }
+                if (chosen.skillType === 'debuff' && ctx.nightTags.scholarDebuffTarget === player.seatNumber) {
+                    ctx.nightTags.scholarDebuffTarget = null;
+                    ctx.nightTags.wolfTeamScholarDebuffed = false; 
+                }
+                if (chosen.skillType === 'buff') {
+                    player.data.virtualRoles = (player.data.virtualRoles || []).filter(r => r !== '受增幅者');
                 }
             }
-            
-            if (hasTriggeredThisNight) player.data.hasReflected = true;
         }
     },
     resolveNightAction: RoleRegistry.plugins["狼人"].resolveNightAction
