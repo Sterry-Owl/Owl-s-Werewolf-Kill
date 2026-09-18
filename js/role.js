@@ -4858,3 +4858,32 @@ RoleRegistry.register("月女", {
         return "【推遲月亮】";
     }
 });
+RoleRegistry.register("數學家", {
+    canSelfExplode: false,
+    nightPhase: "second_half",
+    actionType: "double_select",
+    getPrompt: () => "選擇今晚驗證的兩名玩家\n(不可選擇自己，可重複驗證)",
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
+    getButtons: () => [
+        { id: 'check', text: '驗證', requiresTarget: true },
+        { id: 'pass', text: '跳過', requiresTarget: false }
+    ],
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || act.actionId === 'pass' || !act.targets || act.targets.length < 2) {
+            return "【跳過行動】";
+        }
+
+        const t1 = parseInt(act.targets[0]);
+        const t2 = parseInt(act.targets[1]);
+        const actualT1 = ctx.getSkillTarget ? ctx.getSkillTarget(t1, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(t1) : t1);
+        const actualT2 = ctx.getSkillTarget ? ctx.getSkillTarget(t2, 'check', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(t2) : t2);
+        const align1 = ctx.getSeerAlignment(actualT1);
+        const align2 = ctx.getSeerAlignment(actualT2);
+        const isSame = (align1 === align2);
+        const resultStr = isSame ? "陣營相同" : "陣營不同";
+        act.player.data.latestCheckResult = { seat: t1, seat2: t2, alignment: resultStr, isSeerAction: false };
+        act.player.data.tempPrivateMessage = `${t1}號 與 ${t2}號 的驗證結果為：【${resultStr}】。`;
+        return `驗證: ${t1}號, ${t2}號 (${resultStr})`;
+    }
+});
