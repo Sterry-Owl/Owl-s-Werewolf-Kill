@@ -78,6 +78,7 @@ const NETWORK_CONFIG = {
 
 const TEMPLATES_TEST = [
     { id: "test-1_6", name: "介面測試", category: 'test', playerCount: 1, deck: ["預言家"] },
+    { id: "test_math", name: "數學家測試", category: 'test', playerCount: 6, deck: ["數學家", "魔術師", "狼王", "石像鬼", "平民", "平民"] },
 ];
 
 const TEMPLATES_FUN = [
