@@ -165,7 +165,8 @@ const TEMPLATES_STANDARD = [
     { id: "awakendlich_12", name: "12人 巫妖隱狼", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "奇蹟商人", "巫妖", "隱狼", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "bearphantom_12", name: "12人 熊與魅影", category: 'standard', playerCount: 12, deck: ["熊", "女巫", "騎士", "守衛", "尋香魅影", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "bigbadwolf_12", name: "12人 大野狼旅客", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "奇蹟商人", "大野狼", "隱狼", "狼人", "狼人", "旅客", "平民", "平民", "平民"] },
-    { id: "archer_12", name: "12人 天狗月女", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵魔人", "月女", "天狗", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "archer_12", name: "12人 天狗月女", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "月女", "天狗", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "math_12", name: "12人 數學家魔術師", category: 'standard', playerCount: 12, deck: ["數學家", "女巫", "獵人", "魔術師", "狼王", "石像鬼", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
 ];
 
 function buildRecommendedRules(tpl) {
@@ -256,6 +257,7 @@ const ROLE_DICTIONARY = {
     "覺醒愚者": { faction: "good", type: "god", nightPhase: "second_half", actionType: "single_select", prompt: "選擇今晚守護的目標\n(點擊左右列頭貼以發動技能)", description:"神職；擁有「秘密之身」。每晚可守護一名玩家免於夜間傷害。若該玩家未受傷害，守護效果轉移至自己。成功擋下一次傷害後失去秘密之身。被放逐時翻牌免除出局並失去秘密之身，但仍保留發言與投票權。" },
     "覺醒獵人": { faction: "good", type: "god", nightPhase: "none", actionType: "none", prompt: "", description:"神職；出局後可選擇順向或逆向發動巡獵，使離自己最近的狼人出局。若在夜間死亡，被巡獵出局的狼人將無法發動技能。" },
     "月女": { faction: "good", type: "god", nightPhase: "pre_night", actionType: "single_select", prompt: "請選擇是否要推遲月亮", description: "神職。每晚入夜前可以選擇是否要發動技能推遲月亮。推遲月亮後，黑夜將被延後至下一個白天後再降臨。本技能只能發動一次。" },
+    "數學家": { faction: "good", type: "god", nightPhase: "second_half", actionType: "double_select", prompt: "請選擇兩名驗證目標\n(點擊左右列頭貼以發動技能)", description: "神職；每晚可以選擇兩名非自己的玩家驗證陣營是否相同。若陣營相同則獲得「陣營相同」的結果，反之獲得「陣營不同」。" },
 
     // ==========================================
     // 2. 狼人陣營 (Wolves)
