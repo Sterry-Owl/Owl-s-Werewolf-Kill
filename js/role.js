@@ -370,11 +370,19 @@ window.RoleRegistry = {
                         });
                     });
                 }
-                // [新增] 旅客雷達面板推播
                 if (player.role === '旅客' && player.data.touristWolfRadar) {
                     infos.push({
                         text: `你察覺到狼人位於 ${player.data.touristWolfRadar.join(' 或 ')} 號座位`,
                         subtext: "首夜遇襲，追蹤到最近的帶刀狼人"
+                    });
+                }
+
+                if (player.role === '數學家' && player.data.mathRecords && player.data.mathRecords.length > 0) {
+                    player.data.mathRecords.forEach(rec => {
+                        infos.push({
+                            text: `${rec.t1} 號 與 ${rec.t2} 號【${rec.result}】`,
+                            subtext: `第 ${rec.night} 夜驗證結果`
+                        });
                     });
                 }
                 
@@ -4882,6 +4890,18 @@ RoleRegistry.register("數學家", {
         const align2 = ctx.getSeerAlignment(actualT2);
         const isSame = (align1 === align2);
         const resultStr = isSame ? "陣營相同" : "陣營不同";
+
+        act.player.data.seerRecords = act.player.data.seerRecords || {};
+        act.player.data.seerRecords[t1] = resultStr;
+        act.player.data.seerRecords[t2] = resultStr;
+        act.player.data.mathRecords = act.player.data.mathRecords || [];
+        act.player.data.mathRecords.push({
+            night: ctx.nightCount,
+            t1: t1,
+            t2: t2,
+            result: resultStr
+        });
+
         act.player.data.latestCheckResult = { seat: t1, seat2: t2, alignment: resultStr, isSeerAction: false };
         act.player.data.tempPrivateMessage = `${t1}號 與 ${t2}號 的驗證結果為：【${resultStr}】。`;
         return `驗證: ${t1}號, ${t2}號 (${resultStr})`;
