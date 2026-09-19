@@ -476,6 +476,13 @@ window.RoleRegistry = {
                     Engine.EventBus.emit('MASTER_LOG', `【系統紀錄】其餘狼人皆已出局，轉化者 ${survivor.seatNumber} 號正式加入狼隊並失去原有技能`);
                 }
             }
+            context.players.forEach(p => {
+                if (p.seatNumber === player.seatNumber) return;
+                const observerPlugin = RoleRegistry.plugins[p.role];
+                if (observerPlugin && typeof observerPlugin.onPostPlayerDied === 'function') {
+                    observerPlugin.onPostPlayerDied(context, p, player, reason);
+                }
+            });
         });
         Engine.EventBus.on('WOLF_EXPLODE', ({ context, player }) => {
             if (!player || player.isDead || !RoleRegistry.plugins[player.role]?.canSelfExplode) return;
@@ -1233,7 +1240,6 @@ RoleRegistry.register("隱狼", {
         return otherWolves.length === 0;
     },
     onNightStart: (ctx, player) => {
-        // [擴充：弱化1] 若規則設定為弱隱狼，直接中斷執行，失去看見隊友的功能
         if (ctx.rules?.hiddenWolfType === 'weak') return;
 
         player.data.customTopTags = player.data.customTopTags || {};
@@ -1246,14 +1252,11 @@ RoleRegistry.register("隱狼", {
             }
         });
     },
-    onOtherPlayerDied: (ctx, observer, deadPlayer, reason) => {
-        // [擴充：弱化2] 任何玩家出局時，檢查弱隱狼是否孤立無援
+    onPostPlayerDied: (ctx, observer, deadPlayer, reason) => {
         if (ctx.rules?.hiddenWolfType === 'weak' && !observer.isDead) {
-            // 掃描場上是否還有其他活著的狼人陣營 (包含轉化者)
             const otherWolvesAlive = ctx.getAlivePlayers().filter(p => p.seatNumber !== observer.seatNumber && ctx.getDynamicFaction(p) === 'wolf');
             if (otherWolvesAlive.length === 0) {
-                ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：狼隊隊友皆已出局，弱隱狼 ${observer.seatNumber} 號孤立無援，倒牌出局)`;
-                // 觸發心碎/殉情機制，將連帶觸發引擎的勝負判定
+                ctx.systemLog = (ctx.systemLog || '') + `\n(系統紀錄：狼隊隊友皆已出局，弱隱狼 ${observer.seatNumber} 號自動出局)`;
                 observer.kill('heartbreak', ctx);
             }
         }
