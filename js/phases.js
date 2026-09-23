@@ -695,6 +695,11 @@ window.PhaseRegistry = {
                     if (!ctx.dailyVotes[t].includes(voterSeat)) {
                         ctx.dailyVotes[t].push(voterSeat);
                     }
+                    const vPlayer = ctx.getPlayer(voterSeat);
+                    if (vPlayer) {
+                        vPlayer.data.lastExileVote = (t !== 'pass') ? parseInt(t) : null;
+                        vPlayer.data.lastExileVoteDay = ctx.nightCount;
+                    }
                 }
             }
         });
