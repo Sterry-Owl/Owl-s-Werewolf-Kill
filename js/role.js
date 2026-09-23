@@ -119,6 +119,7 @@ window.RoleRegistry = {
                 if (ctx.nightTags?.demonHunterKills) ctx.nightTags.demonHunterKills.forEach(seat => deathMap[seat] = 'killed');
                 if (ctx.nightTags?.demonHunterBackfires) ctx.nightTags.demonHunterBackfires.forEach(seat => deathMap[seat] = 'skill_backfire');
                 if (ctx.nightTags?.clashDeaths) ctx.nightTags.clashDeaths.forEach(seat => deathMap[seat] = 'skill_backfire');
+                if (ctx.nightTags?.assassinated) ctx.nightTags.assassinated.forEach(seat => deathMap[seat] = 'killed');
 
                 let allTargets = new Set([...calc.killed, ...calc.poisoned, ...calc.dreamed]);
 
@@ -399,12 +400,12 @@ window.RoleRegistry = {
                 ctx.postVoteSkillTriggeredThisDay = false;
                 ctx.nightTags.demonHunterKills = [];
                 ctx.nightTags.demonHunterBackfires = [];
+                ctx.nightTags.assassinated = [];
                 ctx.nightTags.wolfTeamConfused = false;
                 ctx.confusedSeats = [];
                 ctx.tenguWarcriedSeat = null;
                 ctx.foolGuardedSeat = null;
-                
-                // [控制反轉] 拔除字串硬編碼，改為讀取角色設定的 nightPriority 屬性排序
+
                 const firstHalf = ctx.nightSequence.find(s => s.phaseId === 'first_half');
                 if (firstHalf) {
                     firstHalf.roles.sort((a, b) => {
@@ -1639,7 +1640,8 @@ RoleRegistry.register("惡靈騎士", {
         if (deathMap[player.seatNumber]) delete deathMap[player.seatNumber];
 
         if (!player.data.hasReflected && ctx.nightTags?.skillLog) {
-            const reflectableSkills = ['poison', 'hunt', 'sanction', 'check', 'guard', 'dream', 'curse', 'buff', 'debuff'];
+            // [新增] 納入 assassinate
+            const reflectableSkills = ['poison', 'hunt', 'sanction', 'assassinate', 'check', 'guard', 'dream', 'curse', 'buff', 'debuff'];
 
             let candidates = ctx.nightTags.skillLog.filter(log => {
                 if (log.target !== player.seatNumber) return false;
@@ -1656,7 +1658,7 @@ RoleRegistry.register("惡靈騎士", {
 
             if (candidates.length > 0) {
                 const getPriority = (type) => {
-                    if (['poison', 'hunt', 'sanction'].includes(type)) return 1;
+                    if (['poison', 'hunt', 'sanction', 'assassinate'].includes(type)) return 1;
                     if (type === 'check') return 2;
                     return 3;
                 };
@@ -1668,6 +1670,9 @@ RoleRegistry.register("惡靈騎士", {
                 player.data.hasReflected = true;
                 if (chosen.skillType === 'curse' && ctx.cursedSeat === player.seatNumber) ctx.cursedSeat = null;
                 if (chosen.skillType === 'sanction' && ctx.nightTags.princeSanctioned === player.seatNumber) ctx.nightTags.princeSanctioned = null;
+                if (chosen.skillType === 'assassinate' && ctx.nightTags.assassinated?.includes(player.seatNumber)) {
+                    ctx.nightTags.assassinated = ctx.nightTags.assassinated.filter(s => s !== player.seatNumber);
+                }
                 if (chosen.skillType === 'dream' && calc.dreamed.includes(player.seatNumber)) {
                     calc.dreamed = calc.dreamed.filter(s => s !== player.seatNumber);
                 }
@@ -4908,5 +4913,107 @@ RoleRegistry.register("數學家", {
         act.player.data.latestCheckResult = { seat: t1, seat2: t2, alignment: resultStr, isSeerAction: false };
         act.player.data.tempPrivateMessage = `${t1}號 與 ${t2}號 的驗證結果為：【${resultStr}】。`;
         return `驗證: ${t1}號, ${t2}號 (${resultStr})`;
+    }
+});
+RoleRegistry.register("潛行者", {
+    canSelfExplode: false,
+    nightPhase: "second_half",
+    actionType: "single_select",
+    hasAction: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        return !p.data.hasAssassinated && ctx.nightCount > 1;
+    },
+    getPrompt: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        if (p.data.hasAssassinated) return "你已使用過刺殺技能。";
+        if (ctx.nightCount === 1) return "首夜無前一日投票，無法發動刺殺。";
+        if (!p.data.lastExileVote || p.data.lastExileVoteDay !== ctx.nightCount - 1) {
+            return "昨日未投票給存活玩家，今晚無法發動刺殺。";
+        }
+        const targetP = ctx.getPlayer(p.data.lastExileVote);
+        if (!targetP || targetP.isDead) {
+            return "昨日投票對象已出局，今晚無法發動刺殺。";
+        }
+        return `你可以選擇刺殺昨日投票的 ${p.data.lastExileVote} 號玩家`;
+    },
+    getSelectableSeats: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        if (p.data.hasAssassinated || ctx.nightCount === 1) return [];
+        if (!p.data.lastExileVote || p.data.lastExileVoteDay !== ctx.nightCount - 1) return [];
+        const targetP = ctx.getPlayer(p.data.lastExileVote);
+        if (!targetP || targetP.isDead) return [];
+        return [p.data.lastExileVote];
+    },
+    getButtons: (ctx, mySeat) => {
+        const p = ctx.getPlayer(mySeat);
+        const validSeats = RoleRegistry.plugins["潛行者"].getSelectableSeats(ctx, mySeat);
+        if (validSeats.length > 0) {
+            return [
+                { id: 'assassinate', text: '刺殺', requiresTarget: true },
+                { id: 'pass', text: '保留技能', requiresTarget: false }
+            ];
+        }
+        return [{ id: 'pass', text: '跳過', requiresTarget: false }];
+    },
+    resolveNightAction: (ctx, actions) => {
+        const act = actions[0];
+        if (!act || act.actionId === 'pass' || !act.targets || act.targets.length === 0) {
+            return "【保留技能】";
+        }
+        const target = act.targets[0];
+        act.player.data.hasAssassinated = true;
+
+        const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'assassinate', act.player.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
+        ctx.nightTags = ctx.nightTags || {};
+        ctx.nightTags.assassinated = ctx.nightTags.assassinated || [];
+        ctx.nightTags.assassinated.push(actualTarget);
+
+        return `【刺殺: ${target}號】`;
+    },
+    exportedSkills: {
+        machineWolf: {
+            actionType: "single_select",
+            getPrompt: (ctx, mySeat) => {
+                const p = ctx.getPlayer(mySeat);
+                if (ctx.nightCount === 1) return "【技能: 潛行者】首夜無前一日投票，無法發動刺殺。";
+                if (!p.data.lastExileVote || p.data.lastExileVoteDay !== ctx.nightCount - 1) {
+                    return "【技能: 潛行者】昨日未投票給存活玩家，今晚無法發動刺殺。";
+                }
+                const targetP = ctx.getPlayer(p.data.lastExileVote);
+                if (!targetP || targetP.isDead) {
+                    return "【技能: 潛行者】昨日投票對象已出局，今晚無法發動刺殺。";
+                }
+                return `【技能: 潛行者】你可以刺殺昨日自己投票的 ${p.data.lastExileVote} 號玩家`;
+            },
+            getSelectableSeats: (ctx, mySeat) => {
+                const p = ctx.getPlayer(mySeat);
+                if (ctx.nightCount === 1) return [];
+                if (!p.data.lastExileVote || p.data.lastExileVoteDay !== ctx.nightCount - 1) return [];
+                const targetP = ctx.getPlayer(p.data.lastExileVote);
+                if (!targetP || targetP.isDead) return [];
+                return [p.data.lastExileVote];
+            },
+            getButtons: (ctx, mySeat) => {
+                const p = ctx.getPlayer(mySeat);
+                const plugin = RoleRegistry.plugins["潛行者"];
+                const validSeats = plugin.exportedSkills.machineWolf.getSelectableSeats(ctx, mySeat);
+                if (validSeats.length > 0) {
+                    return [
+                        { id: 'assassinate', text: '刺殺', requiresTarget: true },
+                        { id: 'pass', text: '保留技能', requiresTarget: false }
+                    ];
+                }
+                return [{ id: 'pass', text: '跳過', requiresTarget: false }];
+            },
+            resolve: (ctx, act) => {
+                const target = act.targets[0];
+                const p = act.player;
+                const actualTarget = ctx.getSkillTarget ? ctx.getSkillTarget(target, 'assassinate', p.seatNumber) : (ctx.getActualTarget ? ctx.getActualTarget(target) : parseInt(target));
+                ctx.nightTags = ctx.nightTags || {};
+                ctx.nightTags.assassinated = ctx.nightTags.assassinated || [];
+                ctx.nightTags.assassinated.push(actualTarget);
+                return `【刺殺: ${target}號】`;
+            }
+        }
     }
 });
