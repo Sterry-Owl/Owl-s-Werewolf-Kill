@@ -772,7 +772,7 @@ RoleRegistry.register("預言家", {
     actionType: "single_select",
     isSeer: true,
     getPrompt: () => "選擇今晚的查驗目標",
-    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat && !p.data.isDueledGood).map(p => p.seatNumber),
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
         const act = actions.find(a => a.player.role === '預言家');
@@ -794,7 +794,7 @@ RoleRegistry.register("預言家", {
         maid: {
             actionType: "single_select",
             getPrompt: () => "【吞噬技能: 預言家】選擇查驗目標",
-            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat && !p.data.isDueledGood).map(p => p.seatNumber),
+            getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
             getButtons: () => [{ id: 'check', text: '查驗', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
             resolve: (ctx, act) => {
                 const target = act.targets[0];
@@ -851,7 +851,7 @@ RoleRegistry.register("燈影預言家", {
     actionType: "single_select",
     isSeer: true,
     getPrompt: () => "選擇今晚的查驗目標",
-    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat && !p.data.isDueledGood).map(p => p.seatNumber),
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [{ id: 'confirm', text: '確認', requiresTarget: true }, { id: 'pass', text: '跳過', requiresTarget: false }],
     resolveNightAction: (ctx, actions) => {
         const act = actions.find(a => a.player.role === '燈影預言家');
@@ -1096,6 +1096,12 @@ RoleRegistry.register("騎士", {
                 ctx.interruptInitiator = null;
             }
 
+            // [新增] 決鬥結束後，全場玩家獲得目標的 sideTag (狼人顯示紅色，好人顯示金色)
+            ctx.players.forEach(p => {
+                p.data.customSideTags = p.data.customSideTags || {};
+                p.data.customSideTags[targetSeat] = isWolf ? '狼人' : '好人';
+            });
+
             if (isWolf) {
                 targetPlayer.kill('dueled', ctx);
                 let extraLog = '';
@@ -1124,7 +1130,6 @@ RoleRegistry.register("騎士", {
                 }, 5000);
             } else {
                 player.kill('dueled', ctx);
-                targetPlayer.data.isDueledGood = true;
                 ctx.isResolvingAsync = true;
                 setTimeout(() => {
                     try {
@@ -1704,7 +1709,7 @@ RoleRegistry.register("魔鏡少女", {
     actionType: "single_select",
     isSeer: true, 
     getPrompt: () => "選擇今晚揭示具體身分的目標",
-    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat && !p.data.isDueledGood).map(p => p.seatNumber),
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [
         { id: 'confirm', text: '確認', requiresTarget: true }, 
         { id: 'pass', text: '跳過', requiresTarget: false }
@@ -1968,41 +1973,134 @@ RoleRegistry.register("機械狼", {
             return true;
         }
     },
-    daySkill: {
-        id: 'mw_pufferfish_blow', 
-        buttonText: '翻牌發動反傷', 
-        requiresTarget: false,
-        allowDead: true,
-        allowedPhases: ['POST_VOTE_SKILL'],
-        getSelectableSeats: () => [],
-        resolve: (ctx, player) => {
-            if (player.data.machineState !== 1 || player.data.learnedRole !== '河豚') return;
-            
-            player.isRevealed = true;
-            player.data.machineState = 2; 
-            const targets = ctx.dailyVotes ? (ctx.dailyVotes[player.seatNumber] || []) : [];
-            
-            if (targets.length === 0) {
-                ctx.systemLog = `${player.seatNumber} 號玩家是機械狼，翻牌發動河豚爆炸。\n但當天沒有任何人投票給他，無事發生。`;
-                if (typeof Engine !== 'undefined' && Engine.EventBus) Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
-                return;
-            }
-            
-            let killedSeats = [];
-            targets.forEach(seat => {
-                const t = ctx.getPlayer(seat);
-                if (t && !t.isDead) {
-                    t.kill('shot', ctx); 
-                    killedSeats.push(seat);
+    getDaySkill: (ctx, player) => {
+        if (player.data.machineState !== 1 || player.data.hasUsedDaySkill) return null;
+
+        if (player.data.learnedRole === '河豚') {
+            return {
+                id: 'mw_pufferfish_blow',
+                buttonText: '翻牌發動反傷',
+                requiresTarget: false,
+                allowDead: true,
+                allowedPhases: ['POST_VOTE_SKILL'],
+                getSelectableSeats: () => [],
+                resolve: (context, p) => {
+                    p.isRevealed = true;
+                    p.data.machineState = 2;
+                    const targets = context.dailyVotes ? (context.dailyVotes[p.seatNumber] || []) : [];
+
+                    if (targets.length === 0) {
+                        context.systemLog = `${p.seatNumber} 號玩家是機械狼，翻牌發動河豚爆炸。\n但當天沒有任何人投票給他，無事發生。`;
+                        if (typeof Engine !== 'undefined' && Engine.EventBus) Engine.EventBus.emit('BROADCAST_MESSAGE', context.systemLog);
+                        return;
+                    }
+
+                    let killedSeats = [];
+                    targets.forEach(seat => {
+                        const t = context.getPlayer(seat);
+                        if (t && !t.isDead) {
+                            t.kill('shot', context);
+                            killedSeats.push(seat);
+                        }
+                    });
+
+                    context.systemLog = `${p.seatNumber} 號玩家是機械狼，翻牌發動河豚爆炸\n炸死了曾投票給他的：${killedSeats.join('、')} 號玩家。`;
+                    if (typeof Engine !== 'undefined' && Engine.EventBus) {
+                        Engine.EventBus.emit('BROADCAST_MESSAGE', context.systemLog);
+                        Engine.EventBus.emit('CHECK_WIN_CONDITION', context);
+                    }
                 }
-            });
-            
-            ctx.systemLog = `${player.seatNumber} 號玩家是機械狼，翻牌發動河豚爆炸\n炸死了曾投票給他的：${killedSeats.join('、')} 號玩家。`;
-            if (typeof Engine !== 'undefined' && Engine.EventBus) {
-                Engine.EventBus.emit('BROADCAST_MESSAGE', ctx.systemLog);
-                Engine.EventBus.emit('CHECK_WIN_CONDITION', ctx);
-            }
+            };
         }
+
+        if (player.data.learnedRole === '騎士') {
+            return {
+                id: 'mw_duel',
+                buttonText: '發起決鬥',
+                requiresTarget: true,
+                allowedPhases: ['DAY_DISCUSSION', 'DAY_PK_SPEECH'],
+                getSelectableSeats: (context, mySeat) => context.getAlivePlayers().filter(x => x.seatNumber !== mySeat).map(x => x.seatNumber),
+                resolve: (context, p, targetSeat) => {
+                    const targetPlayer = context.getPlayer(targetSeat);
+                    p.isRevealed = true;
+                    p.data.hasUsedDaySkill = true;
+                    p.data.machineState = 2;
+
+                    context.systemLog = `${p.seatNumber} 號玩家是騎士，向${targetSeat} 號玩家發起決鬥。`;
+                    context.knightDuelRecords = context.knightDuelRecords || [];
+                    context.knightDuelRecords.push({ knight: p.seatNumber, target: targetSeat });
+
+                    Engine.EventBus.emit('BROADCAST_MESSAGE', context.systemLog);
+                    if (typeof PhaseRegistry !== 'undefined' && PhaseRegistry.sm) {
+                        PhaseRegistry.sm.clearTimer();
+                    }
+                    if (context.currentSpeaker) {
+                        context.speakingQueue.unshift(context.currentSpeaker);
+                    }
+
+                    const isWolf = context.getDynamicFaction(targetPlayer) === 'wolf';
+                    if (context.pendingDawnDeaths) {
+                        const deathMap = context.pendingDawnDeaths;
+                        context.players.forEach(pl => {
+                            if (!pl.isDead && deathMap[pl.seatNumber]) pl.kill(deathMap[pl.seatNumber], context);
+                        });
+                        context.pendingDawnDeaths = null;
+                        context.interruptInitiator = null;
+                    }
+
+                    context.players.forEach(pl => {
+                        pl.data.customSideTags = pl.data.customSideTags || {};
+                        pl.data.customSideTags[targetSeat] = (!isWolf) ? '狼人' : '好人';
+                    });
+
+                    if (!isWolf) {
+                        targetPlayer.kill('dueled', context);
+                        let extraLog = '';
+                        context.players.forEach(pl => {
+                            if (pl.data.isUntargetable && !pl.isDead) {
+                                if (context.nightCount >= pl.data.expireNight) {
+                                    pl.data.isUntargetable = false;
+                                    pl.kill('skill_expired', context);
+                                    extraLog += `\n(系統紀錄：因白天提前結束，${pl.seatNumber} 號白貓大限已至，跟隨倒牌出局)`;
+                                }
+                            }
+                        });
+
+                        context.isResolvingAsync = true;
+                        setTimeout(() => {
+                            try {
+                                Engine.EventBus.emit('BROADCAST_MESSAGE', `決鬥結束，${targetSeat} 號玩家是狼人\n天黑請閉眼。` + extraLog);
+                                Engine.EventBus.emit('CHECK_WIN_CONDITION', context);
+                                if (context.phase !== 'GAME_OVER') {
+                                    context.destinationPhase = 'NIGHT_TRANSITION';
+                                    Engine.EventBus.emit('RESUME_ROUTINE');
+                                }
+                            } finally {
+                                context.isResolvingAsync = false;
+                            }
+                        }, 5000);
+                    } else {
+                        p.kill('dueled', context);
+                        context.isResolvingAsync = true;
+                        setTimeout(() => {
+                            try {
+                                Engine.EventBus.emit('BROADCAST_MESSAGE', `決鬥結束，${targetSeat} 號玩家是好人，決鬥失敗，請玩家繼續發言。`);
+                                Engine.EventBus.emit('CHECK_WIN_CONDITION', context);
+                                if (context.phase !== 'GAME_OVER') {
+                                    context.daySkillLastWordsQueue = [p.seatNumber];
+                                    context.destinationPhase = context.phase;
+                                    Engine.EventBus.emit('RESUME_ROUTINE');
+                                }
+                            } finally {
+                                context.isResolvingAsync = false;
+                            }
+                        }, 5000);
+                    }
+                }
+            };
+        }
+
+        return null;
     }
 });
 
@@ -2930,7 +3028,7 @@ RoleRegistry.register("純白之女", {
         }
     },
     getPrompt: () => "選擇今晚揭示具體身分的目標",
-    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat && !p.data.isDueledGood).map(p => p.seatNumber),
+    getSelectableSeats: (ctx, mySeat) => ctx.getAlivePlayers().filter(p => p.seatNumber !== mySeat).map(p => p.seatNumber),
     getButtons: () => [
         { id: 'check', text: '查驗', requiresTarget: true }, 
         { id: 'pass', text: '跳過', requiresTarget: false }
