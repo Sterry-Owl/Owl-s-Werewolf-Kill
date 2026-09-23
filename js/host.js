@@ -299,19 +299,21 @@ function handleIncomingPacket(peerId, data) {
     else if (data.type === 'DAY_SKILL_SUBMIT') {
         const player = engineContext.getPlayerByPeer(peerId);
         const plugin = RoleRegistry.plugins[player?.role];
-        if (player && plugin?.daySkill && plugin.daySkill.id === data.payload.skillId) {
-            if (player.isDead && !plugin.daySkill.allowDead) return;
-            if (!plugin.daySkill.allowedPhases.includes(engineContext.phase)) return;
+        const daySkillDef = plugin?.getDaySkill ? plugin.getDaySkill(engineContext, player) : plugin?.daySkill;
+        if (player && daySkillDef && daySkillDef.id === data.payload.skillId) {
+            if (player.isDead && !daySkillDef.allowDead) return;
+            if (!daySkillDef.allowedPhases.includes(engineContext.phase)) return;
             
-            if (plugin.daySkill.requiresTarget) {
-                const validTargets = plugin.daySkill.getSelectableSeats(engineContext, player.seatNumber);
+            if (daySkillDef.requiresTarget) {
+                const validTargets = daySkillDef.getSelectableSeats(engineContext, player.seatNumber);
                 if (!validTargets.includes(data.payload.target)) return;
             }
 
-            engineContext.latestAnimation = { role: player.role, timestamp: Date.now() };
-            plugin.daySkill.resolve(engineContext, player, data.payload.target);
-            const targetText = plugin.daySkill.requiresTarget ? ` 對 ${data.payload.target}號` : "";
-            Engine.EventBus.emit('MASTER_LOG', `【技能發動】${player.seatNumber}號(${player.role})${targetText} 使用了 ${plugin.daySkill.buttonText}`);
+            const displayRole = player.data.camouflageRole || player.role;
+            engineContext.latestAnimation = { role: displayRole, timestamp: Date.now() };
+            daySkillDef.resolve(engineContext, player, data.payload.target);
+            const targetText = daySkillDef.requiresTarget ? ` 對 ${data.payload.target}號` : "";
+            Engine.EventBus.emit('MASTER_LOG', `【技能發動】${player.seatNumber}號(${displayRole})${targetText} 使用了 ${daySkillDef.buttonText}`);
             syncStateToAll();
         }
     }
@@ -766,7 +768,8 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         const canSeeW = typeof myPlugin?.canSeeWolves === 'function' ? myPlugin.canSeeWolves(ctx, player) : !!myPlugin?.canSeeWolves;
         const isSeenW = typeof pPlugin?.seenAsWolf === 'function' ? pPlugin.seenAsWolf(ctx, p.seatNumber) : !!pPlugin?.seenAsWolf;
 
-        if (ctx.phase === 'GAME_OVER' || p.isRevealed || (p.isDead && ctx.rules.deathReveal === 'light')) topTag = pDisplayRole;
+        const revealedDisplayRole = (ctx.phase !== 'GAME_OVER' && p.data.camouflageRole && !p.isDead) ? p.data.camouflageRole : pDisplayRole;
+        if (ctx.phase === 'GAME_OVER' || p.isRevealed || (p.isDead && ctx.rules.deathReveal === 'light')) topTag = revealedDisplayRole;
         else if (player.data.customTopTags && player.data.customTopTags[p.seatNumber]) topTag = player.data.customTopTags[p.seatNumber];
         else if (canSeeW && isSeenW) topTag = pDisplayRole;
         
@@ -1205,12 +1208,15 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         canUseWolfChat: canUseWolfChat,
         isMidnight: isMidnight,
         wolfChatHistory: canUseWolfChat ? (ctx.wolfChatHistory || []) : [],
-        daySkill: (isDayPhase && RoleRegistry.plugins[player.role]?.daySkill && RoleRegistry.plugins[player.role].daySkill.allowedPhases.includes(ctx.phase) && (!player.isDead || RoleRegistry.plugins[player.role].daySkill.allowDead) && !player.data.hasUsedDaySkill) ? {
-            id: RoleRegistry.plugins[player.role].daySkill.id,
-            buttonText: RoleRegistry.plugins[player.role].daySkill.buttonText,
-            requiresTarget: RoleRegistry.plugins[player.role].daySkill.requiresTarget,
-            selectableSeats: RoleRegistry.plugins[player.role].daySkill.requiresTarget ? RoleRegistry.plugins[player.role].daySkill.getSelectableSeats(ctx, player.seatNumber) : []
-        } : null,
+        daySkill: (() => {
+            const activeDaySkill = plugin?.getDaySkill ? plugin.getDaySkill(ctx, player) : plugin?.daySkill;
+            return (isDayPhase && activeDaySkill && activeDaySkill.allowedPhases.includes(ctx.phase) && (!player.isDead || activeDaySkill.allowDead) && !player.data.hasUsedDaySkill) ? {
+                id: activeDaySkill.id,
+                buttonText: activeDaySkill.buttonText,
+                requiresTarget: activeDaySkill.requiresTarget,
+                selectableSeats: activeDaySkill.requiresTarget ? activeDaySkill.getSelectableSeats(ctx, player.seatNumber) : []
+            } : null;
+        })(),
         latestAnimation: ctx.latestAnimation || null,
         allowBailout: !player.isDead && ['SHERIFF_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT'].includes(ctx.phase) && (ctx.sheriff.candidates || []).includes(player.seatNumber),
         allowEndSpeech: player.seatNumber === ctx.currentSpeaker
