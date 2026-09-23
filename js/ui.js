@@ -423,9 +423,13 @@ const UI = {
                     '騎士': 'btn-knight.webp',
                     '河豚': 'btn-fish.webp',
                     '定序王子': 'btn-prince.webp',
-                    '白狼王': 'btn-explode.webp'
+                    '白狼王': 'btn-explode.webp',
+                    'duel': 'btn-knight.webp',
+                    'mw_duel': 'btn-knight.webp',
+                    'pufferfish_blow': 'btn-fish.webp',
+                    'mw_pufferfish_blow': 'btn-fish.webp'
                 };
-                const iconFile = daySkillIconMap[state.myRole] || 'btn-explode.webp';
+                const iconFile = daySkillIconMap[state.daySkill?.id] || daySkillIconMap[state.myRole] || 'btn-explode.webp';
                 btnDaySkill.style.backgroundImage = `url('./img/${iconFile}')`;
                 btnDaySkill.onclick = () => {
                     UI.isPreparingDaySkill = true;
