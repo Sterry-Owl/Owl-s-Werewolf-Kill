@@ -78,7 +78,7 @@ const NETWORK_CONFIG = {
 
 const TEMPLATES_TEST = [
     { id: "test-1_6", name: "介面測試", category: 'test', playerCount: 1, deck: ["預言家"] },
-    { id: "test_math", name: "數學家測試", category: 'test', playerCount: 6, deck: ["數學家", "魔術師", "狼王", "石像鬼", "平民", "平民"] },
+    { id: "test_math", name: "雙機械狼測試", category: 'test', playerCount: 6, deck: ["通靈師", "女巫", "騎士", "守衛", "機械狼", "機械狼"] },
 ];
 
 const TEMPLATES_FUN = [
@@ -146,7 +146,8 @@ const TEMPLATES_STANDARD = [
     { id: "nim_dgr_12", name: "12人 夢魘攝夢人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "攝夢人", "噩夢之影", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "wbt_kn_12", name: "12人 狼美人騎士", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "騎士", "守衛", "狼美人", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "evkn_12", name: "12人 惡靈騎士", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "守衛", "惡靈騎士", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
-    { id: "mir_mw_12", name: "12人 魔鏡機械狼", category: 'standard', playerCount: 12, deck: ["魔鏡少女", "女巫", "獵人", "守衛", "機械狼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },    
+    { id: "mir_mw_12", name: "12人 魔鏡機械狼", category: 'standard', playerCount: 12, deck: ["魔鏡少女", "女巫", "獵人", "守衛", "機械狼", "狼人", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
+    { id: "mir_mwmw_12", name: "12人 雙機械狼", category: 'standard', playerCount: 12, deck: ["魔鏡少女", "女巫", "騎士", "守衛", "機械狼", "機械狼", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "lightseer_12", name: "12人 燈影預言家", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "騎士", "守衛", "狼王", "狼人", "狼人", "狼人", "燈影預言家", "平民", "平民", "平民"] },
     { id: "mirc_12", name: "12人 奇蹟商人", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "守衛", "奇蹟商人", "狼王", "惡靈騎士", "狼人", "狼人", "平民", "平民", "平民", "平民"] },
     { id: "noeye_12", name: "12人 無目之夜", category: 'standard', playerCount: 12, deck: ["預言家", "女巫", "獵人", "攝夢人", "狼人", "狼鴉之爪", "隱狼", "石像鬼", "平民", "平民", "平民", "平民"] },
