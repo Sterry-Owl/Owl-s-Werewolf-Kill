@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="manifest" href="./manifest.json">
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <div class="container">
@@ -19,6 +22,16 @@
             <div class="entry-overlay">
                 <img src="img/title.webp" alt="血月年代記" style="width: 85%; max-width: 320px; max-height: 110px; object-fit: contain; display: block; margin: 0 auto 10px; transform: scale(1.8);">
                 
+                <!-- [新增] 帳號狀態列 -->
+                <div id="account-bar" style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.6); padding: 8px 12px; border-radius: 6px; border: 1px solid #444; font-size: 13px; margin-bottom: 10px;">
+                    <span id="account-user-display" style="color: #fff;">訪客 (未登入)</span>
+                    <div style="display: flex; gap: 6px;">
+                        <button id="btn-open-auth" class="btn-secondary" style="padding: 3px 8px; font-size: 11px;">登入 / 註冊</button>
+                        <button id="btn-open-stats" class="btn-primary hidden" style="padding: 3px 8px; font-size: 11px; background: var(--accent-blue);">個人戰績</button>
+                        <button id="btn-account-logout" class="btn-secondary hidden" style="padding: 3px 8px; font-size: 11px; background: #666;">登出</button>
+                    </div>
+                </div>
+
                 <div class="entry-box">
                     <h3 class="entry-box-title" style="color: var(--accent-blue);">建立房間</h3>
                     <input type="text" id="input-host-room-id" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="輸入 4 位數房號（空白則隨機產生）">
@@ -43,10 +56,35 @@
                     全角色圖鑑
                     <span id="close-compendium-btn" style="position:absolute; right:15px; top:5px; font-size:18px; cursor:pointer;">&times;</span>
                 </div>
-                <!-- 內容區，強制不顯示捲軸 -->
+
                 <div style="flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; box-sizing: border-box;">
-                    <!-- [修改] 圖鑑內容區，啟用專屬垂直滾動 -->
                     <div id="compendium-grid" class="compendium-grid"></div>
+                </div>
+            </div>
+
+            <div id="auth-modal" class="hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 4000; background: rgba(15, 15, 15, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; box-sizing: border-box; padding: 20px;">
+                <div class="entry-box" style="width: 100%; max-width: 320px; position: relative;">
+                    <span id="close-auth-btn" style="position: absolute; right: 12px; top: 10px; font-size: 20px; color: #aaa; cursor: pointer;">&times;</span>
+                    <h3 id="auth-modal-title" class="entry-box-title" style="color: var(--accent-blue); text-align: center; margin-bottom: 12px;">帳號登入</h3>
+                    <div id="auth-error-msg" style="color: var(--accent-red); font-size: 12px; margin-bottom: 8px; display: none; text-align: center;"></div>
+                    <input type="text" id="auth-display-name" placeholder="玩家暱稱 (註冊必填)" style="display: none; margin-bottom: 8px;">
+                    <input type="email" id="auth-email" placeholder="電子信箱" style="margin-bottom: 8px;">
+                    <input type="password" id="auth-password" placeholder="密碼 (至少 6 位數)" style="margin-bottom: 12px;">
+                    <button id="btn-auth-submit" class="btn-primary" style="width: 100%; margin-bottom: 8px;">登入</button>
+                    <div style="text-align: center; font-size: 12px; color: #aaa;">
+                        <span id="auth-toggle-prompt">還沒有帳號？</span>
+                        <a href="javascript:void(0)" id="auth-toggle-mode" style="color: var(--wolf-yellow); text-decoration: underline; margin-left: 4px;">立即註冊</a>
+                    </div>
+                </div>
+            </div>
+
+            <div id="stats-modal" class="hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 4000; background: rgba(15, 15, 15, 0.98); display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box;">
+                <div style="background: #2a3a4a; color:#fff; font-size:14px; font-weight:bold; text-align:center; padding:10px; position:relative; flex-shrink:0;">
+                    個人戰績與統計
+                    <span id="close-stats-btn" style="position:absolute; right:15px; top:7px; font-size:20px; cursor:pointer;">&times;</span>
+                </div>
+                <div id="stats-modal-content" style="flex: 1; overflow-y: auto; padding: 15px; color: #ddd; font-size: 13px; line-height: 1.6;">
+                    <div style="text-align: center; color: #aaa;">載入中...</div>
                 </div>
             </div>
         </div>
@@ -269,6 +307,7 @@
     
     <div id="global-role-tooltip" class="global-role-tooltip" style="display: none;"></div>
 
+    <script src="js/account.js"></script>
     <script src="js/config.js"></script>
     <script src="js/engine.js"></script>
     <script src="js/role.js"></script>
