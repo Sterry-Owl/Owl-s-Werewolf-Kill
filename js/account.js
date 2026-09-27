@@ -24,14 +24,38 @@ window.AccountService = {
     currentUser: null,
     isRegisterMode: false,
 
+    // 初始化狀態監聽 (異步取得 Firestore 儲存之自訂暱稱)
     init: function(onUserChanged) {
         if (!auth) return;
-        auth.onAuthStateChanged(user => {
+        auth.onAuthStateChanged(async user => {
             AccountService.currentUser = user;
             if (typeof onUserChanged === 'function') {
-                onUserChanged(user);
+                let displayName = user ? user.displayName : null;
+                if (user && db) {
+                    try {
+                        const doc = await db.collection("users").doc(user.uid).get();
+                        if (doc.exists && doc.data().name) {
+                            displayName = doc.data().name;
+                        }
+                    } catch (e) {
+                        console.warn("無法取得使用者 Firestore 暱稱", e);
+                    }
+                }
+                onUserChanged(user, displayName);
             }
         });
+    },
+
+    updateNickname: async function(newDisplayName) {
+        if (!auth || !auth.currentUser) throw new Error("尚未登入");
+        const uid = auth.currentUser.uid;
+        await auth.currentUser.updateProfile({ displayName: newDisplayName });
+        if (db) {
+            await db.collection("users").doc(uid).set({
+                name: newDisplayName
+            }, { merge: true });
+        }
+        return newDisplayName;
     },
 
     signUp: async function(email, password, displayName) {
@@ -122,16 +146,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputPlayerName = document.getElementById('input-player-name');
 
     // 監聽登入狀態改變
-    AccountService.init(user => {
+    AccountService.init((user, resolvedName) => {
         if (user) {
-            const name = user.displayName || user.email.split('@')[0];
+            const name = resolvedName || user.displayName || user.email.split('@')[0];
             if (userDisplay) userDisplay.textContent = `玩家：${name}`;
             if (btnOpenAuth) btnOpenAuth.classList.add('hidden');
             if (btnOpenStats) btnOpenStats.classList.remove('hidden');
             if (btnLogout) btnLogout.classList.remove('hidden');
 
-            if (inputHostName && !inputHostName.value) inputHostName.value = name;
-            if (inputPlayerName && !inputPlayerName.value) inputPlayerName.value = name;
+            if (inputHostName) inputHostName.value = name;
+            if (inputPlayerName) inputPlayerName.value = name;
         } else {
             if (userDisplay) userDisplay.textContent = '訪客 (未登入)';
             if (btnOpenAuth) btnOpenAuth.classList.remove('hidden');
@@ -249,8 +273,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             statsContent.innerHTML = `
-                <div style="background: #1e1e1e; padding: 12px; border-radius: 6px; border: 1px solid #333; margin-bottom: 15px;">
-                    <div style="font-size: 15px; font-weight: bold; color: #fff; margin-bottom: 6px;">${data.name || '玩家'}</div>
+                <!-- 暱稱修改區塊 -->
+                <div style="background: #1e1e1e; padding: 12px; border-radius: 6px; border: 1px solid #333; margin-bottom: 12px;">
+                    <div style="font-size: 13px; font-weight: bold; color: var(--accent-blue); margin-bottom: 8px;">修改個人暱稱</div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="stats-nickname-input" value="${data.name || ''}" placeholder="請輸入新暱稱" maxlength="12" style="flex: 1; padding: 6px 10px; margin: 0; font-size: 13px; background: #2a2a2a; border: 1px solid #444; border-radius: 4px; color: #fff;">
+                        <button id="btn-save-nickname" class="btn-success" style="padding: 6px 14px; font-size: 12px; white-space: nowrap;">儲存</button>
+                    </div>
+                    <div id="stats-nickname-msg" style="font-size: 11px; margin-top: 6px; display: none;"></div>
+                </div>
+
+                <!-- 戰績概況區塊 -->
+                <div style="background: #1e1e1e; padding: 12px; border-radius: 6px; border: 1px solid #333; margin-bottom: 12px;">
+                    <div id="stats-profile-name" style="font-size: 15px; font-weight: bold; color: #fff; margin-bottom: 8px;">${data.name || '玩家'}</div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; text-align: center; gap: 6px; font-size: 12px;">
                         <div style="background: #111; padding: 6px; border-radius: 4px;">總局數<br><span style="color:#fff; font-weight:bold;">${total}</span></div>
                         <div style="background: #111; padding: 6px; border-radius: 4px;">勝利<br><span style="color:var(--accent-green); font-weight:bold;">${wins}</span></div>
@@ -258,11 +293,52 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div style="background: #111; padding: 6px; border-radius: 4px;">勝率<br><span style="color:var(--accent-blue); font-weight:bold;">${winRate}%</span></div>
                     </div>
                 </div>
+
+                <!-- 角色獲取統計區塊 -->
                 <div style="font-weight: bold; margin-bottom: 8px; color: var(--accent-blue);">角色獲取統計</div>
                 <div style="background: #1e1e1e; border-radius: 6px; border: 1px solid #333; padding: 6px;">
                     ${roleRows}
                 </div>
             `;
+
+            // 綁定暱稱儲存按鈕事件
+            const btnSaveNickname = document.getElementById('btn-save-nickname');
+            const nicknameInput = document.getElementById('stats-nickname-input');
+            const nicknameMsg = document.getElementById('stats-nickname-msg');
+
+            if (btnSaveNickname && nicknameInput && nicknameMsg) {
+                btnSaveNickname.addEventListener('click', async () => {
+                    const newName = nicknameInput.value.trim();
+                    nicknameMsg.style.display = 'none';
+
+                    if (!newName) {
+                        nicknameMsg.textContent = '暱稱不能為空。';
+                        nicknameMsg.style.color = 'var(--accent-red)';
+                        nicknameMsg.style.display = 'block';
+                        return;
+                    }
+
+                    try {
+                        btnSaveNickname.disabled = true;
+                        await AccountService.updateNickname(newName);
+
+                        nicknameMsg.textContent = '暱稱已更新。';
+                        nicknameMsg.style.color = 'var(--accent-green)';
+                        nicknameMsg.style.display = 'block';
+                        if (userDisplay) userDisplay.textContent = `玩家：${newName}`;
+                        if (inputHostName) inputHostName.value = newName;
+                        if (inputPlayerName) inputPlayerName.value = newName;
+                        const profileHeader = document.getElementById('stats-profile-name');
+                        if (profileHeader) profileHeader.textContent = newName;
+                    } catch (err) {
+                        nicknameMsg.textContent = `更新失敗：${err.message}`;
+                        nicknameMsg.style.color = 'var(--accent-red)';
+                        nicknameMsg.style.display = 'block';
+                    } finally {
+                        btnSaveNickname.disabled = false;
+                    }
+                });
+            }
         });
     }
 
