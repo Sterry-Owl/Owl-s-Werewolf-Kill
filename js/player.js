@@ -30,8 +30,9 @@ window.initPlayer = function(roomId, playerName) {
         hostConnection = playerPeer.connect(targetHostId);
         
         hostConnection.on('open', () => {
-            hostConnection.send({ type: PACKET_TYPE.JOIN_ROOM, payload: { name: playerName } });
-            startHeartbeatMonitor(); // [新增] 啟動心跳監控
+            const currentUid = (typeof AccountService !== 'undefined' && AccountService.currentUser) ? AccountService.currentUser.uid : null;
+            hostConnection.send({ type: PACKET_TYPE.JOIN_ROOM, payload: { name: playerName, uid: currentUid } });
+            startHeartbeatMonitor();
         });
 
         // [新增] 綁定底層連線異常事件，觸發靜默重連
@@ -255,8 +256,8 @@ function triggerSilentReconnect() {
             
             hostConnection.on('open', () => {
                 isReconnecting = false;
-                // 重連成功，發送接管請求
-                hostConnection.send({ type: PACKET_TYPE.JOIN_ROOM, payload: { name: savedPlayerName } });
+                const currentUid = (typeof AccountService !== 'undefined' && AccountService.currentUser) ? AccountService.currentUser.uid : null;
+                hostConnection.send({ type: PACKET_TYPE.JOIN_ROOM, payload: { name: savedPlayerName, uid: currentUid } });
                 startHeartbeatMonitor();
             });
             
