@@ -108,8 +108,10 @@ window.initHost = function(roomId, hostName) {
         alert('建立房間失敗，請重新整理頁面再試一次。');
     });
     
-    // [擴充] 將房主註冊為 1 號玩家，並綁定專屬本地按鈕監聽 (防範與 player.js 衝突)
-    engineContext.addPlayer('LOCAL_HOST', hostName || '房主');
+    const hostPlayer = engineContext.addPlayer('LOCAL_HOST', hostName || '房主');
+    if (typeof AccountService !== 'undefined' && AccountService.currentUser) {
+        hostPlayer.uid = AccountService.currentUser.uid;
+    }
     
     document.getElementById('btn-self-explode')?.addEventListener('click', () => {
         if (engineContext && engineContext.getPlayerByPeer('LOCAL_HOST')) {
@@ -157,9 +159,11 @@ function handleIncomingPacket(peerId, data) {
     // [修復] 解耦 JOIN_ROOM 邏輯，區分「大廳新加入」與「遊戲中斷線重連」
     if (data.type === PACKET_TYPE.JOIN_ROOM) {
         const playerName = data.payload.name;
+        const playerUid = data.payload.uid || null;
         
         if (engineContext.phase === 'LOBBY') {
             const p = engineContext.addPlayer(peerId, playerName);
+            p.uid = playerUid; // [新增] 綁定玩家 UID
             try {
                 connections[peerId].send({ type: PACKET_TYPE.JOIN_SUCCESS, payload: { seatNumber: p.seatNumber } });
             } catch(e) { console.warn('JOIN_SUCCESS Send Failed'); }
@@ -170,6 +174,7 @@ function handleIncomingPacket(peerId, data) {
             const existingPlayer = engineContext.players.find(p => p.name === playerName);
             if (existingPlayer) {
                 existingPlayer.peerId = peerId;
+                if (playerUid) existingPlayer.uid = playerUid;
                 try { connections[peerId].send({ type: PACKET_TYPE.JOIN_SUCCESS, payload: { seatNumber: existingPlayer.seatNumber } }); } catch (e) {}
                 syncStateToAll(); 
             }
@@ -629,6 +634,25 @@ function setupEngineFlowControllers() {
                     }
                 }
             });
+
+            if (typeof AccountService !== 'undefined') {
+                const playersResult = ctx.players.map(p => {
+                    const pFaction = ctx.getDynamicFaction ? ctx.getDynamicFaction(p) : ROLE_DICTIONARY[p.role]?.faction;
+                    let isWinner = false;
+                    if (finalWinner.includes("好人") && pFaction === "good") isWinner = true;
+                    else if (finalWinner.includes("狼人") && pFaction === "wolf") isWinner = true;
+                    else if (finalWinner.includes(p.role)) isWinner = true;
+
+                    return {
+                        uid: p.uid || null,
+                        role: p.role,
+                        isWinner: isWinner
+                    };
+                });
+                AccountService.recordGameResult(playersResult).catch(err => {
+                    console.error("戰績記錄失敗:", err);
+                });
+            }
 
             stateMachine.clearTimer();
             ctx.systemLog = `遊戲結束，${finalWinner}陣營勝利！\n(${finalReason})`;
