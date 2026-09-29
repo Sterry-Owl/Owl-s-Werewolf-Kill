@@ -636,6 +636,10 @@ function setupEngineFlowControllers() {
             });
 
             if (typeof AccountService !== 'undefined') {
+                const currentBoard = typeof BOARD_TEMPLATES !== 'undefined' ? BOARD_TEMPLATES.find(t => t.name === ctx.boardName) : null;
+                const category = currentBoard?.category || 'standard';
+                const categoryMap = { 'standard': '進階場', 'quick': '快速場', 'fun': '娛樂場', 'test': '測試場' };
+
                 const playersResult = ctx.players.map(p => {
                     const pFaction = ctx.getDynamicFaction ? ctx.getDynamicFaction(p) : ROLE_DICTIONARY[p.role]?.faction;
                     let isWinner = false;
@@ -649,7 +653,14 @@ function setupEngineFlowControllers() {
                         isWinner: isWinner
                     };
                 });
-                AccountService.recordGameResult(playersResult).catch(err => {
+
+                AccountService.recordGameResult({
+                    boardName: ctx.boardName || '自訂對局',
+                    category: category,
+                    categoryName: categoryMap[category] || '進階場',
+                    winner: finalWinner,
+                    playersResult: playersResult
+                }).catch(err => {
                     console.error("戰績記錄失敗:", err);
                 });
             }
@@ -663,7 +674,6 @@ function setupEngineFlowControllers() {
 }
 
 function resumeRoutinePhase() {
-    // [擴充] 支援因為特殊掛鉤 (mustTransferBadge) 而必須移交警徽的存活玩家
     const sheriffToTransfer = engineContext.players.find(p => (p.isDead || p.data.mustTransferBadge) && p.seatNumber === engineContext.sheriff.seat);
     if (sheriffToTransfer && !engineContext.sheriff.badgeLost) {
         stateMachine.transitionTo('SHERIFF_TRANSFER');
