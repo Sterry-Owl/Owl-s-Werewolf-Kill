@@ -69,7 +69,19 @@ window.AccountService = {
             totalGames: 0,
             wins: 0,
             losses: 0,
-            roleCounts: {},
+            stats: {
+                all: { total: 0, wins: 0, losses: 0 },
+                standard: { total: 0, wins: 0, losses: 0 },
+                quick: { total: 0, wins: 0, losses: 0 },
+                fun: { total: 0, wins: 0, losses: 0 }
+            },
+            roleCounts: {
+                all: {},
+                standard: {},
+                quick: {},
+                fun: {}
+            },
+            recentMatches: [],
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
@@ -96,25 +108,90 @@ window.AccountService = {
         return doc.exists ? doc.data() : null;
     },
 
-    recordGameResult: async function(playersResult) {
+    // [修復與升級] 批次寫入：使用巢狀物件語法，並維護各模式統計與最近 10 場對局清單
+    recordGameResult: async function(gameData) {
         if (!db) return;
-        const batch = db.batch();
 
-        playersResult.forEach(p => {
-            if (!p.uid) return;
+        let boardName = "自訂對局";
+        let category = "standard";
+        let categoryName = "進階場";
+        let winner = "";
+        let playersResult = [];
+
+        if (Array.isArray(gameData)) {
+            playersResult = gameData;
+        } else if (gameData && typeof gameData === 'object') {
+            boardName = gameData.boardName || "自訂對局";
+            category = gameData.category || "standard";
+            categoryName = gameData.categoryName || "進階場";
+            winner = gameData.winner || "";
+            playersResult = gameData.playersResult || [];
+        }
+
+        const now = new Date();
+        const dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+        for (const p of playersResult) {
+            if (!p.uid) continue;
 
             const userRef = db.collection("users").doc(p.uid);
-            const updatePayload = {
-                totalGames: firebase.firestore.FieldValue.increment(1),
-                wins: p.isWinner ? firebase.firestore.FieldValue.increment(1) : firebase.firestore.FieldValue.increment(0),
-                losses: !p.isWinner ? firebase.firestore.FieldValue.increment(1) : firebase.firestore.FieldValue.increment(0),
-                [`roleCounts.${p.role}`]: firebase.firestore.FieldValue.increment(1)
+            const doc = await userRef.get();
+            const currentData = doc.exists ? doc.data() : {};
+
+            // 1. 各模式勝率統計 (all, standard, quick, fun)
+            const stats = currentData.stats || {
+                all: { total: currentData.totalGames || 0, wins: currentData.wins || 0, losses: currentData.losses || 0 }
             };
+            stats.all = stats.all || { total: 0, wins: 0, losses: 0 };
+            stats[category] = stats[category] || { total: 0, wins: 0, losses: 0 };
 
-            batch.set(userRef, updatePayload, { merge: true });
-        });
+            ['all', category].forEach(cat => {
+                stats[cat].total = (stats[cat].total || 0) + 1;
+                if (p.isWinner) stats[cat].wins = (stats[cat].wins || 0) + 1;
+                else stats[cat].losses = (stats[cat].losses || 0) + 1;
+            });
 
-        await batch.commit();
+            // 2. 角色次數統計 (全模式與特定模式)
+            const roleCounts = currentData.roleCounts || { all: {} };
+            if (currentData.roleCounts && !currentData.roleCounts.all) {
+                roleCounts.all = { ...currentData.roleCounts };
+            }
+            roleCounts.all = roleCounts.all || {};
+            roleCounts[category] = roleCounts[category] || {};
+
+            // 向下相容清理：將舊版本產生的點號鍵值 (如 "roleCounts.平民") 併入 all
+            Object.keys(currentData).forEach(k => {
+                if (k.startsWith('roleCounts.')) {
+                    const rName = k.replace('roleCounts.', '');
+                    roleCounts.all[rName] = (roleCounts.all[rName] || 0) + currentData[k];
+                }
+            });
+
+            roleCounts.all[p.role] = (roleCounts.all[p.role] || 0) + 1;
+            roleCounts[category][p.role] = (roleCounts[category][p.role] || 0) + 1;
+
+            const recentMatches = currentData.recentMatches || [];
+            recentMatches.unshift({
+                dateStr: dateStr,
+                boardName: boardName,
+                categoryName: categoryName,
+                role: p.role,
+                isWinner: p.isWinner,
+                winnerFaction: winner
+            });
+            if (recentMatches.length > 10) {
+                recentMatches.length = 10;
+            }
+
+            await userRef.set({
+                stats: stats,
+                roleCounts: roleCounts,
+                recentMatches: recentMatches,
+                totalGames: stats.all.total,
+                wins: stats.all.wins,
+                losses: stats.all.losses
+            }, { merge: true });
+        }
     }
 };
 
@@ -252,54 +329,167 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const total = data.totalGames || 0;
-            const wins = data.wins || 0;
-            const losses = data.losses || 0;
-            const winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : '0.0';
-
-            let roleRows = '';
-            const roleCounts = data.roleCounts || {};
-            const sortedRoles = Object.entries(roleCounts).sort((a, b) => b[1] - a[1]);
-
-            if (sortedRoles.length > 0) {
-                roleRows = sortedRoles.map(([r, c]) => `
-                    <div style="display: flex; justify-content: space-between; padding: 4px 8px; border-bottom: 1px solid #333;">
-                        <span style="color: var(--wolf-yellow); font-weight: bold;">${r}</span>
-                        <span>${c} 次</span>
-                    </div>
-                `).join('');
-            } else {
-                roleRows = '<div style="color: #666; text-align: center; padding: 10px;">尚未獲得任何角色</div>';
+            const stats = data.stats || { all: { total: data.totalGames || 0, wins: data.wins || 0, losses: data.losses || 0 } };
+            
+            // 相容處理：若角色結構為舊版扁平格式或帶有頂層點號，全部提取至 all
+            let baseRoles = {};
+            if (data.roleCounts) {
+                if (data.roleCounts.all) baseRoles = { ...data.roleCounts.all };
+                else baseRoles = { ...data.roleCounts };
             }
+            Object.keys(data).forEach(k => {
+                if (k.startsWith('roleCounts.')) {
+                    const rName = k.replace('roleCounts.', '');
+                    baseRoles[rName] = (baseRoles[rName] || 0) + data[k];
+                }
+            });
+            const roleCounts = data.roleCounts && data.roleCounts.all ? data.roleCounts : { all: baseRoles };
+            roleCounts.all = baseRoles;
 
-            statsContent.innerHTML = `
-                <!-- 暱稱修改區塊 -->
-                <div style="background: #1e1e1e; padding: 12px; border-radius: 6px; border: 1px solid #333; margin-bottom: 12px;">
-                    <div style="font-size: 13px; font-weight: bold; color: var(--accent-blue); margin-bottom: 8px;">修改個人暱稱</div>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="text" id="stats-nickname-input" value="${data.name || ''}" placeholder="請輸入新暱稱" maxlength="12" style="flex: 1; padding: 6px 10px; margin: 0; font-size: 13px; background: #2a2a2a; border: 1px solid #444; border-radius: 4px; color: #fff;">
-                        <button id="btn-save-nickname" class="btn-success" style="padding: 6px 14px; font-size: 12px; white-space: nowrap;">儲存</button>
+            const recentMatches = data.recentMatches || [];
+
+            let currentWinTab = 'all';
+            let currentRoleTab = 'all';
+
+            const renderFullProfileView = () => {
+                // 區塊一：勝率數據計算
+                const curStat = stats[currentWinTab] || { total: 0, wins: 0, losses: 0 };
+                const winRate = curStat.total > 0 ? ((curStat.wins / curStat.total) * 100).toFixed(1) : '0.0';
+
+                // 區塊二：角色數據計算與排序
+                const curRoles = roleCounts[currentRoleTab] || {};
+                const sortedRoles = Object.entries(curRoles).sort((a, b) => b[1] - a[1]);
+                let roleRowsHtml = sortedRoles.length > 0 
+                    ? sortedRoles.map(([r, c]) => `
+                        <div style="display:flex; justify-content:space-between; padding:5px 8px; border-bottom:1px solid #2a2a2a; font-size:12px;">
+                            <span style="color:var(--wolf-yellow); font-weight:bold;">${r}</span>
+                            <span>${c} 次</span>
+                        </div>`).join('')
+                    : '<div style="color:#666; text-align:center; padding:12px; font-size:12px;">該模式尚無角色獲取紀錄</div>';
+
+                // 區塊三：最近 10 場對局卡片
+                let matchesHtml = recentMatches.length > 0
+                    ? recentMatches.map(m => `
+                        <div style="background:#141414; border:1px solid #2a2a2a; border-radius:4px; padding:8px 10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="font-weight:bold; color:#fff; font-size:12px;">${m.boardName} <span style="font-size:10px; color:#888;">(${m.categoryName})</span></div>
+                                <div style="font-size:11px; color:#aaa; margin-top:2px;">身分：<span style="color:var(--wolf-yellow); font-weight:bold;">${m.role}</span> | ${m.dateStr}</div>
+                            </div>
+                            <div style="font-weight:bold; font-size:13px; color:${m.isWinner ? 'var(--accent-green)' : 'var(--accent-red)'};">
+                                ${m.isWinner ? '勝利' : '失敗'}
+                            </div>
+                        </div>`).join('')
+                    : '<div style="color:#666; text-align:center; padding:15px; font-size:12px;">尚無對局紀錄</div>';
+
+                const createTab = (targetKey, labelText, currentActive, attrName) => `
+                    <div ${attrName}="${targetKey}" style="flex:1; text-align:center; padding:4px 0; font-size:11px; cursor:pointer; border-radius:4px; ${currentActive === targetKey ? 'background:var(--accent-blue); color:#fff; font-weight:bold;' : 'color:#888; background:#111;'}">
+                        ${labelText}
+                    </div>`;
+
+                statsContent.innerHTML = `
+                    <!-- 暱稱修改區塊 -->
+                    <div style="background:#1e1e1e; padding:10px; border-radius:6px; border:1px solid #333; margin-bottom:10px;">
+                        <div style="font-size:12px; font-weight:bold; color:var(--accent-blue); margin-bottom:6px;">修改個人暱稱</div>
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="stats-nickname-input" value="${data.name || ''}" placeholder="請輸入新暱稱" maxlength="12" style="flex:1; padding:6px 10px; margin:0; font-size:12px; background:#2a2a2a; border:1px solid #444; border-radius:4px; color:#fff;">
+                            <button id="btn-save-nickname" class="btn-success" style="padding:6px 12px; font-size:11px; white-space:nowrap;">儲存</button>
+                        </div>
+                        <div id="stats-nickname-msg" style="font-size:11px; margin-top:4px; display:none;"></div>
                     </div>
-                    <div id="stats-nickname-msg" style="font-size: 11px; margin-top: 6px; display: none;"></div>
-                </div>
 
-                <!-- 戰績概況區塊 -->
-                <div style="background: #1e1e1e; padding: 12px; border-radius: 6px; border: 1px solid #333; margin-bottom: 12px;">
-                    <div id="stats-profile-name" style="font-size: 15px; font-weight: bold; color: #fff; margin-bottom: 8px;">${data.name || '玩家'}</div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; text-align: center; gap: 6px; font-size: 12px;">
-                        <div style="background: #111; padding: 6px; border-radius: 4px;">總局數<br><span style="color:#fff; font-weight:bold;">${total}</span></div>
-                        <div style="background: #111; padding: 6px; border-radius: 4px;">勝利<br><span style="color:var(--accent-green); font-weight:bold;">${wins}</span></div>
-                        <div style="background: #111; padding: 6px; border-radius: 4px;">失敗<br><span style="color:var(--accent-red); font-weight:bold;">${losses}</span></div>
-                        <div style="background: #111; padding: 6px; border-radius: 4px;">勝率<br><span style="color:var(--accent-blue); font-weight:bold;">${winRate}%</span></div>
+                    <!-- 區塊一：勝率總覽 (含分頁) -->
+                    <div style="background:#1e1e1e; padding:10px; border-radius:6px; border:1px solid #333; margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span id="stats-profile-name" style="font-size:13px; font-weight:bold; color:#fff;">${data.name || '玩家'}</span>
+                            <div style="display:flex; gap:4px; width:65%;">
+                                ${createTab('all', '所有', currentWinTab, 'data-wintab')}
+                                ${createTab('standard', '進階場', currentWinTab, 'data-wintab')}
+                                ${createTab('quick', '快速場', currentWinTab, 'data-wintab')}
+                                ${createTab('fun', '娛樂場', currentWinTab, 'data-wintab')}
+                            </div>
+                        </div>
+                        <div style="display:grid; grid-template-columns: repeat(4, 1fr); text-align:center; gap:6px; font-size:11px;">
+                            <div style="background:#111; padding:6px; border-radius:4px;">總局數<br><span style="color:#fff; font-weight:bold;">${curStat.total}</span></div>
+                            <div style="background:#111; padding:6px; border-radius:4px;">勝利<br><span style="color:var(--accent-green); font-weight:bold;">${curStat.wins}</span></div>
+                            <div style="background:#111; padding:6px; border-radius:4px;">失敗<br><span style="color:var(--accent-red); font-weight:bold;">${curStat.losses}</span></div>
+                            <div style="background:#111; padding:6px; border-radius:4px;">勝率<br><span style="color:var(--accent-blue); font-weight:bold;">${winRate}%</span></div>
+                        </div>
                     </div>
-                </div>
 
-                <!-- 角色獲取統計區塊 -->
-                <div style="font-weight: bold; margin-bottom: 8px; color: var(--accent-blue);">角色獲取統計</div>
-                <div style="background: #1e1e1e; border-radius: 6px; border: 1px solid #333; padding: 6px;">
-                    ${roleRows}
-                </div>
-            `;
+                    <!-- 區塊二：角色獲取統計 (含分頁) -->
+                    <div style="background:#1e1e1e; padding:10px; border-radius:6px; border:1px solid #333; margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span style="font-size:12px; font-weight:bold; color:var(--accent-blue);">角色獲取統計</span>
+                            <div style="display:flex; gap:4px; width:65%;">
+                                ${createTab('all', '所有', currentRoleTab, 'data-roletab')}
+                                ${createTab('standard', '進階場', currentRoleTab, 'data-roletab')}
+                                ${createTab('quick', '快速場', currentRoleTab, 'data-roletab')}
+                                ${createTab('fun', '娛樂場', currentRoleTab, 'data-roletab')}
+                            </div>
+                        </div>
+                        <div style="background:#111; border-radius:4px; max-height:120px; overflow-y:auto; padding:2px 4px;">
+                            ${roleRowsHtml}
+                        </div>
+                    </div>
+
+                    <!-- 區塊三：最近 10 場戰績 (獨立可滾動) -->
+                    <div style="background:#1e1e1e; padding:10px; border-radius:6px; border:1px solid #333;">
+                        <div style="font-size:12px; font-weight:bold; color:var(--accent-blue); margin-bottom:8px;">最近 10 場戰績</div>
+                        <div style="max-height:150px; overflow-y:auto; padding-right:4px;">
+                            ${matchesHtml}
+                        </div>
+                    </div>
+                `;
+
+                // 綁定勝率分頁切換
+                statsContent.querySelectorAll('[data-wintab]').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        currentWinTab = e.currentTarget.getAttribute('data-wintab');
+                        renderFullProfileView();
+                    });
+                });
+
+                // 綁定角色統計分頁切換
+                statsContent.querySelectorAll('[data-roletab]').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        currentRoleTab = e.currentTarget.getAttribute('data-roletab');
+                        renderFullProfileView();
+                    });
+                });
+
+                // 綁定暱稱修改保存邏輯
+                const btnSave = document.getElementById('btn-save-nickname');
+                const nickInput = document.getElementById('stats-nickname-input');
+                const nickMsg = document.getElementById('stats-nickname-msg');
+                if (btnSave && nickInput) {
+                    btnSave.addEventListener('click', async () => {
+                        const newName = nickInput.value.trim();
+                        if (!newName) return;
+                        try {
+                            btnSave.disabled = true;
+                            await AccountService.updateNickname(newName);
+                            nickMsg.textContent = '暱稱已更新。';
+                            nickMsg.style.color = 'var(--accent-green)';
+                            nickMsg.style.display = 'block';
+                            data.name = newName;
+                            document.getElementById('stats-profile-name').textContent = newName;
+                            if (userDisplay) userDisplay.textContent = `玩家：${newName}`;
+                            if (inputHostName) inputHostName.value = newName;
+                            if (inputPlayerName) inputPlayerName.value = newName;
+                        } catch (err) {
+                            nickMsg.textContent = `更新失敗：${err.message}`;
+                            nickMsg.style.color = 'var(--accent-red)';
+                            nickMsg.style.display = 'block';
+                        } finally {
+                            btnSave.disabled = false;
+                        }
+                    });
+                }
+            };
+
+            renderFullProfileView();
+        });
+    }
 
             // 綁定暱稱儲存按鈕事件
             const btnSaveNickname = document.getElementById('btn-save-nickname');
