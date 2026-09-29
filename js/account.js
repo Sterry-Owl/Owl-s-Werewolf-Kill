@@ -491,47 +491,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-            // 綁定暱稱儲存按鈕事件
-            const btnSaveNickname = document.getElementById('btn-save-nickname');
-            const nicknameInput = document.getElementById('stats-nickname-input');
-            const nicknameMsg = document.getElementById('stats-nickname-msg');
-
-            if (btnSaveNickname && nicknameInput && nicknameMsg) {
-                btnSaveNickname.addEventListener('click', async () => {
-                    const newName = nicknameInput.value.trim();
-                    nicknameMsg.style.display = 'none';
-
-                    if (!newName) {
-                        nicknameMsg.textContent = '暱稱不能為空。';
-                        nicknameMsg.style.color = 'var(--accent-red)';
-                        nicknameMsg.style.display = 'block';
-                        return;
-                    }
-
-                    try {
-                        btnSaveNickname.disabled = true;
-                        await AccountService.updateNickname(newName);
-
-                        nicknameMsg.textContent = '暱稱已更新。';
-                        nicknameMsg.style.color = 'var(--accent-green)';
-                        nicknameMsg.style.display = 'block';
-                        if (userDisplay) userDisplay.textContent = `玩家：${newName}`;
-                        if (inputHostName) inputHostName.value = newName;
-                        if (inputPlayerName) inputPlayerName.value = newName;
-                        const profileHeader = document.getElementById('stats-profile-name');
-                        if (profileHeader) profileHeader.textContent = newName;
-                    } catch (err) {
-                        nicknameMsg.textContent = `更新失敗：${err.message}`;
-                        nicknameMsg.style.color = 'var(--accent-red)';
-                        nicknameMsg.style.display = 'block';
-                    } finally {
-                        btnSaveNickname.disabled = false;
-                    }
-                });
-            }
-        });
-    }
-
     if (closeStatsBtn) {
         closeStatsBtn.addEventListener('click', () => statsModal.classList.add('hidden'));
     }
