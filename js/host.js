@@ -57,11 +57,12 @@ const HostPlayerLoopback = {
     }
 };
 
-window.initHost = function(roomId, hostName) {
+window.initHost = function(roomId, hostName, roomMode = 'game') {
     const roomEl = document.getElementById('display-room-id');
     if (roomEl) roomEl.textContent = roomId;
     
     engineContext = new Engine.GameContext();
+    engineContext.roomMode = roomMode; // [新增] 記錄房間運作模式
     stateMachine = new Engine.StateMachine(engineContext);
     
     PhaseRegistry.init(stateMachine, engineContext);
@@ -378,6 +379,21 @@ window.startGame = function(selectedRoles, boardName, rules) {
 
     engineContext.sheriff.enabled = (rules.sheriff === 'enabled'); 
     
+    // [新增] 將發牌全貌寫入房主專屬後台全知紀錄 (法官/上帝視野)
+    let roleLog = `【發牌全貌】(${boardName})\n` + engineContext.players.map(p => `${p.seatNumber}號 (${p.name}): ${p.role}`).join('\n');
+    if (extraCards.length > 0) roleLog += `\n底牌: ${extraCards.join('、')}`;
+    Engine.EventBus.emit('MASTER_LOG', roleLog);
+
+    // [新增] 純發牌機模式分流：阻斷狀態機推進，直接轉入靜態發牌展示
+    if (engineContext.roomMode === 'dealer') {
+        stateMachine.clearTimer();
+        engineContext.phase = 'DEALER_VIEW';
+        engineContext.systemLog = '【純發牌機模式】發牌完成！請點擊卡牌查看身分。';
+        Engine.EventBus.emit('BROADCAST_MESSAGE', engineContext.systemLog);
+        syncStateToAll();
+        return true;
+    }
+
     engineContext.systemLog = '發牌完成，準備進入第一天夜晚...';
     stateMachine.transitionTo('NIGHT_TRANSITION');
     setTimeout(() => Engine.EventBus.emit('START_NIGHT'), 5000);
@@ -1129,6 +1145,13 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         actionPanel.prompt = ctx.deathAnnounceText;
         actionPanel.buttons = [];
     }
+    else if (ctx.phase === 'DEALER_VIEW') {
+        // [新增] 純發牌機模式提示
+        actionPanel.show = true;
+        actionPanel.type = 'none';
+        actionPanel.prompt = "【純發牌機模式】\n請點擊下方卡牌翻面查看身分與技能說明。";
+        actionPanel.buttons = [];
+    }
 
     if (player.data.tempPrivateMessage) {
         personalMessage += "\n" + player.data.tempPrivateMessage;
@@ -1277,24 +1300,32 @@ function getPhaseMessageForPlayer(phase, ctx) {
 }
 
 function getDayBtnText(phase) {
-    const dict = { 'BEAR_ROAR_ANNOUNCE': "結束展示，進入下一階段", 'DAWN_DEATH_ANNOUNCE': "結束展示，進入下一階段", 'SHERIFF_CANDIDACY': "強制結束上警登記", 'SHERIFF_VOTING': "強制結算投票", 'SHERIFF_PK_VOTING': "強制結算投票", 'SHERIFF_SPEECH': "發起警長投票", 'SHERIFF_PK_SPEECH': "發起警長 PK 投票", 'DAY_DISCUSSION': "發起放逐投票", 'DAY_PK_SPEECH': "發起放逐 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入下一階段", 'POST_VOTE_SKILL': "結束技能等待", 'PRINCE_SPEECH': "發起放逐投票", 'LAST_WORDS': "結束遺言，進入下一階段", 'DAY_SKILL_LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍...", 'AWAKENED_HUNTER_ACTION': "等待覺醒獵人巡獵...", 'WOLFKING_ACTION': "等待狼王開槍...", 'BLOODMOON_ACTION': "等待血月使徒發動技能...", 'DAY_INTERRUPT_SKILL': "強制結束技能發動", 'DELAYED_DEATH_ANNOUNCE': "結束展示，進入放逐" };
+    const dict = { 'DEALER_VIEW': "重新洗牌發牌", 'BEAR_ROAR_ANNOUNCE': "結束展示，進入下一階段", 'DAWN_DEATH_ANNOUNCE': "結束展示，進入下一階段", 'SHERIFF_CANDIDACY': "強制結束上警登記", 'SHERIFF_VOTING': "強制結算投票", 'SHERIFF_PK_VOTING': "強制結算投票", 'SHERIFF_SPEECH': "發起警長投票", 'SHERIFF_PK_SPEECH': "發起警長 PK 投票", 'DAY_DISCUSSION': "發起放逐投票", 'DAY_PK_SPEECH': "發起放逐 PK 投票", 'VOTE_RESULT_DISPLAY': "結束展示，進入下一階段", 'POST_VOTE_SKILL': "結束技能等待", 'PRINCE_SPEECH': "發起放逐投票", 'LAST_WORDS': "結束遺言，進入下一階段", 'DAY_SKILL_LAST_WORDS': "結束遺言，進入下一階段", 'SHERIFF_TRANSFER': "等待警長移交...", 'HUNTER_ACTION': "等待獵人開槍...", 'AWAKENED_HUNTER_ACTION': "等待覺醒獵人巡獵...", 'WOLFKING_ACTION': "等待狼王開槍...", 'BLOODMOON_ACTION': "等待血月使徒發動技能...", 'DAY_INTERRUPT_SKILL': "強制結束技能發動", 'DELAYED_DEATH_ANNOUNCE': "結束展示，進入放逐" };
     return dict[phase] || "投票/行動進行中...";
 }
 
 function getDayBtnCommand(phase) {
-    const dict = { 'BEAR_ROAR_ANNOUNCE': "FORCE_TIMEOUT", 'DAWN_DEATH_ANNOUNCE': "FORCE_TIMEOUT", 'SHERIFF_CANDIDACY': "FORCE_TIMEOUT", 'SHERIFF_VOTING': "FORCE_TIMEOUT", 'SHERIFF_PK_VOTING': "FORCE_TIMEOUT", 'SHERIFF_SPEECH': "START_SHERIFF_VOTE", 'SHERIFF_PK_SPEECH': "START_SHERIFF_PK_VOTE", 'DAY_DISCUSSION': "START_VOTE", 'DAY_PK_SPEECH': "START_DAY_PK_VOTE", 'VOTE_RESULT_DISPLAY': "END_VOTE_DISPLAY", 'POST_VOTE_SKILL': "FORCE_TIMEOUT", 'PRINCE_SPEECH': "START_VOTE", 'LAST_WORDS': "END_LAST_WORDS", 'DAY_SKILL_LAST_WORDS': "END_SKILL_LAST_WORDS", 'DAY_INTERRUPT_SKILL': "FORCE_TIMEOUT", 'DELAYED_DEATH_ANNOUNCE': "END_DELAYED_DEATH_DISPLAY" };
+    const dict = { 'DEALER_VIEW': "REDEAL", 'BEAR_ROAR_ANNOUNCE': "FORCE_TIMEOUT", 'DAWN_DEATH_ANNOUNCE': "FORCE_TIMEOUT", 'SHERIFF_CANDIDACY': "FORCE_TIMEOUT", 'SHERIFF_VOTING': "FORCE_TIMEOUT", 'SHERIFF_PK_VOTING': "FORCE_TIMEOUT", 'SHERIFF_SPEECH': "START_SHERIFF_VOTE", 'SHERIFF_PK_SPEECH': "START_SHERIFF_PK_VOTE", 'DAY_DISCUSSION': "START_VOTE", 'DAY_PK_SPEECH': "START_DAY_PK_VOTE", 'VOTE_RESULT_DISPLAY': "END_VOTE_DISPLAY", 'POST_VOTE_SKILL': "FORCE_TIMEOUT", 'PRINCE_SPEECH': "START_VOTE", 'LAST_WORDS': "END_LAST_WORDS", 'DAY_SKILL_LAST_WORDS': "END_SKILL_LAST_WORDS", 'DAY_INTERRUPT_SKILL': "FORCE_TIMEOUT", 'DELAYED_DEATH_ANNOUNCE': "END_DELAYED_DEATH_DISPLAY" };
     return dict[phase] || "";
 }
 
 window.handleHostCommand = function(cmd, extraPayload = null) {
     if (cmd === 'RESTART_GAME') {
-        if (engineContext.phase !== 'GAME_OVER') return;
-        // 1. 清空計時器
+        // [修改] 允許發牌機模式 (DEALER_VIEW) 隨時重置回大廳重新選板
+        if (engineContext.phase !== 'GAME_OVER' && engineContext.phase !== 'DEALER_VIEW') return;
         stateMachine.clearTimer();
-        // 2. 徹底物理清除所有殘留狀態
         engineContext.resetToLobby();
-        // 3. 全局廣播切換狀態
         syncStateToAll();
+        return;
+    }
+    else if (cmd === 'REDEAL') {
+        // [新增] 純發牌機模式：原班人馬與原板型重新洗牌
+        if (engineContext.phase !== 'DEALER_VIEW') return;
+        const selectedBoardId = document.getElementById('select-board-template')?.value;
+        const board = typeof BOARD_TEMPLATES !== 'undefined' ? BOARD_TEMPLATES.find(t => t.id === selectedBoardId) : null;
+        if (board) {
+            window.startGame(board.deck, board.name, engineContext.rules);
+        }
         return;
     }
     else if (cmd === 'KICK_PLAYER') {
