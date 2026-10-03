@@ -19,11 +19,14 @@
         <!-- 區塊一：登入/建立房間介面 (Entry) -->
         <!-- ============================================== -->
         <div id="section-entry" class="player-app-container entry-screen">
-            <div class="entry-overlay">
-                <img src="img/title.webp" alt="血月年代記" style="width: 85%; max-width: 320px; max-height: 110px; object-fit: contain; display: block; margin: 0 auto 10px; transform: scale(1.8);">
+            <!-- [修改] 設定 position: relative 與 overflow: hidden，作為絕對定位底層 Logo 的參照容器 -->
+            <div class="entry-overlay" style="position: relative; overflow: hidden;">
+                <!-- [修改] Logo 轉為絕對定位沉入底層：不佔用任何垂直高度、點擊穿透、視覺層級低於物件 -->
+                <img src="img/title.webp" alt="血月年代記" style="position: absolute; top: 15px; left: 50%; transform: translateX(-50%) scale(1.6); width: 85%; max-width: 320px; max-height: 110px; object-fit: contain; pointer-events: none; z-index: 0; opacity: 0.5;">
                 
-                <!-- [新增] 帳號狀態列 -->
-                <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+                <!-- [修改] 提高互動內容容器的 z-index，確保按鈕與輸入框優先接收點擊 -->
+                <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; position: relative; z-index: 1;">
+                    <!-- 帳號狀態列 -->
                     <div id="account-bar" style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.6); padding: 8px 12px; border-radius: 6px; border: 1px solid #444; font-size: 13px; margin: 0;">
                         <span id="account-user-display" style="color: #fff;">訪客 (未登入)</span>
                         <div style="display: flex; gap: 6px;">
@@ -33,18 +36,9 @@
                         </div>
                     </div>
 
-                    <!-- 建立房間 -->
+                    <!-- 區塊一：建立房間 (包含房間模式切換：完整對局 / 純發牌機) -->
                     <div class="entry-box">
                         <h3 class="entry-box-title" style="color: var(--accent-blue);">建立房間</h3>
-                        <input type="text" id="input-host-room-id" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="輸入 4 位數房號（空白則隨機產生）">
-                        <input type="text" id="input-host-name" placeholder="請輸入暱稱（您將成為 1 號玩家）">
-                        <button id="btn-create-room" style="width: 100%; margin-top: 10px;">建立房間</button>
-                    </div>
-                    
-                    <!-- 加入房間 -->
-                    <div class="entry-box">
-                        <h3 class="entry-box-title" style="color: var(--accent-blue);">建立房間</h3>
-                        <!-- [新增] 房間模式滑動切換 -->
                         <div class="toggle-group" data-target="input-host-room-mode" style="margin-bottom: 8px;">
                             <div class="toggle-option active" data-value="game" style="--active-bg: var(--accent-blue); --active-color: #fff; padding: 6px 0; font-size: 12px;">完整對局</div>
                             <div class="toggle-option" data-value="dealer" style="--active-bg: var(--accent-green); --active-color: #fff; padding: 6px 0; font-size: 12px;">純發牌機</div>
@@ -54,6 +48,14 @@
                         <input type="text" id="input-host-room-id" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="輸入 4 位數房號（空白則隨機產生）">
                         <input type="text" id="input-host-name" placeholder="請輸入暱稱（您將成為 1 號玩家）">
                         <button id="btn-create-room" style="width: 100%; margin-top: 10px;">建立房間</button>
+                    </div>
+                    
+                    <!-- 區塊二：加入房間 (完整修復並還原原有輸入欄位與按鈕 ID) -->
+                    <div class="entry-box">
+                        <h3 class="entry-box-title" style="color: var(--accent-green);">加入房間</h3>
+                        <input type="text" id="input-room-id" placeholder="請輸入房間代碼">
+                        <input type="text" id="input-player-name" placeholder="請輸入暱稱">
+                        <button id="btn-join-room" class="btn-success" style="width: 100%; margin-top: 10px;">加入房間</button>
                     </div>
                     
                     <!-- 全角色圖鑑 -->
