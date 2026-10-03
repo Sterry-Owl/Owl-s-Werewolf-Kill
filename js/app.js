@@ -219,9 +219,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-create-room')?.addEventListener('click', () => {
         const inputEl = document.getElementById('input-host-room-id');
         const nameEl = document.getElementById('input-host-name');
+        const modeEl = document.getElementById('input-host-room-mode'); // [新增] 讀取房間模式
         
         let rawId = inputEl ? inputEl.value.trim() : "";
         let hostName = nameEl && nameEl.value.trim() !== "" ? nameEl.value.trim() : "房主";
+        let roomMode = modeEl ? modeEl.value : "game"; // [新增] 預設為完整對局
         
         // 恢復被遺失的防呆邏輯
         let roomId = rawId.replace(/\D/g, '');
@@ -239,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const hostModal = document.getElementById('host-control-modal');
         if (hostModal) hostModal.classList.remove('hidden');
         
-        if (typeof window.initHost === 'function') window.initHost(roomId, hostName);
+        if (typeof window.initHost === 'function') window.initHost(roomId, hostName, roomMode);
     });
 
     // === 玩家加入房間 ===
