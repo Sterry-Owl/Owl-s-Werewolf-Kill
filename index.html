@@ -43,10 +43,17 @@
                     
                     <!-- 加入房間 -->
                     <div class="entry-box">
-                        <h3 class="entry-box-title" style="color: var(--accent-green);">加入房間</h3>
-                        <input type="text" id="input-room-id" placeholder="請輸入房間代碼">
-                        <input type="text" id="input-player-name" placeholder="請輸入暱稱">
-                        <button id="btn-join-room" class="btn-success" style="width: 100%; margin-top: 10px;">加入房間</button>
+                        <h3 class="entry-box-title" style="color: var(--accent-blue);">建立房間</h3>
+                        <!-- [新增] 房間模式滑動切換 -->
+                        <div class="toggle-group" data-target="input-host-room-mode" style="margin-bottom: 8px;">
+                            <div class="toggle-option active" data-value="game" style="--active-bg: var(--accent-blue); --active-color: #fff; padding: 6px 0; font-size: 12px;">完整對局</div>
+                            <div class="toggle-option" data-value="dealer" style="--active-bg: var(--accent-green); --active-color: #fff; padding: 6px 0; font-size: 12px;">純發牌機</div>
+                        </div>
+                        <input type="hidden" id="input-host-room-mode" value="game">
+
+                        <input type="text" id="input-host-room-id" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="輸入 4 位數房號（空白則隨機產生）">
+                        <input type="text" id="input-host-name" placeholder="請輸入暱稱（您將成為 1 號玩家）">
+                        <button id="btn-create-room" style="width: 100%; margin-top: 10px;">建立房間</button>
                     </div>
                     
                     <!-- 全角色圖鑑 -->
