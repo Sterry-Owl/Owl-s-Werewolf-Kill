@@ -357,14 +357,14 @@ const UI = {
         const btnRestartGame = document.getElementById('btn-restart-game');
 
         if (btnLeaveRoom) {
-            // [新增] 大廳或遊戲結束時且非房主，顯示退出房間按鈕
-            if ((state.phase === 'LOBBY' || state.phase === 'GAME_OVER') && !state.isLocalHost) btnLeaveRoom.classList.remove('hidden');
+            // [修改] 純發牌機模式 (DEALER_VIEW) 亦允許非房主點擊退出房間
+            if ((state.phase === 'LOBBY' || state.phase === 'GAME_OVER' || state.phase === 'DEALER_VIEW') && !state.isLocalHost) btnLeaveRoom.classList.remove('hidden');
             else btnLeaveRoom.classList.add('hidden');
         }
 
         if (btnRestartGame) {
-            // [新增] 遊戲結束時且為房主，顯示重新開始按鈕
-            if (state.phase === 'GAME_OVER' && state.isLocalHost) btnRestartGame.classList.remove('hidden');
+            // [修改] 純發牌機模式 (DEALER_VIEW) 允許房主隨時點擊重新開始返回大廳
+            if ((state.phase === 'GAME_OVER' || state.phase === 'DEALER_VIEW') && state.isLocalHost) btnRestartGame.classList.remove('hidden');
             else btnRestartGame.classList.add('hidden');
         }
 
