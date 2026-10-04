@@ -1211,10 +1211,10 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
         actionPanel.buttons = [];
     }
     else if (ctx.phase === 'DEALER_VIEW') {
-        // [新增] 純發牌機模式提示
-        actionPanel.show = true;
+        // 發牌機模式完全關閉操作面板
+        actionPanel.show = false;
         actionPanel.type = 'none';
-        actionPanel.prompt = "【純發牌機模式】\n請點擊下方卡牌翻面查看身分與技能說明。";
+        actionPanel.prompt = "";
         actionPanel.buttons = [];
     }
 
