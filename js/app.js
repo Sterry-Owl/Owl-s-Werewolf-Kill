@@ -278,6 +278,10 @@ document.addEventListener('DOMContentLoaded', () => {
         updateJoinModeView();
     });
 
+    // 初始化大廳模式顯示狀態
+    updateHostModeView();
+    updateJoinModeView();
+
     // === 房主建立房間 ===
     document.getElementById('btn-create-room')?.addEventListener('click', () => {
         const inputEl = document.getElementById('input-host-room-id');
@@ -298,9 +302,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isNaN(hostSeat) || hostSeat < 1 || hostSeat > 12) {
                 return alert('請輸入有效的房主座號 (1 ~ 12)！');
             }
-            hostName = (typeof AccountService !== 'undefined' && AccountService.currentUser?.displayName)
-                ? AccountService.currentUser.displayName
-                : `${hostSeat}號玩家`;
+            // 發牌機模式固定以座號標示，不帶入任何個人暱稱
+            hostName = `${hostSeat}號`;
         }
         
         let roomId = rawId.replace(/\D/g, '');
@@ -337,11 +340,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isNaN(claimedSeat) || claimedSeat < 1 || claimedSeat > 12) {
                 return alert('請輸入有效的認領座號 (1 ~ 12)！');
             }
-            if (!name) {
-                name = (typeof AccountService !== 'undefined' && AccountService.currentUser?.displayName)
-                    ? AccountService.currentUser.displayName
-                    : `${claimedSeat}號玩家`;
-            }
+            // 發牌機模式固定以座號標示，不帶入任何個人暱稱
+            name = `${claimedSeat}號`;
         }
         
         document.getElementById('section-entry').classList.add('hidden');
