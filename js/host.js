@@ -947,7 +947,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             isSheriff: (ctx.sheriff.seat === p.seatNumber),
             isPKTarget: isPKTgt
         };
-    };
+    });
 
     let actionPanel = { show: false, type: 'none', prompt: '', selectableSeats: [], buttons: [], submitPacketType: PACKET_TYPE.ACTION_SUBMIT };
     let personalMessage = getPhaseMessageForPlayer(ctx.phase, ctx);
