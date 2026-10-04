@@ -14,9 +14,12 @@ let lastPingTime = Date.now();
 let heartbeatMonitor = null;
 let isReconnecting = false;
 
-window.initPlayer = function(roomId, playerName) {
+let savedClaimedSeat = null;
+
+window.initPlayer = function(roomId, playerName, claimedSeat = null) {
     savedRoomId = roomId;
     savedPlayerName = playerName;
+    savedClaimedSeat = claimedSeat;
 
     // [關鍵升級] 本地端動態生成唯一 ID，徹底繞過 PeerJS 伺服器的派發延遲與擁塞
     const localGeneratedId = 'player_' + Math.random().toString(36).substring(2, 10);
@@ -31,7 +34,10 @@ window.initPlayer = function(roomId, playerName) {
         
         hostConnection.on('open', () => {
             const currentUid = (typeof AccountService !== 'undefined' && AccountService.currentUser) ? AccountService.currentUser.uid : null;
-            hostConnection.send({ type: PACKET_TYPE.JOIN_ROOM, payload: { name: playerName, uid: currentUid } });
+            hostConnection.send({ 
+                type: PACKET_TYPE.JOIN_ROOM, 
+                payload: { name: playerName, uid: currentUid, claimedSeat: savedClaimedSeat } 
+            });
             startHeartbeatMonitor();
         });
 
@@ -60,6 +66,10 @@ function setupPlayerConnectionListeners(conn) {
         switch(data.type) {
             case PACKET_TYPE.JOIN_SUCCESS:
                 mySeatNumber = data.payload.seatNumber;
+                break;
+            case 'JOIN_FAIL':
+                alert(data.payload.message || '加入房間失敗！');
+                window.location.reload();
                 break;
             case PACKET_TYPE.STATE_SYNC:
                 const isNewPhase = localState.phase !== data.payload.phase || localState.nightStepIndex !== data.payload.nightStepIndex;
@@ -257,7 +267,10 @@ function triggerSilentReconnect() {
             hostConnection.on('open', () => {
                 isReconnecting = false;
                 const currentUid = (typeof AccountService !== 'undefined' && AccountService.currentUser) ? AccountService.currentUser.uid : null;
-                hostConnection.send({ type: PACKET_TYPE.JOIN_ROOM, payload: { name: savedPlayerName, uid: currentUid } });
+                hostConnection.send({ 
+                    type: PACKET_TYPE.JOIN_ROOM, 
+                    payload: { name: savedPlayerName, uid: currentUid, claimedSeat: savedClaimedSeat } 
+                });
                 startHeartbeatMonitor();
             });
             
