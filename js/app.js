@@ -226,8 +226,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const opt = MODE_OPTIONS[hostModeIdx];
         const hiddenEl = document.getElementById('input-host-room-mode');
         const displayEl = document.getElementById('display-host-mode');
+        const nameInput = document.getElementById('input-host-name');
+        const seatInput = document.getElementById('input-host-seat');
+
         if (hiddenEl) hiddenEl.value = opt.id;
         if (displayEl) displayEl.textContent = opt.label;
+
+        if (opt.id === 'game') {
+            if (nameInput) nameInput.style.display = 'block';
+            if (seatInput) seatInput.style.display = 'none';
+        } else {
+            if (nameInput) nameInput.style.display = 'none';
+            if (seatInput) seatInput.style.display = 'block';
+        }
     };
 
     const updateJoinModeView = () => {
@@ -270,12 +281,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // === 房主建立房間 ===
     document.getElementById('btn-create-room')?.addEventListener('click', () => {
         const inputEl = document.getElementById('input-host-room-id');
-        const nameEl = document.getElementById('input-host-name');
         const modeEl = document.getElementById('input-host-room-mode');
+        const roomMode = modeEl ? modeEl.value : "game";
         
         let rawId = inputEl ? inputEl.value.trim() : "";
-        let hostName = nameEl && nameEl.value.trim() !== "" ? nameEl.value.trim() : "房主";
-        let roomMode = modeEl ? modeEl.value : "game";
+        let hostName = "房主";
+        let hostSeat = 1;
+
+        if (roomMode === 'game') {
+            const nameEl = document.getElementById('input-host-name');
+            hostName = nameEl && nameEl.value.trim() !== "" ? nameEl.value.trim() : "房主";
+        } else {
+            const seatEl = document.getElementById('input-host-seat');
+            const seatVal = seatEl ? seatEl.value.trim() : "";
+            hostSeat = seatVal ? parseInt(seatVal, 10) : 1;
+            if (isNaN(hostSeat) || hostSeat < 1 || hostSeat > 12) {
+                return alert('請輸入有效的房主座號 (1 ~ 12)！');
+            }
+            hostName = (typeof AccountService !== 'undefined' && AccountService.currentUser?.displayName)
+                ? AccountService.currentUser.displayName
+                : `${hostSeat}號玩家`;
+        }
         
         let roomId = rawId.replace(/\D/g, '');
         if (rawId.length > 0 && roomId.length !== 4) {
@@ -291,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const hostModal = document.getElementById('host-control-modal');
         if (hostModal) hostModal.classList.remove('hidden');
         
-        if (typeof window.initHost === 'function') window.initHost(roomId, hostName, roomMode);
+        if (typeof window.initHost === 'function') window.initHost(roomId, hostName, roomMode, hostSeat);
     });
 
     // === 玩家加入房間 ===
