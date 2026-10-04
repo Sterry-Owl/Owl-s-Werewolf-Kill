@@ -1052,34 +1052,40 @@ button[onclick*="startGame"], #btn-start-game {
     color: #777;
 }
 
-/* 透過 .is-dealer-mode 雙類別權重 (0, 2, 0) 自然隱藏中央面板、特殊資訊與暱稱 */
+.player-app-container.is-dealer-mode .app-body {
+    justify-content: space-between;
+}
+
 .player-app-container.is-dealer-mode .center-column,
+.player-app-container.is-dealer-mode .action-panel,
 .player-app-container.is-dealer-mode #special-info-container,
 .player-app-container.is-dealer-mode .player-name {
     display: none;
 }
 
-/* 覆蓋卡牌面板底距，改為正中央絕對定位 */
 .player-app-container.is-dealer-mode .card-panel {
     top: 50%;
     bottom: auto;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 65%;
+    width: auto;
     z-index: 25;
 }
 
-/* 放大卡面尺寸 */
 .player-app-container.is-dealer-mode .my-card,
 .player-app-container.is-dealer-mode .card-flipper {
-    height: 46vh;
-    max-height: 330px;
-    min-height: 220px;
+    height: 34.5vh;
+    max-height: 258px;
+    min-height: 166px;
+}
+
+.player-app-container.is-dealer-mode .card-flipper {
+    min-width: 172px;
 }
 
 .player-app-container.is-dealer-mode .card-container.is-square .my-card,
 .player-app-container.is-dealer-mode .card-container.is-square .card-flipper {
-    height: 36vh;
-    max-height: 260px;
-    min-height: 180px;
+    height: 28.75vh;
+    max-height: 207px;
+    min-height: 138px;
 }
