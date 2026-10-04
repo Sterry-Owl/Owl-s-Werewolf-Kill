@@ -157,27 +157,46 @@ function handleIncomingPacket(peerId, data) {
 
     if (engineContext.isResolvingAsync) return;
     
-    // [修復] 解耦 JOIN_ROOM 邏輯，區分「大廳新加入」與「遊戲中斷線重連」
+    // [修復] 解耦 JOIN_ROOM 邏輯，支援發牌機認領座號與防撞檢查
     if (data.type === PACKET_TYPE.JOIN_ROOM) {
         const playerName = data.payload.name;
         const playerUid = data.payload.uid || null;
+        const claimedSeat = data.payload.claimedSeat ? parseInt(data.payload.claimedSeat, 10) : null;
         
         if (engineContext.phase === 'LOBBY') {
+            // 發牌機模式座號防撞驗證
+            if (claimedSeat) {
+                if (claimedSeat < 1 || claimedSeat > 12) {
+                    try { connections[peerId].send({ type: 'JOIN_FAIL', payload: { message: '認領座號必須在 1 至 12 之間！' } }); } catch(e){}
+                    return;
+                }
+                const isTaken = engineContext.players.some(p => p.seatNumber === claimedSeat);
+                if (isTaken) {
+                    try { connections[peerId].send({ type: 'JOIN_FAIL', payload: { message: `座號 ${claimedSeat} 號已被其他玩家認領，請更換座號！` } }); } catch(e){}
+                    return;
+                }
+            }
+
             const p = engineContext.addPlayer(peerId, playerName);
-            p.uid = playerUid; // [新增] 綁定玩家 UID
+            if (claimedSeat) {
+                p.seatNumber = claimedSeat;
+            }
+            p.uid = playerUid;
             try {
                 connections[peerId].send({ type: PACKET_TYPE.JOIN_SUCCESS, payload: { seatNumber: p.seatNumber } });
             } catch(e) { console.warn('JOIN_SUCCESS Send Failed'); }
             engineContext.systemLog = `玩家 ${p.name} (${p.seatNumber}號) 已加入。`;
             syncStateToAll();
         } else {
-            // [重連閘門] 若非大廳階段，嚴格比對已存在的暱稱，若吻合則進行 peerId 替換並恢復連線
-            const existingPlayer = engineContext.players.find(p => p.name === playerName);
+            // [重連閘門] 比對座號或暱稱
+            const existingPlayer = engineContext.players.find(p => (claimedSeat && p.seatNumber === claimedSeat) || p.name === playerName);
             if (existingPlayer) {
                 existingPlayer.peerId = peerId;
                 if (playerUid) existingPlayer.uid = playerUid;
                 try { connections[peerId].send({ type: PACKET_TYPE.JOIN_SUCCESS, payload: { seatNumber: existingPlayer.seatNumber } }); } catch (e) {}
                 syncStateToAll(); 
+            } else {
+                try { connections[peerId].send({ type: 'JOIN_FAIL', payload: { message: '該房間對局已在進行中，無法加入！' } }); } catch(e){}
             }
         }
     }
@@ -325,13 +344,14 @@ function handleIncomingPacket(peerId, data) {
     }
     else if (data.type === 'LEAVE_ROOM') {
         // [新增] 處理玩家主動退出房間
-        if (engineContext.phase === 'LOBBY') {
+        if (engineContext.phase === 'LOBBY' || engineContext.phase === 'DEALER_VIEW') {
             const player = engineContext.getPlayerByPeer(peerId);
             if (player) {
                 engineContext.players = engineContext.players.filter(p => p.peerId !== peerId);
-                // [防呆] 強制重新分配座號，避免新玩家加入時發生存取碰撞
-                engineContext.players.forEach((p, idx) => p.seatNumber = idx + 1);
-                engineContext.systemLog = `玩家 ${player.name} 已退出房間。`;
+                if (engineContext.roomMode !== 'dealer') {
+                    engineContext.players.forEach((p, idx) => p.seatNumber = idx + 1);
+                }
+                engineContext.systemLog = `玩家 ${player.name} (${player.seatNumber}號) 已退出房間。`;
                 syncStateToAll();
             }
         }
@@ -805,13 +825,91 @@ function syncStateToAll() {
 function buildUIStateForPlayer(ctx, player, isDayPhase) {
     const isSheriffPhase = ['SHERIFF_SPEECH', 'SHERIFF_PK_SPEECH', 'SHERIFF_RE_ELECTION_BAILOUT', 'SHERIFF_VOTING', 'SHERIFF_PK_VOTING'].includes(ctx.phase);
     const myDisplayRole = (ctx.phase !== 'GAME_OVER' && player.role === '燈影預言家') ? '預言家' : player.role;
+    const isDealerMode = (ctx.roomMode === 'dealer');
 
     // ==========================================
     // 1. 處理每個玩家座位上的標籤與狀態
     // ==========================================
-    const mappedPlayers = ctx.players.map(p => {
-        let topTag = null, sideTag = null, wolfPreviewTags = [];
-        const pDisplayRole = (ctx.phase !== 'GAME_OVER' && p.role === '燈影預言家') ? '預言家' : p.role;
+    let mappedPlayers = [];
+
+    if (isDealerMode) {
+        // 發牌機模式：固定產生 1~12 號槽位
+        for (let s = 1; s <= 12; s++) {
+            const p = ctx.players.find(x => x.seatNumber === s);
+            if (p) {
+                mappedPlayers.push({
+                    seatNumber: s,
+                    name: p.name,
+                    isOccupied: true,
+                    isDead: false,
+                    deathReason: null,
+                    topTag: (ctx.phase === 'DEALER_VIEW' && p.seatNumber === player.seatNumber) ? p.role : null,
+                    sideTag: null,
+                    wolfPreviewTags: [],
+                    isWolfSelected: false,
+                    isCandidate: false,
+                    hasWithdrawn: false,
+                    isSheriff: false,
+                    isPKTarget: false
+                });
+            } else {
+                mappedPlayers.push({
+                    seatNumber: s,
+                    name: '(空位)',
+                    isOccupied: false,
+                    isDead: false,
+                    deathReason: null,
+                    topTag: null,
+                    sideTag: null,
+                    wolfPreviewTags: [],
+                    isWolfSelected: false,
+                    isCandidate: false,
+                    hasWithdrawn: false,
+                    isSheriff: false,
+                    isPKTarget: false
+                });
+            }
+        }
+    } else {
+        mappedPlayers = ctx.players.map(p => {
+            let topTag = null, sideTag = null, wolfPreviewTags = [];
+            const pDisplayRole = (ctx.phase !== 'GAME_OVER' && p.role === '燈影預言家') ? '預言家' : p.role;
+
+            const myPlugin = RoleRegistry.plugins[player.role];
+            const pPlugin = RoleRegistry.plugins[p.role];
+            const canSeeW = typeof myPlugin?.canSeeWolves === 'function' ? myPlugin.canSeeWolves(ctx, player) : !!myPlugin?.canSeeWolves;
+            const isSeenW = typeof pPlugin?.seenAsWolf === 'function' ? pPlugin.seenAsWolf(ctx, p.seatNumber) : !!pPlugin?.seenAsWolf;
+
+            const revealedDisplayRole = (ctx.phase !== 'GAME_OVER' && p.data.camouflageRole && !p.isDead) ? p.data.camouflageRole : pDisplayRole;
+            if (ctx.phase === 'GAME_OVER' || p.isRevealed || (p.isDead && ctx.rules.deathReveal === 'light')) topTag = revealedDisplayRole;
+            else if (player.data.customTopTags && player.data.customTopTags[p.seatNumber]) topTag = player.data.customTopTags[p.seatNumber];
+            else if (canSeeW && isSeenW) topTag = pDisplayRole;
+            
+            if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber];
+            else if (player.data.customSideTags && player.data.customSideTags[p.seatNumber]) sideTag = player.data.customSideTags[p.seatNumber];
+
+            const isMyAttacker = typeof myPlugin?.isAttacker === 'function' ? myPlugin.isAttacker(ctx, player.seatNumber) : myPlugin?.isAttacker;
+
+            if (ctx.phase === 'NIGHT_ACTION' && isMyAttacker) {
+                Object.values(ctx.wolfPreviews || {}).forEach(preview => {
+                    if (String(preview.target) === String(p.seatNumber) && preview.seat !== player.seatNumber) wolfPreviewTags.push(`${preview.seat}號`);
+                });
+            }
+            
+            let isPKTgt = false;
+            if (['SHERIFF_PK_SPEECH', 'SHERIFF_PK_VOTING'].includes(ctx.phase)) isPKTgt = (ctx.sheriff.pkTargets || []).includes(p.seatNumber);
+            if (['DAY_PK_SPEECH', 'DAY_PK_VOTING'].includes(ctx.phase)) isPKTgt = (ctx.pkTargets || []).includes(p.seatNumber);
+
+            return { 
+                seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, deathReason: p.deathReason,
+                topTag, sideTag, wolfPreviewTags, isWolfSelected: wolfPreviewTags.length > 0,
+                isCandidate: isSheriffPhase && (ctx.sheriff.candidates || []).includes(p.seatNumber), 
+                hasWithdrawn: isSheriffPhase && (ctx.sheriff.withdrawn || []).includes(p.seatNumber),
+                isSheriff: (ctx.sheriff.seat === p.seatNumber),
+                isPKTarget: isPKTgt
+            };
+        });
+    }
 
         const myPlugin = RoleRegistry.plugins[player.role];
         const pPlugin = RoleRegistry.plugins[p.role];
@@ -1251,6 +1349,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
     const hasWolfChat = plugin?.hasWolfChatAccess === true || (typeof plugin?.hasWolfChatAccess === 'function' && plugin.hasWolfChatAccess(ctx, player));
     const canUseWolfChat = !player.isDead && ctx.phase === 'NIGHT_ACTION' && hasWolfChat;
     return {
+        roomMode: ctx.roomMode || 'game', // [新增] 傳遞房間模式
         boardName: ctx.boardName, phase: ctx.phase, 
         useSquareCard: ctx.rules?.squareCard === 'on',
         rules: ctx.rules || null,
@@ -1339,8 +1438,9 @@ window.handleHostCommand = function(cmd, extraPayload = null) {
                 setTimeout(() => { if (connections[targetPlayer.peerId]) connections[targetPlayer.peerId].close(); }, 500);
             }
             engineContext.players = engineContext.players.filter(p => p.seatNumber !== targetSeat);
-            // [防呆] 強制重新分配座號
-            engineContext.players.forEach((p, idx) => p.seatNumber = idx + 1);
+            if (engineContext.roomMode !== 'dealer') {
+                engineContext.players.forEach((p, idx) => p.seatNumber = idx + 1);
+            }
             engineContext.systemLog = `已將 ${targetPlayer.name} 踢出房間。`;
             syncStateToAll();
         }
