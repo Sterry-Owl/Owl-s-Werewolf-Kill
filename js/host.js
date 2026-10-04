@@ -57,7 +57,7 @@ const HostPlayerLoopback = {
     }
 };
 
-window.initHost = function(roomId, hostName, roomMode = 'game') {
+window.initHost = function(roomId, hostName, roomMode = 'game', hostSeat = 1) {
     const roomEl = document.getElementById('display-room-id');
     if (roomEl) roomEl.textContent = roomId;
     
