@@ -1042,49 +1042,44 @@ button[onclick*="startGame"], #btn-start-game {
     to { opacity: 1; transform: scaleY(1); }
 }
 .player-seat.empty-slot {
-    opacity: 0.25 !important;
-    filter: grayscale(100%) !important;
-    pointer-events: none !important;
-    cursor: default !important;
+    opacity: 0.25;
+    filter: grayscale(100%);
+    pointer-events: none;
+    cursor: default;
 }
 
 .player-seat.empty-slot .player-name {
-    color: #777 !important;
+    color: #777;
 }
 
-/* 隱藏中央操作區域與特殊資訊面板 */
-.player-app-container.is-dealer-mode .center-column {
-    display: none !important;
-}
-
-.player-app-container.is-dealer-mode #special-info-container {
-    display: none !important;
-}
-
+/* 透過 .is-dealer-mode 雙類別權重 (0, 2, 0) 自然隱藏中央面板、特殊資訊與暱稱 */
+.player-app-container.is-dealer-mode .center-column,
+.player-app-container.is-dealer-mode #special-info-container,
 .player-app-container.is-dealer-mode .player-name {
-    display: none !important;
+    display: none;
 }
 
-/* 將角色身分卡片置中並放大展示 */
+/* 覆蓋卡牌面板底距，改為正中央絕對定位 */
 .player-app-container.is-dealer-mode .card-panel {
-    top: 50% !important;
-    bottom: auto !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    width: 65% !important;
-    z-index: 25 !important;
+    top: 50%;
+    bottom: auto;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 65%;
+    z-index: 25;
 }
 
+/* 放大卡面尺寸 */
 .player-app-container.is-dealer-mode .my-card,
 .player-app-container.is-dealer-mode .card-flipper {
-    height: 46vh !important;
-    max-height: 330px !important;
-    min-height: 220px !important;
+    height: 46vh;
+    max-height: 330px;
+    min-height: 220px;
 }
 
 .player-app-container.is-dealer-mode .card-container.is-square .my-card,
 .player-app-container.is-dealer-mode .card-container.is-square .card-flipper {
-    height: 36vh !important;
-    max-height: 260px !important;
-    min-height: 180px !important;
+    height: 36vh;
+    max-height: 260px;
+    min-height: 180px;
 }
