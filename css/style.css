@@ -1061,6 +1061,10 @@ button[onclick*="startGame"], #btn-start-game {
     display: none !important;
 }
 
+.player-app-container.is-dealer-mode .player-name {
+    display: none !important;
+}
+
 /* 將角色身分卡片置中並放大展示 */
 .player-app-container.is-dealer-mode .card-panel {
     top: 50% !important;
