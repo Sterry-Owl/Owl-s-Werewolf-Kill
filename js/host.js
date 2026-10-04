@@ -110,6 +110,9 @@ window.initHost = function(roomId, hostName, roomMode = 'game') {
     });
     
     const hostPlayer = engineContext.addPlayer('LOCAL_HOST', hostName || '房主');
+    if (roomMode === 'dealer' && hostSeat) {
+        hostPlayer.seatNumber = parseInt(hostSeat, 10); // 發牌機模式指定房主座號
+    }
     if (typeof AccountService !== 'undefined' && AccountService.currentUser) {
         hostPlayer.uid = AccountService.currentUser.uid;
     }
@@ -944,7 +947,7 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             isSheriff: (ctx.sheriff.seat === p.seatNumber),
             isPKTarget: isPKTgt
         };
-    });
+    };
 
     let actionPanel = { show: false, type: 'none', prompt: '', selectableSeats: [], buttons: [], submitPacketType: PACKET_TYPE.ACTION_SUBMIT };
     let personalMessage = getPhaseMessageForPlayer(ctx.phase, ctx);
