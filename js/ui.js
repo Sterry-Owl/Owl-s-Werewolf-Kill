@@ -121,6 +121,16 @@ const UI = {
     },
 
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = [], showVoteHistory = false) {
+        // [新增] 發牌機模式容器類別注入
+        const appContainer = document.querySelector('.player-app-container');
+        if (appContainer) {
+            if (state.roomMode === 'dealer') {
+                appContainer.classList.add('is-dealer-mode');
+            } else {
+                appContainer.classList.remove('is-dealer-mode');
+            }
+        }
+
         if (state.latestAnimation) {
             if (UI.lastAnimationTime === undefined) {
                 UI.lastAnimationTime = state.latestAnimation.timestamp;
@@ -471,7 +481,11 @@ const UI = {
             if (historyPanel) historyPanel.classList.add('hidden');
             
             // 3. 顯示並更新角色 3D 卡牌
-            if (cardContainer && state.myRole) {
+            const shouldShowCard = (state.roomMode === 'dealer') 
+                ? (state.phase === 'DEALER_VIEW' && state.myRole && state.myRole !== '等待發牌')
+                : (state.myRole && state.myRole !== '等待發牌');
+
+            if (cardContainer && shouldShowCard) {
                 const def = ROLE_DICTIONARY[state.myRole];
                 const displayRoleName = (def && def.displayName) ? def.displayName : state.myRole;
                 
@@ -656,6 +670,11 @@ const UI = {
             const seat = document.createElement('div');
             seat.className = 'player-seat';
             
+            // [新增] 發牌機未入座暗槽類別
+            if (p.isOccupied === false) {
+                seat.classList.add('empty-slot');
+            }
+
             if (p.isDead) {
                 seat.classList.add('dead');
                 const reason = (p.deathReason === 'voted' || p.deathReason === 'explode') ? p.deathReason : 'killed';
