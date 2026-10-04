@@ -1041,3 +1041,46 @@ button[onclick*="startGame"], #btn-start-game {
     from { opacity: 0; transform: scaleY(0.8); }
     to { opacity: 1; transform: scaleY(1); }
 }
+.player-seat.empty-slot {
+    opacity: 0.25 !important;
+    filter: grayscale(100%) !important;
+    pointer-events: none !important;
+    cursor: default !important;
+}
+
+.player-seat.empty-slot .player-name {
+    color: #777 !important;
+}
+
+/* 隱藏中央操作區域與特殊資訊面板 */
+.player-app-container.is-dealer-mode .center-column {
+    display: none !important;
+}
+
+.player-app-container.is-dealer-mode #special-info-container {
+    display: none !important;
+}
+
+/* 將角色身分卡片置中並放大展示 */
+.player-app-container.is-dealer-mode .card-panel {
+    top: 50% !important;
+    bottom: auto !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 65% !important;
+    z-index: 25 !important;
+}
+
+.player-app-container.is-dealer-mode .my-card,
+.player-app-container.is-dealer-mode .card-flipper {
+    height: 46vh !important;
+    max-height: 330px !important;
+    min-height: 220px !important;
+}
+
+.player-app-container.is-dealer-mode .card-container.is-square .my-card,
+.player-app-container.is-dealer-mode .card-container.is-square .card-flipper {
+    height: 36vh !important;
+    max-height: 260px !important;
+    min-height: 180px !important;
+}
