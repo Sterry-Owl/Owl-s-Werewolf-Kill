@@ -121,14 +121,10 @@ const UI = {
     },
 
     renderPlayerView: function(state, onSeatSelect, onActionSubmit, selectedTargets = [], showVoteHistory = false) {
-        // [新增] 發牌機模式容器類別注入
-        const appContainer = document.querySelector('.player-app-container');
-        if (appContainer) {
-            if (state.roomMode === 'dealer') {
-                appContainer.classList.add('is-dealer-mode');
-            } else {
-                appContainer.classList.remove('is-dealer-mode');
-            }
+        // [修復] 精準鎖定遊戲畫面的容器，避免誤套用至大廳入口
+        const playerAppContainer = document.querySelector('#section-player .player-app-container');
+        if (playerAppContainer) {
+            playerAppContainer.classList.toggle('is-dealer-mode', state.roomMode === 'dealer');
         }
 
         if (state.latestAnimation) {
