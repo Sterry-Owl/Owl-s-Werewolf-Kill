@@ -38,10 +38,10 @@
 
                     <!-- 區塊一：建立房間 (包含房間模式切換：完整對局 / 純發牌機) -->
                     <div class="entry-box">
-                        <h3 class="entry-box-title" style="color: var(--accent-blue);">建立房間</h3>
-                        <div class="toggle-group" data-target="input-host-room-mode" style="margin-bottom: 8px;">
-                            <div class="toggle-option active" data-value="game" style="--active-bg: var(--accent-blue); --active-color: #fff; padding: 6px 0; font-size: 12px;">進行對局</div>
-                            <div class="toggle-option" data-value="dealer" style="--active-bg: var(--accent-green); --active-color: #fff; padding: 6px 0; font-size: 12px;">發牌機</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 6px; margin-bottom: 12px;">
+                            <button type="button" id="btn-prev-host-mode" class="btn-secondary" style="padding: 2px 10px; font-size: 14px; line-height: 1;">&lsaquo;</button>
+                            <h3 style="color: var(--accent-blue); margin: 0; padding: 0; font-size: 15px;">建立房間 <span id="display-host-mode" style="color: var(--wolf-yellow); font-size: 12px;">‹ 進行對局 ›</span></h3>
+                            <button type="button" id="btn-next-host-mode" class="btn-secondary" style="padding: 2px 10px; font-size: 14px; line-height: 1;">&rsaquo;</button>
                         </div>
                         <input type="hidden" id="input-host-room-mode" value="game">
 
@@ -50,11 +50,18 @@
                         <button id="btn-create-room" style="width: 100%; margin-top: 10px;">建立房間</button>
                     </div>
                     
-                    <!-- 區塊二：加入房間 (完整修復並還原原有輸入欄位與按鈕 ID) -->
+                    <!-- 區塊二：加入房間 (標題左右箭頭切換模式) -->
                     <div class="entry-box">
-                        <h3 class="entry-box-title" style="color: var(--accent-green);">加入房間</h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 6px; margin-bottom: 12px;">
+                            <button type="button" id="btn-prev-join-mode" class="btn-secondary" style="padding: 2px 10px; font-size: 14px; line-height: 1;">&lsaquo;</button>
+                            <h3 style="color: var(--accent-green); margin: 0; padding: 0; font-size: 15px;">加入房間 <span id="display-join-mode" style="color: var(--wolf-yellow); font-size: 12px;">‹ 進行對局 ›</span></h3>
+                            <button type="button" id="btn-next-join-mode" class="btn-secondary" style="padding: 2px 10px; font-size: 14px; line-height: 1;">&rsaquo;</button>
+                        </div>
+                        <input type="hidden" id="input-join-room-mode" value="game">
+
                         <input type="text" id="input-room-id" placeholder="請輸入房間代碼">
                         <input type="text" id="input-player-name" placeholder="請輸入暱稱">
+                        <input type="number" id="input-player-seat" inputmode="numeric" min="1" max="12" placeholder="請輸入認領座號 (1~12)" style="display: none; padding: 10px; margin: 8px 0; width: 100%; box-sizing: border-box; background: #333; color: white; border: 1px solid var(--border-color); border-radius: 4px;">
                         <button id="btn-join-room" class="btn-success" style="width: 100%; margin-top: 10px;">加入房間</button>
                     </div>
                     
