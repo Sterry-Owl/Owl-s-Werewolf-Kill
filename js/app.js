@@ -215,17 +215,68 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    const MODE_OPTIONS = [
+        { id: 'game', label: '‹ 進行對局 ›' },
+        { id: 'dealer', label: '‹ 發牌機模式 ›' }
+    ];
+    let hostModeIdx = 0;
+    let joinModeIdx = 0;
+
+    const updateHostModeView = () => {
+        const opt = MODE_OPTIONS[hostModeIdx];
+        const hiddenEl = document.getElementById('input-host-room-mode');
+        const displayEl = document.getElementById('display-host-mode');
+        if (hiddenEl) hiddenEl.value = opt.id;
+        if (displayEl) displayEl.textContent = opt.label;
+    };
+
+    const updateJoinModeView = () => {
+        const opt = MODE_OPTIONS[joinModeIdx];
+        const hiddenEl = document.getElementById('input-join-room-mode');
+        const displayEl = document.getElementById('display-join-mode');
+        const nameInput = document.getElementById('input-player-name');
+        const seatInput = document.getElementById('input-player-seat');
+
+        if (hiddenEl) hiddenEl.value = opt.id;
+        if (displayEl) displayEl.textContent = opt.label;
+
+        if (opt.id === 'game') {
+            if (nameInput) nameInput.style.display = 'block';
+            if (seatInput) seatInput.style.display = 'none';
+        } else {
+            if (nameInput) nameInput.style.display = 'none';
+            if (seatInput) seatInput.style.display = 'block';
+        }
+    };
+
+    document.getElementById('btn-prev-host-mode')?.addEventListener('click', () => {
+        hostModeIdx = (hostModeIdx - 1 + MODE_OPTIONS.length) % MODE_OPTIONS.length;
+        updateHostModeView();
+    });
+    document.getElementById('btn-next-host-mode')?.addEventListener('click', () => {
+        hostModeIdx = (hostModeIdx + 1) % MODE_OPTIONS.length;
+        updateHostModeView();
+    });
+
+    document.getElementById('btn-prev-join-mode')?.addEventListener('click', () => {
+        joinModeIdx = (joinModeIdx - 1 + MODE_OPTIONS.length) % MODE_OPTIONS.length;
+        updateJoinModeView();
+    });
+    document.getElementById('btn-next-join-mode')?.addEventListener('click', () => {
+        joinModeIdx = (joinModeIdx + 1) % MODE_OPTIONS.length;
+        updateJoinModeView();
+    });
+
     // === 房主建立房間 ===
     document.getElementById('btn-create-room')?.addEventListener('click', () => {
         const inputEl = document.getElementById('input-host-room-id');
         const nameEl = document.getElementById('input-host-name');
-        const modeEl = document.getElementById('input-host-room-mode'); // [新增] 讀取房間模式
+        const modeEl = document.getElementById('input-host-room-mode');
         
         let rawId = inputEl ? inputEl.value.trim() : "";
         let hostName = nameEl && nameEl.value.trim() !== "" ? nameEl.value.trim() : "房主";
-        let roomMode = modeEl ? modeEl.value : "game"; // [新增] 預設為完整對局
+        let roomMode = modeEl ? modeEl.value : "game";
         
-        // 恢復被遺失的防呆邏輯
         let roomId = rawId.replace(/\D/g, '');
         if (rawId.length > 0 && roomId.length !== 4) {
             return alert('自訂房號必須是「4 位數的純數字」！\n(或者您可以完全留空，讓系統自動產生)');
@@ -237,7 +288,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('section-entry').classList.add('hidden');
         document.getElementById('section-player').classList.remove('hidden');
         
-        // 創房時預設展開房主專屬設定 Modal
         const hostModal = document.getElementById('host-control-modal');
         if (hostModal) hostModal.classList.remove('hidden');
         
@@ -247,14 +297,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // === 玩家加入房間 ===
     document.getElementById('btn-join-room')?.addEventListener('click', () => {
         const roomId = document.getElementById('input-room-id').value.trim();
-        const name = document.getElementById('input-player-name').value.trim();
+        const joinMode = document.getElementById('input-join-room-mode')?.value || 'game';
+        let name = document.getElementById('input-player-name')?.value.trim();
+        let claimedSeat = null;
         
-        if (!roomId || !name) return alert('請輸入房間代碼與您的暱稱！');
+        if (!roomId) return alert('請輸入房間代碼！');
+
+        if (joinMode === 'game') {
+            if (!name) return alert('請輸入您的暱稱！');
+        } else {
+            const seatVal = document.getElementById('input-player-seat')?.value.trim();
+            claimedSeat = parseInt(seatVal, 10);
+            if (isNaN(claimedSeat) || claimedSeat < 1 || claimedSeat > 12) {
+                return alert('請輸入有效的認領座號 (1 ~ 12)！');
+            }
+            if (!name) {
+                name = (typeof AccountService !== 'undefined' && AccountService.currentUser?.displayName)
+                    ? AccountService.currentUser.displayName
+                    : `${claimedSeat}號玩家`;
+            }
+        }
         
         document.getElementById('section-entry').classList.add('hidden');
         document.getElementById('section-player').classList.remove('hidden');
         
-        if (typeof window.initPlayer === 'function') window.initPlayer(roomId, name);
+        if (typeof window.initPlayer === 'function') window.initPlayer(roomId, name, claimedSeat);
     });
 
     // === 房主確認發牌 ===
