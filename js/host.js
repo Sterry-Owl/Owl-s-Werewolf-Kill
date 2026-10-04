@@ -913,42 +913,6 @@ function buildUIStateForPlayer(ctx, player, isDayPhase) {
             };
         });
     }
-
-        const myPlugin = RoleRegistry.plugins[player.role];
-        const pPlugin = RoleRegistry.plugins[p.role];
-        const canSeeW = typeof myPlugin?.canSeeWolves === 'function' ? myPlugin.canSeeWolves(ctx, player) : !!myPlugin?.canSeeWolves;
-        const isSeenW = typeof pPlugin?.seenAsWolf === 'function' ? pPlugin.seenAsWolf(ctx, p.seatNumber) : !!pPlugin?.seenAsWolf;
-
-        const revealedDisplayRole = (ctx.phase !== 'GAME_OVER' && p.data.camouflageRole && !p.isDead) ? p.data.camouflageRole : pDisplayRole;
-        if (ctx.phase === 'GAME_OVER' || p.isRevealed || (p.isDead && ctx.rules.deathReveal === 'light')) topTag = revealedDisplayRole;
-        else if (player.data.customTopTags && player.data.customTopTags[p.seatNumber]) topTag = player.data.customTopTags[p.seatNumber];
-        else if (canSeeW && isSeenW) topTag = pDisplayRole;
-        
-        if (player.data.seerRecords && player.data.seerRecords[p.seatNumber]) sideTag = player.data.seerRecords[p.seatNumber];
-        else if (player.data.customSideTags && player.data.customSideTags[p.seatNumber]) sideTag = player.data.customSideTags[p.seatNumber];
-
-        const isMyAttacker = typeof myPlugin?.isAttacker === 'function' ? myPlugin.isAttacker(ctx, player.seatNumber) : myPlugin?.isAttacker;
-
-        if (ctx.phase === 'NIGHT_ACTION' && isMyAttacker) {
-            Object.values(ctx.wolfPreviews || {}).forEach(preview => {
-                if (String(preview.target) === String(p.seatNumber) && preview.seat !== player.seatNumber) wolfPreviewTags.push(`${preview.seat}號`);
-            });
-        }
-        
-        let isPKTgt = false;
-        if (['SHERIFF_PK_SPEECH', 'SHERIFF_PK_VOTING'].includes(ctx.phase)) isPKTgt = (ctx.sheriff.pkTargets || []).includes(p.seatNumber);
-        if (['DAY_PK_SPEECH', 'DAY_PK_VOTING'].includes(ctx.phase)) isPKTgt = (ctx.pkTargets || []).includes(p.seatNumber);
-
-        return { 
-            seatNumber: p.seatNumber, name: p.name, isDead: p.isDead, deathReason: p.deathReason,
-            topTag, sideTag, wolfPreviewTags, isWolfSelected: wolfPreviewTags.length > 0,
-            isCandidate: isSheriffPhase && (ctx.sheriff.candidates || []).includes(p.seatNumber), 
-            hasWithdrawn: isSheriffPhase && (ctx.sheriff.withdrawn || []).includes(p.seatNumber),
-            isSheriff: (ctx.sheriff.seat === p.seatNumber),
-            isPKTarget: isPKTgt
-        };
-    });
-
     let actionPanel = { show: false, type: 'none', prompt: '', selectableSeats: [], buttons: [], submitPacketType: PACKET_TYPE.ACTION_SUBMIT };
     let personalMessage = getPhaseMessageForPlayer(ctx.phase, ctx);
 
